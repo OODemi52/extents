@@ -1,20 +1,70 @@
-import { Route, Routes } from "react-router-dom";
+import { Button } from "@heroui/button";
+import { Card } from "@heroui/card";
+import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
+import { useState } from "react";
 
-import IndexPage from "@/pages/index";
-import DocsPage from "@/pages/docs";
-import PricingPage from "@/pages/pricing";
-import BlogPage from "@/pages/blog";
-import AboutPage from "@/pages/about";
+type ImageData = {
+  path: string;
+  base64: string;
+};
 
 function App() {
+  const [images, setImages] = useState<ImageData[]>([]);
+  const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
+
+  async function pickFolderAndListImages() {
+    const folderPath = await open({ directory: true });
+
+    if (typeof folderPath === "string") {
+      try {
+        const imageFiles: ImageData[] = await invoke("list_images_in_folder", {
+          folderPath,
+        });
+
+        setImages(imageFiles);
+      } catch (error) {
+        throw error;
+      }
+    }
+  }
+
   return (
-    <Routes>
-      <Route element={<IndexPage />} path="/" />
-      <Route element={<DocsPage />} path="/docs" />
-      <Route element={<PricingPage />} path="/pricing" />
-      <Route element={<BlogPage />} path="/blog" />
-      <Route element={<AboutPage />} path="/about" />
-    </Routes>
+    <main className="overflow-hidden overscroll-none">
+      {!selectedImage && (
+        <Button onPress={pickFolderAndListImages}>Pick Folder</Button>
+      )}
+
+      {selectedImage && (
+        <div className="mt-4">
+          <img
+            src={`data:image/*;base64,${selectedImage.base64}`}
+            alt="Selected"
+            className="w-full max-h-[80vh] object-contain rounded-none"
+          />
+        </div>
+      )}
+
+      <div className="flex overflow-hidden overscroll-none gap-2 p-2 border-t border-gray-300 mt-4">
+        {images.map((image, idx) => (
+          <Card
+            className="rounded-small"
+            key={idx}
+            onPress={() => setSelectedImage(image)}
+          >
+            <img
+              src={`data:image/*;base64,${image.base64}`}
+              alt={`Image ${idx}`}
+              className={`w-[100px] h-auto cursor-pointer ${
+                selectedImage?.path === image.path
+                  ? "border-2 border-blue-500"
+                  : "border-none"
+              }`}
+            />
+          </Card>
+        ))}
+      </div>
+    </main>
   );
 }
 

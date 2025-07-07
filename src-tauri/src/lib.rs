@@ -14,7 +14,6 @@ pub fn run() {
             Ok(())
         })
         // Plugin setup
-        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         // Function invocations
