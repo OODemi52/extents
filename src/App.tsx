@@ -1,55 +1,80 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import "./App.css";
 
+type ImageData = {
+  path: string;
+  base64: string;
+};
+
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [images, setImages] = useState<ImageData[]>([]);
+  const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("pick_image_folder_and_list_images"));
-  }
-
-  async function pickFolder() {
+  async function pickFolderAndListImages() {
     const folderPath = await open({ directory: true });
-    console.log("Selected folder:", folderPath);
+
+    if (typeof folderPath === "string") {
+      console.log("Folder selected:", folderPath);
+
+      try {
+        const imageFiles: ImageData[] = await invoke("list_images_in_folder", {
+          folderPath,
+        });
+
+        console.log("Images returned:", imageFiles);
+        setImages(imageFiles);
+      } catch (error) {
+        console.error("Error invoking list_images_in_folder:", error);
+      }
+    } else {
+      console.log("No folder selected.");
+    }
   }
 
   return (
     <main className="container">
       <h1>Welcome to Tauri + React</h1>
 
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+      <button onClick={pickFolderAndListImages}>Pick Folder</button>
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          pickFolder();
+      {selectedImage && (
+        <div style={{ marginTop: "1rem" }}>
+          <img
+            src={`data:image/*;base64,${selectedImage.base64}`}
+            alt="Selected"
+            style={{ width: "100%", maxHeight: "80vh", objectFit: "contain" }}
+          />
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          overflowX: "auto",
+          gap: "0.5rem",
+          padding: "0.5rem",
+          borderTop: "1px solid #ccc",
+          marginTop: "1rem",
         }}
       >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
+        {images.map((image, idx) => (
+          <img
+            key={idx}
+            src={`data:image/*;base64,${image.base64}`}
+            alt={`Image ${idx}`}
+            style={{
+              width: "100px",
+              height: "auto",
+              cursor: "pointer",
+              border:
+                selectedImage?.path === image.path ? "2px solid blue" : "none",
+            }}
+            onClick={() => setSelectedImage(image)}
+          />
+        ))}
+      </div>
     </main>
   );
 }
