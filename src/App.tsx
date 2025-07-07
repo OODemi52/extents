@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import "./App.css";
+import { Button } from "@heroui/button";
 
 type ImageData = {
   path: string;
@@ -34,43 +34,32 @@ function App() {
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <button onClick={pickFolderAndListImages}>Pick Folder</button>
+    <main className="overflow-hidden overscroll-none">
+      {!selectedImage && (
+        <Button onPress={pickFolderAndListImages}>Pick Folder</Button>
+      )}
 
       {selectedImage && (
-        <div style={{ marginTop: "1rem" }}>
+        <div className="mt-4">
           <img
             src={`data:image/*;base64,${selectedImage.base64}`}
             alt="Selected"
-            style={{ width: "100%", maxHeight: "80vh", objectFit: "contain" }}
+            className="w-full max-h-[80vh] object-contain"
           />
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          overflowX: "auto",
-          gap: "0.5rem",
-          padding: "0.5rem",
-          borderTop: "1px solid #ccc",
-          marginTop: "1rem",
-        }}
-      >
+      <div className="flex overflow-hidden overscroll-none gap-2 p-2 border-t border-gray-300 mt-4">
         {images.map((image, idx) => (
           <img
             key={idx}
             src={`data:image/*;base64,${image.base64}`}
             alt={`Image ${idx}`}
-            style={{
-              width: "100px",
-              height: "auto",
-              cursor: "pointer",
-              border:
-                selectedImage?.path === image.path ? "2px solid blue" : "none",
-            }}
+            className={`w-[100px] h-auto cursor-pointer ${
+              selectedImage?.path === image.path
+                ? "border-2 border-blue-500"
+                : "border-none"
+            }`}
             onClick={() => setSelectedImage(image)}
           />
         ))}

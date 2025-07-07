@@ -10,12 +10,25 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@heroui/button": "^2.2.22",
+    "@heroui/card": "^2.2.21",
+    "@heroui/drawer": "^2.2.19",
+    "@heroui/image": "^2.2.14",
+    "@heroui/react": "^2.7.11",
+    "@heroui/select": "^2.4.22",
+    "@heroui/shared-utils": "^2.1.9",
+    "@heroui/slider": "^2.4.19",
+    "@heroui/system": "^2.4.18",
+    "@heroui/theme": "^2.4.17",
+    "@heroui/toast": "^2.0.12",
+    "@tailwindcss/vite": "^4.1.11",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.3.0",
     "@tauri-apps/plugin-fs": "^2.4.0",
     "@tauri-apps/plugin-opener": "^2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "framer-motion": "^12.23.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
