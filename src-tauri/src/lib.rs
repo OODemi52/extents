@@ -16,10 +16,12 @@ pub fn run() {
         // Plugin setup
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        // Function invocations
-        .invoke_handler(tauri::generate_handler![commands::file::get_file])
-        .invoke_handler(tauri::generate_handler![commands::file::get_file_thumbnail])
-        .invoke_handler(tauri::generate_handler![commands::file::get_file_metadata])
+        // Handler unction invocations
+        .invoke_handler(tauri::generate_handler![
+            commands::file::get_file,
+            commands::file::get_file_thumbnail,
+            commands::file::get_file_metadata
+        ])
         // Running the application
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

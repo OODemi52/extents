@@ -28,6 +28,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "@react-aria/visually-hidden": "3.8.25",
     "@react-types/shared": "3.30.0",
+    "@tanstack/react-virtual": "^3.13.12",
     "@tauri-apps/plugin-dialog": "^2.3.0",
     "@tauri-apps/plugin-fs": "^2.4.0",
     "clsx": "2.1.1",

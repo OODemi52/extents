@@ -38,7 +38,6 @@ pub fn get_file_metadata(folder_path: String) -> Vec<ImageMetadata> {
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
-
             let metadata = match std::fs::metadata(&path) {
                 Ok(md) => md,
                 Err(_) => continue, // Later impl render of broken file
