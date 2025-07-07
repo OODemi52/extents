@@ -1,12 +1,17 @@
-use tauri_plugin_dialog::DialogExt;
-use tauri_plugin_fs::FsExt;
+pub mod commands;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Plugin setup
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
+        // Function invocations
+        .invoke_handler(tauri::generate_handler![
+            commands::file::list_images_in_folder
+        ])
+        // Running the application
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

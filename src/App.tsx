@@ -1,6 +1,7 @@
 import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import "./App.css";
 
 function App() {
@@ -9,7 +10,12 @@ function App() {
 
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+    setGreetMsg(await invoke("pick_image_folder_and_list_images"));
+  }
+
+  async function pickFolder() {
+    const folderPath = await open({ directory: true });
+    console.log("Selected folder:", folderPath);
   }
 
   return (
@@ -33,7 +39,7 @@ function App() {
         className="row"
         onSubmit={(e) => {
           e.preventDefault();
-          greet();
+          pickFolder();
         }}
       >
         <input
