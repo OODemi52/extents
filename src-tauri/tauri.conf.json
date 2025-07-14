@@ -13,14 +13,18 @@
     "windows": [
       {
         "title": "extents",
-        "width": 800,
-        "height": 600,
+        "width": 1280,
+        "height": 800,
         "resizable": true,
         "fullscreen": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
     }
   },
   "bundle": {
