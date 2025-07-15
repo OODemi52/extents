@@ -1,16 +1,18 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 
+import { ImageMetadata } from "@/types/image";
+
 interface ImageViewerProps {
   selectedIndex: number | null;
   currentImageData: string | null;
   isLoading: boolean;
-  imagePaths: Array<{ file_name: string }>;
+  fileMetadataList: ImageMetadata[];
 }
 
 export function ImageViewer({
   selectedIndex,
   isLoading,
-  imagePaths,
+  fileMetadataList,
 }: ImageViewerProps) {
   return (
     <div className="flex-grow flex items-center justify-center p-4">
@@ -22,19 +24,20 @@ export function ImageViewer({
 
       {selectedIndex !== null &&
         typeof selectedIndex === "number" &&
-        imagePaths[selectedIndex] && (
+        fileMetadataList[selectedIndex].path && (
           <img
-            alt={imagePaths[selectedIndex]?.file_name || "Selected image"}
+            alt={fileMetadataList[selectedIndex]?.fileName || "Selected image"}
             className="max-w-full max-h-full object-contain"
-            src={convertFileSrc(imagePaths[selectedIndex].file_name)}
+            src={convertFileSrc(fileMetadataList[selectedIndex].fileName)}
           />
         )}
 
       {(selectedIndex === null ||
-        (typeof selectedIndex === "number" && !imagePaths[selectedIndex])) &&
+        (typeof selectedIndex === "number" &&
+          !fileMetadataList[selectedIndex])) &&
         !isLoading && (
           <div className="text-gray-500">
-            {imagePaths.length
+            {fileMetadataList.length
               ? "Select an image to view"
               : "No folder selected"}
           </div>

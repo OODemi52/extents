@@ -1,21 +1,19 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import { useState, useCallback } from "react";
 
 import { Filmstrip } from "./components/filmstrip";
 import { Header } from "./components/header";
 import { ImageViewer } from "./components/image-viewer";
 import { ImageMetadata } from "./types/image";
-import { ImageMetadataResponse } from "./types/repsonse";
 
 function App() {
-  const [imagePaths, setImagePaths] = useState<string[]>([]);
+  const [fileMetadataList, setfileMetadataList] = useState<ImageMetadata[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [currentImageData, setCurrentImageData] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  async function pickFolderAndListImages() {
+  async function getfileMetadataList() {
     const folderPath = await open({ directory: true });
 
     if (!folderPath || typeof folderPath !== "string") return;
@@ -23,14 +21,11 @@ function App() {
     setIsLoading(true);
 
     try {
-      const metadata_list: ImageMetadataResponse[] = await invoke(
-        "get_file_metadata",
-        { folderPath },
-      );
+      const metadata_list: ImageMetadata[] = await invoke("get_file_metadata", {
+        folderPath,
+      });
 
-      metadata_list.map((metadata) => imagePaths.push(metadata.path));
-
-      setImagePaths(imagePaths);
+      setfileMetadataList(metadata_list);
 
       setSelectedIndex(null);
 
@@ -44,12 +39,12 @@ function App() {
 
   const handleSelectImage = useCallback(
     async (index: number) => {
-      if (index < 0 || index >= imagePaths.length) return;
+      if (index < 0 || index >= fileMetadataList.length) return;
 
       setSelectedIndex(index);
       setIsLoading(true);
       try {
-        const path = imagePaths[index].path;
+        const path = fileMetadataList[index].path;
         const result = await invoke("get_file", { imagePath: path });
 
         setCurrentImageData(result as string);
@@ -59,43 +54,23 @@ function App() {
         setIsLoading(false);
       }
     },
-    [imagePaths],
+    [fileMetadataList],
   );
 
-  const getThumbnailForImage = useCallback(async (path: string) => {
-    // Take in file path
-    // Create unique hash/id
-    // Use to cache and recall
-    try {
-      const thumbPath: string = await invoke("get_thumbnail_path", {
-        imagePath: path,
-        maxSize: 100,
-      });
-      const convertedThumbPath: string = convertFileSrc(thumbPath);
-
-      return convertedThumbPath;
-    } catch (error) {
-      //add better handling
-      console.error(`Failed to get thumbnail for ${path}:`, error);
-      return null;
-    }
-  }, []);
-
   return (
-    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex flex-col h-screen">
       <Header
-        hasImages={imagePaths.length > 0}
-        onPickFolder={pickFolderAndListImages}
+        hasImages={fileMetadataList.length > 0}
+        onPickFolder={getfileMetadataList}
       />
       <ImageViewer
         currentImageData={currentImageData}
-        imagePaths={imagePaths}
+        fileMetadataList={fileMetadataList}
         isLoading={isLoading}
         selectedIndex={selectedIndex}
       />
       <Filmstrip
-        getThumbnailForImage={getThumbnailForImage}
-        imagePaths={imagePaths}
+        fileMetadataList={fileMetadataList}
         selectedIndex={selectedIndex}
         onSelectImage={handleSelectImage}
       />
