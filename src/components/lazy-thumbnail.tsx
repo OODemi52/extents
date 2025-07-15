@@ -1,6 +1,6 @@
 import { Card } from "@heroui/card";
 import { Skeleton } from "@heroui/skeleton";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface LazyThumbnailProps {
@@ -12,24 +12,25 @@ interface LazyThumbnailProps {
 
 export function LazyThumbnail({
   path,
-  index,
   isSelected,
   onClick,
 }: LazyThumbnailProps) {
   const thumbnailRef = useRef<HTMLDivElement>(null);
   const imgSrc = path ? convertFileSrc(path) : null;
 
-  useEffect(() => {
-    console.log(path);
-  }, []);
+  const handleClick = () => {
+    onClick();
+  };
 
   return (
     <Card
+      disableRipple
+      isPressable
       className={`aspect-square shrink-0 cursor-pointer ${
         isSelected ? "ring-2 ring-blue-500" : ""
       }`}
       radius="none"
-      onPress={onClick}
+      onPress={handleClick}
     >
       <div ref={thumbnailRef} className="w-full h-full">
         {imgSrc ? (

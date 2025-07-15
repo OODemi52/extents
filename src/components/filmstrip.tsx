@@ -1,29 +1,28 @@
-import { useEffect, useRef } from "react";
+// components/Filmstrip.tsx
+import { useRef } from "react";
 
 import { useImageStore } from "../store/image-store";
+import { useImageLoader } from "../hooks/use-image-loader";
 
 import { LazyThumbnail } from "./lazy-thumbnail";
 
-interface FilmstripProps {
-  onSelectImage: (idx: number) => void;
-}
-
-export function Filmstrip({ onSelectImage }: FilmstripProps) {
+export function Filmstrip() {
   const filmstripRef = useRef<HTMLDivElement>(null);
   const { fileMetadataList, selectedIndex } = useImageStore();
+  const { handleSelectImage } = useImageLoader();
 
   return (
     <div
       ref={filmstripRef}
       className="h-24 overflow-x-auto overflow-y-hidden flex gap-2 p-2 pb-4"
     >
-      {fileMetadataList.map((file, idx) => (
+      {fileMetadataList.map((file, index) => (
         <LazyThumbnail
-          key={`${file.path}-${idx}`}
-          index={idx}
-          isSelected={idx === selectedIndex}
-          path={file.thumbnailPath || "none"}
-          onClick={() => onSelectImage(idx)}
+          key={`${file.path}-${index}`}
+          index={index}
+          isSelected={index === selectedIndex}
+          path={file.thumbnailPath || ""}
+          onClick={() => handleSelectImage(index)}
         />
       ))}
     </div>

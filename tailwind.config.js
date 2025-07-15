@@ -15,17 +15,17 @@ export default {
   darkMode: "class",
   plugins: [
     heroui({
-      defaultTheme: "classic",
+      defaultTheme: "dark",
       defaultExtendTheme: "dark",
       layout: {},
       themes: {
         light: {
           layout: {},
-          colors: {},
+          colors: { background: { DEFAULT: "none" } },
         },
         dark: {
           layout: {},
-          colors: {},
+          colors: { background: { DEFAULT: "none" } },
         },
       },
     }),

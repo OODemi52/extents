@@ -1,27 +1,26 @@
 import { create } from "zustand";
 
-import { ImageMetadata } from "@/types/image";
+import { ImageMetadata } from "../types/image";
 
-interface ImageState {
+interface ImageStore {
   fileMetadataList: ImageMetadata[];
   selectedIndex: number | null;
   currentImageData: string | null;
   isLoading: boolean;
-
-  setFiles: (files: ImageMetadata[]) => void;
-  selectImage: (index: number) => void;
-  setImageData: (data: string) => void;
-  setLoading: (value: boolean) => void;
+  setFileMetadataList: (list: ImageMetadata[]) => void;
+  setSelectedIndex: (index: number | null) => void;
+  setCurrentImageData: (data: string | null) => void;
+  setIsLoading: (loading: boolean) => void;
 }
 
-export const useImageStore = create<ImageState>((set) => ({
+export const useImageStore = create<ImageStore>((set) => ({
   fileMetadataList: [],
   selectedIndex: null,
   currentImageData: null,
   isLoading: false,
 
-  setFiles: (files) => set({ fileMetadataList: files }),
-  selectImage: (index) => set({ selectedIndex: index }),
-  setImageData: (data) => set({ currentImageData: data }),
-  setLoading: (value) => set({ isLoading: value }),
+  setFileMetadataList: (list) => set({ fileMetadataList: list }),
+  setSelectedIndex: (index) => set({ selectedIndex: index }),
+  setCurrentImageData: (data) => set({ currentImageData: data }),
+  setIsLoading: (loading) => set({ isLoading: loading }),
 }));
