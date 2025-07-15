@@ -1,19 +1,13 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 
-import { ImageMetadata } from "@/types/image";
+import { useImageStore } from "../store/image-store";
 
-interface ImageViewerProps {
-  selectedIndex: number | null;
-  currentImageData: string | null;
-  isLoading: boolean;
-  fileMetadataList: ImageMetadata[];
-}
+export function ImageViewer() {
+  const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
 
-export function ImageViewer({
-  selectedIndex,
-  isLoading,
-  fileMetadataList,
-}: ImageViewerProps) {
+  const selected =
+    selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
+
   return (
     <div className="flex-grow flex items-center justify-center p-4">
       {isLoading && (
@@ -22,26 +16,21 @@ export function ImageViewer({
         </div>
       )}
 
-      {selectedIndex !== null &&
-        typeof selectedIndex === "number" &&
-        fileMetadataList[selectedIndex].path && (
-          <img
-            alt={fileMetadataList[selectedIndex]?.fileName || "Selected image"}
-            className="max-w-full max-h-full object-contain"
-            src={convertFileSrc(fileMetadataList[selectedIndex].fileName)}
-          />
-        )}
+      {selected?.path && (
+        <img
+          alt={selected.fileName}
+          className="max-w-full max-h-full object-contain"
+          src={convertFileSrc(selected.path)}
+        />
+      )}
 
-      {(selectedIndex === null ||
-        (typeof selectedIndex === "number" &&
-          !fileMetadataList[selectedIndex])) &&
-        !isLoading && (
-          <div className="text-gray-500">
-            {fileMetadataList.length
-              ? "Select an image to view"
-              : "No folder selected"}
-          </div>
-        )}
+      {!selected?.path && !isLoading && (
+        <div className="text-gray-500">
+          {fileMetadataList.length
+            ? "Select an image to view"
+            : "No folder selected"}
+        </div>
+      )}
     </div>
   );
 }

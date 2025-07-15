@@ -3,6 +3,7 @@ use image::{self, imageops};
 use std::path::PathBuf;
 
 #[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImageMetadata {
     path: String,
     thumbnail_path: Option<String>,

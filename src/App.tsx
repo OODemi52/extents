@@ -1,57 +1,54 @@
+import { useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useState, useCallback } from "react";
 
-import { Filmstrip } from "./components/filmstrip";
 import { Header } from "./components/header";
+import { Filmstrip } from "./components/filmstrip";
 import { ImageViewer } from "./components/image-viewer";
+import { useImageStore } from "./store/image-store";
 import { ImageMetadata } from "./types/image";
 
 function App() {
-  const [fileMetadataList, setfileMetadataList] = useState<ImageMetadata[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [currentImageData, setCurrentImageData] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { setFiles, selectImage, setImageData, setLoading, fileMetadataList } =
+    useImageStore();
 
   async function getfileMetadataList() {
     const folderPath = await open({ directory: true });
 
     if (!folderPath || typeof folderPath !== "string") return;
 
-    setIsLoading(true);
-
+    setLoading(true);
     try {
-      const metadata_list: ImageMetadata[] = await invoke("get_file_metadata", {
+      const metadataList: ImageMetadata[] = await invoke("get_file_metadata", {
         folderPath,
       });
 
-      setfileMetadataList(metadata_list);
-
-      setSelectedIndex(null);
-
-      setCurrentImageData(null);
-    } catch (error) {
-      throw `Failed to load folder: ${error}`;
+      setFiles(metadataList);
+      selectImage(0);
+      setImageData("");
+    } catch (err) {
+      console.error("Failed to load folder", err);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
-
   const handleSelectImage = useCallback(
     async (index: number) => {
       if (index < 0 || index >= fileMetadataList.length) return;
 
-      setSelectedIndex(index);
-      setIsLoading(true);
-      try {
-        const path = fileMetadataList[index].path;
-        const result = await invoke("get_file", { imagePath: path });
+      selectImage(index);
+      setLoading(true);
 
-        setCurrentImageData(result as string);
-      } catch (error) {
-        throw `Failed to load image: ${error}`;
+      try {
+        const result = await invoke("get_file", {
+          imagePath: fileMetadataList[index].path,
+        });
+
+        setImageData(result as string);
+      } catch (err) {
+        console.error("Failed to load image", err);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     },
     [fileMetadataList],
@@ -63,17 +60,8 @@ function App() {
         hasImages={fileMetadataList.length > 0}
         onPickFolder={getfileMetadataList}
       />
-      <ImageViewer
-        currentImageData={currentImageData}
-        fileMetadataList={fileMetadataList}
-        isLoading={isLoading}
-        selectedIndex={selectedIndex}
-      />
-      <Filmstrip
-        fileMetadataList={fileMetadataList}
-        selectedIndex={selectedIndex}
-        onSelectImage={handleSelectImage}
-      />
+      <ImageViewer />
+      <Filmstrip onSelectImage={handleSelectImage} />
     </div>
   );
 }

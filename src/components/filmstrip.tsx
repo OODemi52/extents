@@ -1,15 +1,16 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
-import { FilmstripProps } from "../types/image";
+import { useImageStore } from "../store/image-store";
 
 import { LazyThumbnail } from "./lazy-thumbnail";
 
-export function Filmstrip({
-  fileMetadataList,
-  selectedIndex,
-  onSelectImage,
-}: FilmstripProps) {
+interface FilmstripProps {
+  onSelectImage: (idx: number) => void;
+}
+
+export function Filmstrip({ onSelectImage }: FilmstripProps) {
   const filmstripRef = useRef<HTMLDivElement>(null);
+  const { fileMetadataList, selectedIndex } = useImageStore();
 
   return (
     <div
@@ -18,9 +19,10 @@ export function Filmstrip({
     >
       {fileMetadataList.map((file, idx) => (
         <LazyThumbnail
-          key={`${file} + ${idx}`}
+          key={`${file.path}-${idx}`}
+          index={idx}
           isSelected={idx === selectedIndex}
-          path={file.thumbnailPath || ""}
+          path={file.thumbnailPath || "none"}
           onClick={() => onSelectImage(idx)}
         />
       ))}

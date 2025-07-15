@@ -1,12 +1,27 @@
 import { Card } from "@heroui/card";
 import { Skeleton } from "@heroui/skeleton";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
-import { ThumbnailProps } from "../types/image";
+interface LazyThumbnailProps {
+  path: string;
+  index: number;
+  isSelected: boolean;
+  onClick: () => void;
+}
 
-export function LazyThumbnail({ path, isSelected, onClick }: ThumbnailProps) {
+export function LazyThumbnail({
+  path,
+  index,
+  isSelected,
+  onClick,
+}: LazyThumbnailProps) {
   const thumbnailRef = useRef<HTMLDivElement>(null);
+  const imgSrc = path ? convertFileSrc(path) : null;
+
+  useEffect(() => {
+    console.log(path);
+  }, []);
 
   return (
     <Card
@@ -17,19 +32,17 @@ export function LazyThumbnail({ path, isSelected, onClick }: ThumbnailProps) {
       onPress={onClick}
     >
       <div ref={thumbnailRef} className="w-full h-full">
-        {path ? (
+        {imgSrc ? (
           <img
             alt="Thumbnail"
             className="w-full h-full object-cover"
-            src={convertFileSrc(path)}
+            src={imgSrc}
           />
         ) : (
           <Skeleton className="w-full h-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-            {path ? (
-              <div className="animate-pulse w-6 h-6 rounded-full bg-gray-400" />
-            ) : (
-              <div className="w-6 h-6 rounded-full bg-gray⛓️‍💥-400">⛓️‍💥</div>
-            )}
+            <div className="animate-pulse w-6 h-6 rounded-full bg-gray-400">
+              ⛓️‍💥
+            </div>
           </Skeleton>
         )}
       </div>
