@@ -31,6 +31,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         // Handler unction invocations
         .invoke_handler(tauri::generate_handler![
+            commands::file::scan_folders,
             commands::file::get_file,
             commands::file::get_thumbnail_path,
             commands::file::get_file_metadata,

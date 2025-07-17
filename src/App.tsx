@@ -16,8 +16,14 @@ function App() {
     fileMetadataList,
   } = useImageStore();
 
-  async function getfileMetadataList() {
-    const folderPath = await open({ directory: true });
+  async function getfileMetadataList(path: string | null = null) {
+    let folderPath: string | null = null;
+
+    if (typeof path === "string" && path.length > 0) {
+      folderPath = path;
+    } else {
+      folderPath = (await open({ directory: true })) as string | null;
+    }
 
     if (!folderPath || typeof folderPath !== "string") return;
 
@@ -31,7 +37,7 @@ function App() {
       setSelectedIndex(0);
       setCurrentImageData("");
     } catch (err) {
-      console.error("Failed to load folder", err);
+      alert(`Failed to load folder: ${err}`);
     } finally {
       setIsLoading(false);
     }
