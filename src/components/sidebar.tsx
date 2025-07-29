@@ -53,7 +53,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
   }, [currentFolderPath]);
 
   return (
-    <div className=" bg-zinc-950/50 p-4 flex flex-col min-w-60 w-60 overflow-scroll">
+    <div className=" bg-zinc-950/50 py-4 flex flex-col min-w-60 w-60 overflow-scroll">
       <div className="flex justify-between">
         <Button
           disableRipple
@@ -76,8 +76,8 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
       <Listbox
         isVirtualized
         aria-label="User Directory"
-        className="h-full"
-        classNames={{ list: "h-[100%]" }}
+        className=""
+        classNames={{ list: "", base: "", emptyContent: "" }}
         items={folderList
           .filter((folderPath) => {
             const folderName = folderPath.split("/").pop() || folderPath;
@@ -95,8 +95,8 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
             label: folderPath.split("/").pop() || folderPath,
           }))}
         virtualization={{
-          maxListboxHeight: 400,
-          itemHeight: 40,
+          maxListboxHeight: 1000,
+          itemHeight: 12,
         }}
         onAction={handleNextFolderPath}
       >
@@ -104,6 +104,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
           <ListboxItem
             key={item.key}
             className={""}
+            classNames={{ title: "font-light text-sm" }}
             color={item.key === "delete" ? "danger" : "default"}
             startContent={<FolderIcon />}
           >
