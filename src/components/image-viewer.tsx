@@ -15,11 +15,13 @@ export function ImageViewer() {
         </div>
       )}
       {selected?.path && (
-        <img
-          alt={selected.fileName}
-          className="max-w-full max-h-full object-contain"
-          src={convertFileSrc(selected.path)}
-        />
+        <div className="w-[600px] h-[400px] flex items-center justify-center">
+          <img
+            alt={selected.fileName}
+            className="max-w-full max-h-full object-contain"
+            src={convertFileSrc(selected.path)}
+          />
+        </div>
       )}
       {!selected?.path && !isLoading && (
         <div className="text-gray-500">

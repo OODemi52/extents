@@ -1,5 +1,5 @@
 use base64::{engine::general_purpose, Engine as _};
-use image::{self, imageops};
+use image::{self, imageops, GenericImageView};
 use std::path::PathBuf;
 
 #[derive(serde::Serialize)]
@@ -45,23 +45,6 @@ pub async fn scan_folders(path: Option<String>) -> Result<Vec<String>, String> {
         })
         .collect();
 
-    Ok(entries)
-}
-
-#[tauri::command]
-fn get_folders_in_directory(path: String) -> Result<Vec<String>, String> {
-    let entries = std::fs::read_dir(path)
-        .map_err(|e| e.to_string())?
-        .filter_map(|e| {
-            let entry = e.ok()?;
-            let path = entry.path();
-            if path.is_dir() {
-                Some(path.to_string_lossy().into_owned())
-            } else {
-                None
-            }
-        })
-        .collect();
     Ok(entries)
 }
 
@@ -237,4 +220,62 @@ pub fn get_thumbnail(image_path: String, max_size: u32) -> Result<String, String
     let base64 = general_purpose::STANDARD.encode(&thumbnail_data);
 
     Ok(base64)
+}
+
+#[tauri::command]
+pub fn get_proxy_file_path(image_path: String, max_size: u32) -> Result<String, String> {
+    let original_path = PathBuf::from(&image_path);
+
+    if !original_path.exists() {
+        return Err("Original file does not exist".into());
+    }
+
+    let cache_dir = dirs::cache_dir()
+        .unwrap_or_else(|| std::env::temp_dir())
+        .join("com.extents.cache");
+
+    std::fs::create_dir_all(&cache_dir).ok();
+
+    let proxy_file_name = format!(
+        "{}_{}_full_size_proxy.jpg",
+        original_path
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy(),
+        max_size
+    );
+
+    let proxy_file_path = cache_dir.join(proxy_file_name);
+
+    if proxy_file_path.exists() {
+        return Ok(proxy_file_path.to_string_lossy().to_string());
+    }
+
+    match image::open(&original_path) {
+        Ok(img) => {
+            let (new_width, new_height) = {
+                let (w, h) = img.dimensions();
+                if w > h {
+                    let ratio = h as f32 / w as f32;
+                    (max_size, (max_size as f32 * ratio).round() as u32)
+                } else {
+                    let ratio = w as f32 / h as f32;
+                    ((max_size as f32 * ratio).round() as u32, max_size)
+                }
+            };
+
+            let proxy = img.resize_exact(new_width, new_height, imageops::FilterType::Triangle);
+
+            let mut file = std::fs::File::create(&proxy_file_path)
+                .map_err(|e| format!("Failed to create proxy file: {}", e))?;
+
+            proxy
+                .write_to(&mut file, image::ImageFormat::Jpeg)
+                .map_err(|e| format!("Failed to write proxy file: {}", e))?;
+
+            Ok(proxy_file_path.to_string_lossy().to_string())
+        }
+
+        Err(e) => Err(format!("Failed to open image: {}", e)),
+    }
 }
