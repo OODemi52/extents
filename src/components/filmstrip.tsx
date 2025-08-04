@@ -1,4 +1,3 @@
-// components/Filmstrip.tsx
 import { useRef } from "react";
 
 import { useImageStore } from "../store/image-store";

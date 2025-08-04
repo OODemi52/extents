@@ -5,6 +5,7 @@ import { Listbox, ListboxItem } from "@heroui/listbox";
 import { ArrowLeftIcon, FolderIcon } from "@phosphor-icons/react";
 import { Key } from "@react-types/shared";
 import { FolderNotchOpenIcon } from "@phosphor-icons/react/dist/ssr";
+import { Dropdown, DropdownItem } from "@heroui/dropdown";
 
 import { useImageStore } from "../store/image-store";
 
@@ -18,6 +19,17 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
     useImageStore();
 
   const [folderHistory, setFolderHistory] = useState<string[]>([]);
+
+  const [subdirectoryList, setSubdirectoryList] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (currentFolderPath) {
+      invoke<string[]>("scan_folders", { path: currentFolderPath }).then(
+        setFolderList,
+      );
+      console.log(folderList);
+    }
+  }, [currentFolderPath]);
 
   useEffect(() => {
     folderHistory.push(currentFolderPath as string);
@@ -53,7 +65,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
   }, [currentFolderPath]);
 
   return (
-    <div className=" bg-zinc-950/50 py-4 flex flex-col min-w-60 w-60 overflow-scroll">
+    <div className=" bg-zinc-950/50 py-0 flex flex-col min-w-60 w-60 overflow-scroll">
       <div className="flex justify-between">
         <Button
           disableRipple
@@ -76,7 +88,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
       <Listbox
         isVirtualized
         aria-label="User Directory"
-        className=""
+        className="flex-1"
         classNames={{ list: "", base: "", emptyContent: "" }}
         items={folderList
           .filter((folderPath) => {
@@ -96,7 +108,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
           }))}
         virtualization={{
           maxListboxHeight: 1000,
-          itemHeight: 12,
+          itemHeight: 32,
         }}
         onAction={handleNextFolderPath}
       >
@@ -107,6 +119,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
             classNames={{ title: "font-light text-sm" }}
             color={item.key === "delete" ? "danger" : "default"}
             startContent={<FolderIcon />}
+            onPress={() => console.log("clicked")}
           >
             {item.label}
           </ListboxItem>

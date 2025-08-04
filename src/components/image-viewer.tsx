@@ -2,27 +2,27 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { useImageStore } from "../store/image-store";
 
+import { ImageCanvas } from "./image-canvas";
+
 export function ImageViewer() {
   const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
   const selected =
     selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
 
   return (
-    <div className="flex-grow flex items-center justify-center p-4">
+    <div className="flex-grow flex items-center justify-center p-4 relative">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/80 backdrop-blur">
           Loading...
         </div>
       )}
+
       {selected?.path && (
         <div className="w-[600px] h-[400px] flex items-center justify-center">
-          <img
-            alt={selected.fileName}
-            className="max-w-full max-h-full object-contain"
-            src={convertFileSrc(selected.path)}
-          />
+          <ImageCanvas imageUrl={convertFileSrc(selected.path)} />
         </div>
       )}
+
       {!selected?.path && !isLoading && (
         <div className="text-gray-500">
           {fileMetadataList.length
