@@ -6,6 +6,7 @@ import { Filmstrip } from "./components/filmstrip";
 import { ImageViewer } from "./components/image-viewer";
 import { useImageStore } from "./store/image-store";
 import { ImageMetadata } from "./types/image";
+import { EditPanel } from "./components/edit-panel";
 
 function App() {
   const {
@@ -53,6 +54,7 @@ function App() {
         <ImageViewer />
         <Filmstrip />
       </div>
+      <EditPanel />
     </div>
   );
 }

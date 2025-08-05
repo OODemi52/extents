@@ -1,6 +1,14 @@
 import { useRef, useEffect } from "react";
 
-export function ImageCanvas({ imageUrl }: { imageUrl: string }) {
+export function ImageCanvas({
+  imageUrl,
+  brightness,
+  contrast,
+}: {
+  imageUrl: string;
+  brightness: number;
+  contrast: number;
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -44,10 +52,16 @@ export function ImageCanvas({ imageUrl }: { imageUrl: string }) {
       // Flip the image vertically
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-      // Draw
-      drawImage(gl, texture as WebGLTexture, image, canvas);
+      drawImage(
+        gl,
+        texture as WebGLTexture,
+        image,
+        canvas,
+        brightness,
+        contrast,
+      );
     };
-  }, [imageUrl]);
+  }, [imageUrl, brightness, contrast]);
 
   return <canvas ref={canvasRef} height={600} width={800} />;
 }
@@ -57,6 +71,8 @@ function drawImage(
   texture: WebGLTexture,
   image: HTMLImageElement,
   canvas: HTMLCanvasElement,
+  brightness: number,
+  contrast: number,
 ) {
   const vertexShaderSource = `
     attribute vec2 a_position;
@@ -69,13 +85,19 @@ function drawImage(
   `;
 
   const fragmentShaderSource = `
-    precision mediump float;
-    varying vec2 v_texCoord;
-    uniform sampler2D u_image;
-    void main() {
-      gl_FragColor = texture2D(u_image, v_texCoord);
-    }
-  `;
+      precision mediump float;
+      varying vec2 v_texCoord;
+      uniform sampler2D u_image;
+      uniform float u_brightness;
+      uniform float u_contrast;
+
+      void main() {
+        vec4 color = texture2D(u_image, v_texCoord);
+        color.rgb += u_brightness;
+        color.rgb = (color.rgb - 0.5) * u_contrast + 0.5;
+        gl_FragColor = color;
+      }
+    `;
 
   const vs = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
   const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
@@ -147,8 +169,12 @@ function drawImage(
   gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0);
 
   const uImageLoc = gl.getUniformLocation(program, "u_image");
+  const uBrightnessLoc = gl.getUniformLocation(program, "u_brightness");
+  const uContrastLoc = gl.getUniformLocation(program, "u_contrast");
 
   gl.uniform1i(uImageLoc, 0); // use texture unit 0
+  gl.uniform1f(uBrightnessLoc, brightness);
+  gl.uniform1f(uContrastLoc, contrast);
 
   // Draw the quad
   gl.clear(gl.COLOR_BUFFER_BIT);
