@@ -25,30 +25,6 @@ fn is_valid_file(path: &PathBuf) -> bool {
 }
 
 #[tauri::command]
-pub async fn scan_folders(path: Option<String>) -> Result<Vec<String>, String> {
-    let root_path: PathBuf = match path {
-        Some(p) => PathBuf::from(p),
-
-        None => dirs::home_dir().ok_or("Could not find home directory")?,
-    };
-
-    let entries = std::fs::read_dir(&root_path)
-        .map_err(|e| e.to_string())?
-        .filter_map(|e| {
-            let entry = e.ok()?;
-            let path = entry.path();
-            if path.is_dir() {
-                Some(path.to_string_lossy().into_owned())
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    Ok(entries)
-}
-
-#[tauri::command]
 pub async fn get_file_metadata(folder_path: String) -> Vec<ImageMetadata> {
     let paths = std::fs::read_dir(folder_path).unwrap(); // Unwrap might panic, discouraged from using it. Either use pattern matching or unrwap_or/unwrap_or_else
 
