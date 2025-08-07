@@ -7,7 +7,7 @@ export function EditPanel() {
     <div className="bg-zinc-950/50 px-8 flex flex-col min-w-60 w-60">
       <div>
         <label
-          className="block text-sm text-foreground-50 font-medium"
+          className="block text-sm text-background-50 font-medium"
           htmlFor="brightness"
         >
           Brightness
@@ -26,7 +26,7 @@ export function EditPanel() {
 
       <div>
         <label
-          className="block text-sm text-foreground-50 font-medium"
+          className="block text-sm text-background-50 font-medium"
           htmlFor="contrast"
         >
           Contrast {contrast}

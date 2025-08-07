@@ -19,6 +19,7 @@ export function ImageCanvas({
     const gl = canvas.getContext("webgl");
 
     if (!gl) {
+      // eslint-disable-next-line no-console
       console.error("WebGL not supported");
 
       return;
@@ -85,7 +86,7 @@ function drawImage(
   `;
 
   const fragmentShaderSource = `
-      precision mediump float;
+      precision highp float;
       varying vec2 v_texCoord;
       uniform sampler2D u_image;
       uniform float u_brightness;
@@ -93,8 +94,8 @@ function drawImage(
 
       void main() {
         vec4 color = texture2D(u_image, v_texCoord);
-        color.rgb += u_brightness;
-        color.rgb = (color.rgb - 0.5) * u_contrast + 0.5;
+        color.rgb *= pow(2.2, u_brightness);  // Gamma corrected Exposure estimation
+        color.rgb = (color.rgb - 0.5) * u_contrast + 0.5; //Contrast estimation
         gl_FragColor = color;
       }
     `;
@@ -108,6 +109,7 @@ function drawImage(
   gl.linkProgram(program);
 
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    // eslint-disable-next-line no-console
     console.error("Shader program link failed:", gl.getProgramInfoLog(program));
 
     return;
@@ -115,7 +117,6 @@ function drawImage(
 
   gl.useProgram(program);
 
-  // Calculate aspect-corrected quad size
   const imageAspect = image.width / image.height;
   const canvasAspect = canvas.width / canvas.height;
 
@@ -155,7 +156,6 @@ function drawImage(
   gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
 
-  // Attributes
   const posLoc = gl.getAttribLocation(program, "a_position");
 
   gl.enableVertexAttribArray(posLoc);
@@ -176,7 +176,6 @@ function drawImage(
   gl.uniform1f(uBrightnessLoc, brightness);
   gl.uniform1f(uContrastLoc, contrast);
 
-  // Draw the quad
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
@@ -192,6 +191,7 @@ function compileShader(
   gl.compileShader(shader);
 
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    // eslint-disable-next-line no-console
     console.error(gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
     throw new Error("Shader compile failed");
