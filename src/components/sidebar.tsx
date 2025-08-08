@@ -24,9 +24,10 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
 
   useEffect(() => {
     if (currentFolderPath) {
-      invoke<string[]>("scan_dir_struct", { path: currentFolderPath }).then(
-        setFolderList,
-      );
+      invoke<string[]>("build_fs_tree", {
+        root: currentFolderPath,
+        scanLevel: 1,
+      }).then(setFolderList);
       console.log(folderList);
     }
   }, [currentFolderPath]);
@@ -59,8 +60,9 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
   };
 
   useEffect(() => {
-    invoke<string[]>("scan_dir_struct", {
-      path: currentFolderPath,
+    invoke<string[]>("build_fs_tree", {
+      root: currentFolderPath,
+      scanLevel: 1,
     }).then(setFolderList);
   }, [currentFolderPath]);
 
