@@ -43,6 +43,15 @@ fn run_migrations(connection: &Connection) -> Result<(), Box<dyn Error>> {
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
 
+            -- FOLDERS
+            CREATE TABLE IF NOT EXISTS folders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                path TEXT NOT NULL UNIQUE,
+                parent_id INTEGER,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE
+            );
+
             -- TAGS (Many-to-many with images)
             CREATE TABLE IF NOT EXISTS tags (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,6 +98,7 @@ fn run_migrations(connection: &Connection) -> Result<(), Box<dyn Error>> {
             CREATE INDEX IF NOT EXISTS idx_images_user_id ON images(user_id);
             CREATE INDEX IF NOT EXISTS idx_edits_image_id ON edits(image_id);
             CREATE INDEX IF NOT EXISTS idx_project_user_id ON projects(user_id);
+            CREATE INDEX IF NOT EXISTS idx_folders_parent_id ON folders(parent_id);
             ",
     )?;
 

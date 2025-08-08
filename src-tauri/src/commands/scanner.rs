@@ -1,9 +1,9 @@
 // Using WalkBuilder to leave room for more customization
 // later in dev
 use ignore::WalkBuilder;
-use std::path::{Component, PathBuf};
+use std::path::PathBuf;
 use std::time::Instant;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
 #[tauri::command]
 pub fn scan_files(path: Option<PathBuf>) {
@@ -39,7 +39,7 @@ pub fn scan_files(path: Option<PathBuf>) {
 }
 
 #[tauri::command]
-pub fn scan_dir_struct(path: Option<PathBuf>) {
+pub fn scan_dir_struct(path: Option<PathBuf>) -> Vec<String> {
     let start_time = Instant::now();
 
     let scan_path =
@@ -64,13 +64,13 @@ pub fn scan_dir_struct(path: Option<PathBuf>) {
         .follow_links(false)
         .build();
 
-    let mut count = 0;
+    let mut dirs_found = Vec::new();
 
     for result in walker {
         match result {
             Ok(entry) => {
                 if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                    count += 1;
+                    dirs_found.push(entry.path().display().to_string());
                 }
             }
             Err(err) => {
@@ -80,5 +80,8 @@ pub fn scan_dir_struct(path: Option<PathBuf>) {
     }
 
     let duration = start_time.elapsed();
-    info!(?duration, count, "Folder scan complete");
+
+    info!(?duration, count = dirs_found.len(), "Folder scan complete");
+
+    dirs_found
 }

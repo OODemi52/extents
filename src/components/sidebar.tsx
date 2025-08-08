@@ -24,7 +24,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
 
   useEffect(() => {
     if (currentFolderPath) {
-      invoke<string[]>("scan_folders", { path: currentFolderPath }).then(
+      invoke<string[]>("scan_dir_struct", { path: currentFolderPath }).then(
         setFolderList,
       );
       console.log(folderList);
@@ -59,7 +59,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
   };
 
   useEffect(() => {
-    invoke<string[]>("scan_folders", {
+    invoke<string[]>("scan_dir_struct", {
       path: currentFolderPath,
     }).then(setFolderList);
   }, [currentFolderPath]);
