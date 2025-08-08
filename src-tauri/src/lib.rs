@@ -1,21 +1,18 @@
 pub mod commands;
-use rusqlite::Connection;
-use std::sync::{Arc, Mutex};
+use crate::commands::db::DbConnection;
 use tauri::Manager;
 use window_vibrancy::*;
 
-use crate::commands::db::init_db;
-
 #[derive(Clone)]
-pub struct DbState {
-    pub connection: Arc<Mutex<Connection>>,
+pub struct AppState {
+    pub db: DbConnection,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let db = Arc::new(Mutex::new(
-        init_db().expect("Failed to initialize Extents database"),
-    ));
+    let db = DbConnection::init_db_connection().expect("Failed to initialize Extents database");
+
+    let app_state = AppState { db };
 
     tauri::Builder::default()
         .setup(move |app| {
@@ -27,9 +24,7 @@ pub fn run() {
                 )?;
             }
 
-            app.manage(DbState {
-                connection: db.clone(),
-            });
+            app.manage(app_state);
 
             let window = app.get_webview_window("main").unwrap();
 
