@@ -8,6 +8,8 @@ import {
   ArrowLeftIcon,
   CaretDownIcon,
   CaretRightIcon,
+  CaretLeftIcon,
+  ListIcon,
 } from "@phosphor-icons/react";
 import {
   FolderNotchOpenIcon,
@@ -40,6 +42,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
   const [folderMap, setFolderMap] = useState<Record<string, Directory>>({});
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<string[]>([]);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     const fetchFolderMap = async () => {
@@ -53,14 +56,13 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
 
         setFolderMap(result);
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error("Error fetching folder map", err);
       }
     };
 
     fetchFolderMap();
   }, []);
-
-  console.log(folderMap);
 
   useEffect(() => {
     if (Object.keys(folderMap).length > 0) {
@@ -119,10 +121,6 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
     return out;
   }, [childrenMap, nodesById, expanded]);
 
-  if (!Object.keys(folderMap).length) {
-    return <div className="p-4 text-zinc-400">Loading folders...</div>;
-  }
-
   // Toggle expansion
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -143,8 +141,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
     await onPickFolder(item.path);
   };
 
-  // Convert visibleNodes into the items array Listbox expects.
-  // We include depth and hasChildren on the item so the renderer can use them.
+  // Convert visibleNodes into the items array Listbox expects
   const listboxItems = visibleNodes.map((n) => ({
     key: n.path,
     label: n.label,
@@ -154,30 +151,69 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
     hasChildren: n.hasChildren,
   }));
 
-  return (
-    <div className="bg-zinc-950/50 text-zinc-100/80 py-0 flex flex-col min-w-60 w-60 overflow-auto">
-      <div className="flex justify-between px-2 py-1 items-center">
+  if (isCollapsed) {
+    return (
+      <div className="bg-zinc-950/50 text-zinc-100/80 flex flex-col w-12 items-center py-2 transition-all duration-300 ease-in-out">
         <Button
           disableRipple
           isIconOnly
-          className="bg-transparent"
-          onPress={() => {
-            // simple back navigation
-            if (history.length > 0) {
-              const prev = history[history.length - 1];
-
-              setHistory((h) => h.slice(0, -1));
-              onPickFolder(prev);
-            }
-          }}
+          className="bg-transparent hover:bg-zinc-800/50"
+          size="sm"
+          onPress={() => setIsCollapsed(false)}
         >
-          <ArrowLeftIcon />
+          <ListIcon size={20} />
         </Button>
+      </div>
+    );
+  }
+
+  if (!Object.keys(folderMap).length) {
+    return (
+      <div className="bg-zinc-950/50 text-zinc-100/80 flex flex-col min-w-64 w-64 transition-all duration-300 ease-in-out">
+        <div className="p-4 text-zinc-400">Loading folders...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-zinc-950/50 text-zinc-100/80 flex flex-col min-w-64 w-64 transition-all duration-300 ease-in-out">
+      {/* Header with navigation buttons */}
+      <div className="flex justify-between px-2 py-2 items-center border-b border-zinc-800/50">
+        <div className="flex gap-1">
+          <Button
+            disableRipple
+            isIconOnly
+            className="bg-transparent hover:bg-zinc-800/50"
+            size="sm"
+            onPress={() => setIsCollapsed(true)}
+          >
+            <CaretLeftIcon size={20} />
+          </Button>
+
+          <Button
+            disableRipple
+            isIconOnly
+            className="bg-transparent hover:bg-zinc-800/50 disabled:opacity-30"
+            isDisabled={history.length === 0}
+            size="sm"
+            onPress={() => {
+              if (history.length > 1) {
+                const prev = history[history.length - 2];
+
+                setHistory((h) => h.slice(0, -1));
+                onPickFolder(prev);
+              }
+            }}
+          >
+            <ArrowLeftIcon size={20} />
+          </Button>
+        </div>
 
         <Button
           disableRipple
           isIconOnly
-          className="bg-transparent"
+          className="bg-transparent hover:bg-zinc-800/50"
+          size="sm"
           // eslint-disable-next-line no-console
           onPress={() => console.log("Open browse dialog")}
         >
@@ -185,70 +221,97 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
         </Button>
       </div>
 
-      <Listbox
-        isVirtualized
-        aria-label="User Directory"
-        className="flex-1"
-        items={listboxItems}
-        virtualization={{ maxListboxHeight: 1000, itemHeight: 32 }}
-        onAction={(key: Key) => {
-          const item = visibleNodes.find((v) => v.path === key);
+      {/* Scrollable list container */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <Listbox
+          isVirtualized
+          aria-label="User Directory"
+          className="w-full"
+          classNames={{
+            list: "px-1",
+          }}
+          items={listboxItems}
+          virtualization={{ maxListboxHeight: 1000, itemHeight: 36 }}
+          onAction={(key: Key) => {
+            const item = visibleNodes.find((v) => v.path === key);
 
-          if (item) handleRowClick(item);
-        }}
-      >
-        {(item: any) => {
-          const leftPad = `${(item.depth ?? 0) * 16 - 16}px`;
+            if (item) handleRowClick(item);
+          }}
+        >
+          {(item: any) => {
+            const paddingLeft = `${(item.depth - 1) * 20 + 8}px`;
 
-          return (
-            <ListboxItem
-              key={item.key}
-              className="flex text-ellipsis items-center gap-2 px-2 hover:bg-gradient-to-r from-yellow-500/75 to-transparent"
-              endContent={
-                <Button
-                  disableRipple
-                  isIconOnly
-                  className="bg-transparent"
-                  onPress={() => {
-                    if (item.hasChildren) toggleExpand(item.id);
-                  }}
-                >
-                  {item.hasChildren ? (
-                    expanded.has(item.id) ? (
-                      <CaretDownIcon />
-                    ) : (
-                      <CaretRightIcon />
-                    )
-                  ) : null}
-                </Button>
-              }
-              startContent={
-                item.depth <= 1 ? (
-                  <HouseIcon size={14} weight="fill" />
-                ) : expanded.has(item.id) ? (
-                  <FolderOpenIcon size={14} weight="duotone" />
-                ) : (
-                  <FolderSimpleIcon size={14} weight="duotone" />
-                )
-              }
-              variant="shadow"
-            >
-              <div
-                className={`flex items-center gap-2 w-full`}
-                style={{
-                  paddingLeft: leftPad,
-                }}
+            return (
+              <ListboxItem
+                key={item.key}
+                className="relative flex items-center gap-1 hover:bg-gradient-to-r from-yellow-500/75 to-yellow-300/45 data-selected:bg-transparent rounded-md my-0.5 overflow-hidden overscroll-none"
+                style={{ paddingLeft }}
+                textValue={item.label}
               >
-                <p
-                  className={`text-ellipsis text-xs font-normal ${item.depth <= 1 ? "font-bold" : ""}`}
-                >
-                  {item.label}
-                </p>
-              </div>
-            </ListboxItem>
-          );
-        }}
-      </Listbox>
+                <div className="flex items-center justify-between w-full overflow-hidden overscroll-none">
+                  <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden overscroll-none">
+                    {/* Folder icon */}
+                    <span className="flex-shrink-0">
+                      {item.depth <= 1 ? (
+                        <HouseIcon
+                          className="text-zinc-200"
+                          size={16}
+                          weight="fill"
+                        />
+                      ) : expanded.has(item.id) ? (
+                        <FolderOpenIcon
+                          className="text-zinc-200"
+                          size={16}
+                          weight="duotone"
+                        />
+                      ) : (
+                        <FolderSimpleIcon
+                          className="text-zinc-200"
+                          size={16}
+                          weight="duotone"
+                        />
+                      )}
+                    </span>
+
+                    {/* Label with proper truncation */}
+                    <label
+                      className={`text-xs truncate block ${
+                        item.depth <= 1
+                          ? "font-semibold text-sm text-zinc-200"
+                          : "text-zinc-300"
+                      }`}
+                      title={item.label}
+                    >
+                      {item.label.length > 20
+                        ? `${item.label.slice(0, 20)}...`
+                        : item.label}
+                    </label>
+                  </div>
+
+                  {/* Expand/collapse button */}
+                  {item.hasChildren && (
+                    <Button
+                      disableRipple
+                      isIconOnly
+                      className="bg-transparent ml-1 flex-shrink-0"
+                      size="sm"
+                      onPress={() => {
+                        toggleExpand(item.id);
+                      }}
+                    >
+                      {expanded.has(item.id) ? (
+                        <CaretDownIcon size={14} />
+                      ) : (
+                        <CaretRightIcon size={14} />
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </ListboxItem>
+            );
+          }}
+        </Listbox>
+      </div>
     </div>
   );
 }
