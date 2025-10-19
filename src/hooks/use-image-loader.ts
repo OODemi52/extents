@@ -1,34 +1,15 @@
-import { invoke } from "@tauri-apps/api/core";
-
 import { useImageStore } from "../store/image-store";
 
 export function useImageLoader() {
-  const {
-    fileMetadataList,
-    setSelectedIndex,
-    setIsLoading,
-    setCurrentImageData,
-  } = useImageStore();
+  const { setSelectedIndex, fileMetadataList } = useImageStore();
 
-  async function handleSelectImage(index: number) {
+  function handleSelectImage(index: number) {
     if (index < 0 || index >= fileMetadataList.length) {
+      console.warn(`Selected index ${index} is out of bounds.`);
+
       return;
     }
-
     setSelectedIndex(index);
-    setIsLoading(true);
-
-    try {
-      const result = await invoke("get_file", {
-        imagePath: fileMetadataList[index].path,
-      });
-
-      setCurrentImageData(result as string);
-    } catch (err) {
-      console.error("Failed to load image", err);
-    } finally {
-      setIsLoading(false);
-    }
   }
 
   return { handleSelectImage };

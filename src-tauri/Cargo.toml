@@ -20,6 +20,9 @@ tauri-build = { version = "2.3.0", features = [] }
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+pollster = "0.3"
+wgpu = "26.0.1"
+env_logger = "0.10"
 log = "0.4"
 tauri = { version = "2.6.2", features = [ "macos-private-api", "protocol-asset"] }
 tauri-plugin-log = "2"
@@ -34,3 +37,4 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["time", "env-filter"] }
 tracing-appender = "0.2.3"
 ignore = "0.4.23"
+bytemuck = { version = "1.12", features = [ "derive" ] }
