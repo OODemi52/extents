@@ -8,7 +8,9 @@ import { ImageCanvas } from "./image-canvas";
 
 export function ImageViewer() {
   const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
-  const { scale, offsetX, offsetY, setScale, setOffset } = useTransformStore();
+  const { scale, offsetX, offsetY, setScale, setOffset, resetTransform } =
+    useTransformStore();
+
   const selected =
     selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -16,89 +18,80 @@ export function ImageViewer() {
   useEffect(() => {
     if (!selected?.path || !viewportRef.current) return;
 
-    const rect = viewportRef.current.getBoundingClientRect();
-    const viewportAspect = rect.width / rect.height;
-    const imageAspect = selected.width / selected.height;
+    const divRect = viewportRef.current.getBoundingClientRect();
+    const { width: imageWidth, height: imageHeight } = selected;
 
-    const fitScale =
-      imageAspect > viewportAspect
-        ? rect.width / selected.width
-        : rect.height / selected.height;
+    if (
+      !imageWidth ||
+      !imageHeight ||
+      divRect.width <= 0 ||
+      divRect.height <= 0
+    ) {
+      return;
+    }
 
-    // Apply with padding
-    setScale(fitScale * 0.5);
-    setOffset({ x: 0, y: 0 });
-  }, [selected?.path, setScale, setOffset]);
+    const padding = 0.95;
 
-  useEffect(() => {
-    const viewer = viewportRef.current;
+    const imageAspect = imageWidth / imageHeight;
+    const divAspect = divRect.width / divRect.height;
 
-    if (!viewer) return;
+    // 3. Calculate the correct uniform scale to fit the image inside the div
+    let scale;
 
-    let isDragging = false;
+    if (imageAspect > divAspect) {
+      // Image is wider than the div, so fit to width
+      scale = (divRect.width / imageWidth) * padding;
+    } else {
+      // Image is taller than the div, so fit to height
+      scale = (divRect.height / imageHeight) * padding;
+    }
 
-    const setActive = () => {
-      isDragging = true;
-      invoke("set_render_state", { stateStr: "active" });
-    };
-
-    const setIdle = () => {
-      isDragging = false;
-      invoke("set_render_state", { stateStr: "idle" });
-    };
-
-    const handleMouseMove = () => {
-      if (isDragging) {
-        invoke("set_render_state", { stateStr: "active" });
-      }
-    };
-
-    viewer.addEventListener("mousedown", setActive);
-    viewer.addEventListener("mouseup", setIdle);
-    viewer.addEventListener("mouseleave", setIdle);
-    viewer.addEventListener("mousemove", handleMouseMove);
-
-    return () => {
-      viewer.removeEventListener("mousedown", setActive);
-      viewer.removeEventListener("mouseup", setIdle);
-      viewer.removeEventListener("mouseleave", setIdle);
-      viewer.removeEventListener("mousemove", handleMouseMove);
-    };
-  }, []);
+    // 4. Reset the transform with the new calculated scale and zero offsets
+    resetTransform({ scale });
+  }, [selected?.path, selected?.width, selected?.height, resetTransform]);
 
   const handleWheel = useCallback(
     (event: WheelEvent) => {
       event.preventDefault();
+
+      // Trigger active render state
+      invoke("set_render_state", { stateStr: "active" }).catch(console.error);
+      setTimeout(() => {
+        invoke("set_render_state", { stateStr: "idle" }).catch(console.error);
+      }, 100);
 
       const viewer = viewportRef.current;
 
       if (!viewer) return;
 
       const rect = viewer.getBoundingClientRect();
-      const cursorX = ((event.clientX - rect.left) / rect.width) * 2 - 1; // normalize to -1..1
-      const cursorY = -(((event.clientY - rect.top) / rect.height) * 2 - 1); // flip Y
+      const cursorX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      const cursorY = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
 
-      if (event.ctrlKey) {
-        // Pinch-to-zoom
+      if (event.ctrlKey || event.metaKey) {
+        // Zoom - use multiplicative factor for smooth feel
         const prevScale = scale;
+        const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1; // 10% per scroll tick
+
         const newScale = Math.min(
-          Math.max(0.1, prevScale - event.deltaY * 0.01),
-          10,
+          Math.max(0.1, prevScale * zoomFactor),
+          10, // Max 10x zoom
         );
 
-        // Adjust offset so zoom centers on cursor
-        const zoomFactor = newScale / prevScale;
-        const newOffsetX = offsetX + (1 - zoomFactor) * (cursorX - offsetX);
-        const newOffsetY = offsetY + (1 - zoomFactor) * (cursorY - offsetY);
+        // Zoom toward cursor position
+        const scaleFactor = newScale / prevScale;
+        const newOffsetX = offsetX + (1 - scaleFactor) * (cursorX - offsetX);
+        const newOffsetY = offsetY + (1 - scaleFactor) * (cursorY - offsetY);
 
         setScale(newScale);
         setOffset({ x: newOffsetX, y: newOffsetY });
       } else {
-        // Two-finger pan
+        // Pan
+        const panSpeed = 2;
         const newOffsetX =
-          offsetX - (event.deltaX * 2) / (viewer.clientWidth || 1);
+          offsetX - (event.deltaX * panSpeed) / (viewer.clientWidth || 1);
         const newOffsetY =
-          offsetY + (event.deltaY * 2) / (viewer.clientHeight || 1);
+          offsetY + (event.deltaY * panSpeed) / (viewer.clientHeight || 1);
 
         setOffset({ x: newOffsetX, y: newOffsetY });
       }
@@ -116,7 +109,7 @@ export function ImageViewer() {
     return () => viewer.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
 
-  // This effect sends the transform state to the backend
+  // Send transform to backend
   useEffect(() => {
     invoke("update_transform", { scale, offsetX, offsetY }).catch(
       console.error,
@@ -124,12 +117,13 @@ export function ImageViewer() {
   }, [scale, offsetX, offsetY]);
 
   return (
-    // Add the ref here
     <div
       ref={viewportRef}
-      className="flex-grow flex items-center justify-center p-4 relative bg-transparent touch-none rounde"
+      className="flex-grow flex items-center justify-center p-4 relative bg-transparent touch-none"
     >
-      {selected?.path && <ImageCanvas path={selected.path} />}
+      {selected?.path && (
+        <ImageCanvas path={selected.path} viewportRef={viewportRef} />
+      )}
 
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-10">

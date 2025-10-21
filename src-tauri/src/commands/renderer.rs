@@ -35,32 +35,40 @@ pub fn resize_surface(width: u32, height: u32, state: State<AppState>) {
 }
 
 #[tauri::command]
-pub fn load_image(path: String, state: State<AppState>) {
+pub fn load_image(
+    path: String,
+    viewport_x: u32,
+    viewport_y: u32,
+    viewport_width: u32,
+    viewport_height: u32,
+    state: State<AppState>,
+) {
     info!("[CMD] Loading image from path: {}", path);
 
     // Load and decode image
-    let img = match image::open(&path) {
-        Ok(img) => img,
+    let image = match image::open(&path) {
+        Ok(image) => image,
         Err(e) => {
             error!("[CMD] Failed to open image at {}: {}", path, e);
             return;
         }
     };
 
-    let rgba = img.to_rgba8();
-    let width = img.width();
-    let height = img.height();
-    info!("[CMD] Image decoded ({}x{})", width, height);
+    let rgba = image.to_rgba8();
+    let image_width = image.width();
+    let image_height = image.height();
+    info!("[CMD] Image decoded ({}x{})", image_width, image_height);
 
-    // Update renderer texture
     let mut renderer_lock = state.renderer.lock().unwrap();
     if let Some(renderer) = renderer_lock.as_mut() {
-        info!("[CMD] Updating texture and rendering");
-        renderer.update_texture(&rgba, width, height);
-        renderer.render();
-        info!("[CMD] Image load complete");
-    } else {
-        warn!("[CMD] Renderer not initialized, cannot load image");
+        {
+            let mut viewport = renderer.viewport.lock().unwrap();
+            viewport.x = viewport_x;
+            viewport.y = viewport_y;
+            viewport.width = viewport_width;
+            viewport.height = viewport_height;
+        }
+        renderer.update_texture(&rgba, image_width, image_height);
     }
 }
 

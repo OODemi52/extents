@@ -43,16 +43,31 @@ pub async fn get_file_metadata(folder_path: String) -> Vec<ImageMetadata> {
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
+
             let metadata = match std::fs::metadata(&path) {
                 Ok(md) => md,
                 Err(_) => continue,
             };
 
+            let (width, height) = match imagesize::size(&path) {
+                Ok(s) => (Some(s.width as u32), Some(s.height as u32)),
+                Err(_) => {
+                    // fallback to image crate if imagesize fails
+                    match image::open(&path) {
+                        Ok(img) => {
+                            let dims = img.dimensions();
+                            (Some(dims.0), Some(dims.1))
+                        }
+                        Err(_) => (None, None),
+                    }
+                }
+            };
+
             files.push(ImageMetadata {
                 path: path.to_string_lossy().to_string(),
                 thumbnail_path,
-                width: None,
-                height: None,
+                width: width,
+                height: height,
                 file_size: metadata.len(),
                 file_name,
             });

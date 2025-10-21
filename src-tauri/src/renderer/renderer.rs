@@ -211,15 +211,13 @@ impl<'a> Renderer<'a> {
             let viewport = self.viewport.lock().unwrap();
 
             render_pass.set_viewport(
-                viewport.x as f32,
-                viewport.y as f32,
-                viewport.width as f32,
-                viewport.height as f32,
+                0.0,
+                0.0,
+                self.context.config.width as f32,
+                self.context.config.height as f32,
                 0.0,
                 1.0,
             );
-
-            render_pass.set_scissor_rect(viewport.x, viewport.y, viewport.width, viewport.height);
 
             // Draw
             render_pass.set_pipeline(&self.pipeline.pipeline);

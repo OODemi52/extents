@@ -51,10 +51,9 @@ function App() {
 
     const loop = async () => {
       const shouldRender = await invoke("should_render_frame");
-      console.log("Should Render: ", shouldRender);
+
       if (shouldRender) {
-        const res = await invoke("render_frame");
-        console.log("Render Frame: ", res);
+        await invoke("render_frame");
       }
       animationFrameId = requestAnimationFrame(loop);
     };

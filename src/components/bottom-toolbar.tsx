@@ -2,7 +2,6 @@ import { Button } from "@heroui/button";
 import { Divider } from "@heroui/divider";
 import {
   SidebarSimpleIcon,
-  ColumnsIcon,
   InfoIcon,
   SlidersIcon,
   CropIcon,
@@ -32,13 +31,6 @@ export function BottomToolbar() {
           size="sm"
         >
           <SidebarSimpleIcon size={16} />
-        </Button>
-        <Button
-          isIconOnly
-          className="hover:text-white bg-transparent transition-colors"
-          size="sm"
-        >
-          <ColumnsIcon size={16} />
         </Button>
       </div>
 

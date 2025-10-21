@@ -1,24 +1,33 @@
-import { useEffect } from "react";
+import { useEffect, RefObject } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 type ImageCanvasProps = {
   path: string;
+  viewportRef: RefObject<HTMLDivElement>;
 };
 
 /**
  * An invisible component that controls the WGPU backend.
- * It tells the backend which image to load and render.
- *
- * This component does not render anything to the DOM.
- * It just controls the background WGPU renderer.
  */
-export function ImageCanvas({ path }: ImageCanvasProps) {
+export function ImageCanvas({ path, viewportRef }: ImageCanvasProps) {
   useEffect(() => {
     if (!path) return;
 
     const loadImage = async () => {
+      if (!viewportRef.current) return;
+
+      const rect = viewportRef.current.getBoundingClientRect();
+      const dpr = window.devicePixelRatio;
+
       try {
-        await invoke("load_image", { path });
+        // Send all four properties to the backend
+        await invoke("load_image", {
+          path,
+          viewportX: rect.x * dpr,
+          viewportY: rect.y * dpr,
+          viewportWidth: rect.width * dpr,
+          viewportHeight: rect.height * dpr,
+        });
         console.log("Load image command sent for:", path);
       } catch (e) {
         console.error("Failed to load image:", e);
@@ -26,6 +35,7 @@ export function ImageCanvas({ path }: ImageCanvasProps) {
     };
 
     loadImage();
-  }, [path]);
+  }, [path, viewportRef]);
+
   return null;
 }

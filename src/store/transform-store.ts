@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 interface TransformState {
   scale: number;
@@ -7,33 +6,31 @@ interface TransformState {
   offsetY: number;
   setScale: (scale: number) => void;
   setOffset: (offset: { x: number; y: number }) => void;
-  resetTransform: () => void;
+  resetTransform: (params?: {
+    scale?: number;
+    offsetX?: number;
+    offsetY?: number;
+  }) => void;
 }
 
-export const useTransformStore = create<TransformState>()(
-  persist(
-    (set) => ({
-      scale: 1,
-      offsetX: 0,
-      offsetY: 0,
+export const useTransformStore = create<TransformState>((set) => ({
+  scale: 1.0,
+  offsetX: 0.0,
+  offsetY: 0.0,
 
-      setScale: (scale) => set({ scale }),
+  setScale: (scale) => set({ scale }),
 
-      setOffset: (offset) =>
-        set({
-          offsetX: offset.x,
-          offsetY: offset.y,
-        }),
-
-      resetTransform: () => set({ scale: 1, offsetX: 0, offsetY: 0 }),
+  setOffset: (offset) =>
+    set({
+      offsetX: offset.x,
+      offsetY: offset.y,
     }),
-    {
-      name: "transform-store",
-      partialize: (state) => ({
-        scale: state.scale,
-        offsetX: state.offsetX,
-        offsetY: state.offsetY,
-      }),
-    },
-  ),
-);
+
+  resetTransform: (params) => {
+    set({
+      scale: params?.scale ?? 1.0,
+      offsetX: params?.offsetX ?? 0.0,
+      offsetY: params?.offsetY ?? 0.0,
+    });
+  },
+}));
