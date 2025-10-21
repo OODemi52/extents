@@ -8,6 +8,7 @@ import { ImageViewer } from "./components/image-viewer";
 import { useImageStore } from "./store/image-store";
 import { ImageMetadata } from "./types/image";
 import { EditPanel } from "./components/edit-panel";
+import { BottomToolbar } from "./components/bottom-toolbar";
 
 function App() {
   const {
@@ -79,16 +80,27 @@ function App() {
   }, []);
 
   return (
-    <div className="flex h-screen">
-      <Sidebar
-        hasImages={fileMetadataList.length > 0}
-        onPickFolder={getfileMetadataList}
-      />
-      <div className="flex flex-col flex-grow">
-        <ImageViewer />
-        <Filmstrip />
+    <div className="flex flex-col h-screen">
+      {/* Main Area */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <Sidebar
+          hasImages={fileMetadataList.length > 0}
+          onPickFolder={getfileMetadataList}
+        />
+
+        {/* Viewer + Filmstrip column */}
+        <div className="flex flex-col flex-grow overflow-hidden">
+          <ImageViewer />
+          <Filmstrip />
+        </div>
+
+        {/* Right Edit Panel */}
+        <EditPanel />
       </div>
-      <EditPanel />
+
+      {/* Bottom Toolbar */}
+      <BottomToolbar />
     </div>
   );
 }

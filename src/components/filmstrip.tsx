@@ -15,16 +15,6 @@ export function Filmstrip() {
       ref={filmstripRef}
       className="h-24 overflow-x-auto overflow-y-hidden flex gap-2 p-2 pb-4"
     >
-      <div
-        className="
-          absolute inset-0
-          backdrop-blur-md
-          bg-zinc-900/40
-          rounded-md
-          pointer-events-none
-          -z-50
-        "
-      />
       {fileMetadataList.map((file, index) => (
         <LazyThumbnail
           key={`${file.path}-${index}`}
