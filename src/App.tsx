@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 
@@ -43,6 +44,39 @@ function App() {
       setIsLoading(false);
     }
   }
+
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const loop = async () => {
+      const shouldRender = await invoke("should_render_frame");
+      console.log("Should Render: ", shouldRender);
+      if (shouldRender) {
+        const res = await invoke("render_frame");
+        console.log("Render Frame: ", res);
+      }
+      animationFrameId = requestAnimationFrame(loop);
+    };
+
+    animationFrameId = requestAnimationFrame(loop);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  useEffect(() => {
+    const setPaused = () => invoke("set_render_state", { stateStr: "paused" });
+    const setIdle = () => invoke("set_render_state", { stateStr: "idle" });
+
+    window.addEventListener("blur", setPaused);
+    window.addEventListener("focus", setIdle);
+
+    return () => {
+      window.removeEventListener("blur", setPaused);
+      window.removeEventListener("focus", setIdle);
+    };
+  }, []);
 
   return (
     <div className="flex h-screen">

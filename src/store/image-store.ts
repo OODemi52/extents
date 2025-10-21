@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import { ImageMetadata } from "../types/image";
+import { useTransformStore } from "./transform-store";
 
 interface ImageStore {
   // Image-related state
@@ -36,7 +37,14 @@ export const useImageStore = create<ImageStore>((set) => ({
 
   // Setters
   setFileMetadataList: (list) => set({ fileMetadataList: list }),
-  setSelectedIndex: (index) => set({ selectedIndex: index }),
+  setSelectedIndex: (index: number | null) => {
+    set({ selectedIndex: index });
+
+    // Reset transform when changing images
+    if (index !== null) {
+      useTransformStore.getState().resetTransform();
+    }
+  },
   setCurrentImageData: (data) => set({ currentImageData: data }),
   setIsLoading: (loading) => set({ isLoading: loading }),
 

@@ -7,6 +7,7 @@ mod vertex;
 mod viewport;
 
 pub use context::RenderContext;
+pub use renderer::RenderState;
 pub use renderer::Renderer;
 pub use vertex::Vertex;
 pub use viewport::Viewport;

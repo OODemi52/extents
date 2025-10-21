@@ -9,7 +9,8 @@ pub struct TextureManager {
 impl TextureManager {
     /// Create a new texture manager with a default 1x1 blue texture
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
-        let (texture, width, height) = Self::create_texture(device, queue, &[0, 0, 255, 255], 1, 1);
+        let (texture, width, height) = Self::create_texture(device, queue, &[25, 25, 25, 0], 1, 1);
+
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         Self {

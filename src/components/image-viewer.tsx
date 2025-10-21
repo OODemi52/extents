@@ -11,37 +11,67 @@ export function ImageViewer() {
   const { scale, offsetX, offsetY, setScale, setOffset } = useTransformStore();
   const selected =
     selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
-  const viewerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const viewer = viewerRef.current;
+    if (!selected?.path || !viewportRef.current) return;
+
+    const rect = viewportRef.current.getBoundingClientRect();
+    const viewportAspect = rect.width / rect.height;
+    const imageAspect = selected.width / selected.height;
+
+    const fitScale =
+      imageAspect > viewportAspect
+        ? rect.width / selected.width
+        : rect.height / selected.height;
+
+    // Apply with padding
+    setScale(fitScale * 0.5);
+    setOffset({ x: 0, y: 0 });
+  }, [selected?.path, setScale, setOffset]);
+
+  useEffect(() => {
+    const viewer = viewportRef.current;
 
     if (!viewer) return;
 
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { x, y, width, height } = entry.contentRect;
-        const dpr = window.devicePixelRatio;
+    let isDragging = false;
 
-        invoke("update_viewport", {
-          x: x * dpr,
-          y: y * dpr,
-          width: width * dpr,
-          height: height * dpr,
-        }).catch(console.error);
+    const setActive = () => {
+      isDragging = true;
+      invoke("set_render_state", { stateStr: "active" });
+    };
+
+    const setIdle = () => {
+      isDragging = false;
+      invoke("set_render_state", { stateStr: "idle" });
+    };
+
+    const handleMouseMove = () => {
+      if (isDragging) {
+        invoke("set_render_state", { stateStr: "active" });
       }
-    });
+    };
 
-    observer.observe(viewer);
+    viewer.addEventListener("mousedown", setActive);
+    viewer.addEventListener("mouseup", setIdle);
+    viewer.addEventListener("mouseleave", setIdle);
+    viewer.addEventListener("mousemove", handleMouseMove);
 
-    return () => observer.disconnect();
+    return () => {
+      viewer.removeEventListener("mousedown", setActive);
+      viewer.removeEventListener("mouseup", setIdle);
+      viewer.removeEventListener("mouseleave", setIdle);
+      viewer.removeEventListener("mousemove", handleMouseMove);
+    };
   }, []);
 
   const handleWheel = useCallback(
     (event: WheelEvent) => {
       event.preventDefault();
 
-      const viewer = viewerRef.current;
+      const viewer = viewportRef.current;
+
       if (!viewer) return;
 
       const rect = viewer.getBoundingClientRect();
@@ -77,7 +107,7 @@ export function ImageViewer() {
   );
 
   useEffect(() => {
-    const viewer = viewerRef.current;
+    const viewer = viewportRef.current;
 
     if (!viewer) return;
 
@@ -96,8 +126,8 @@ export function ImageViewer() {
   return (
     // Add the ref here
     <div
-      ref={viewerRef}
-      className="flex-grow flex items-center justify-center p-4 relative bg-transparent touch-none"
+      ref={viewportRef}
+      className="flex-grow flex items-center justify-center p-4 relative bg-transparent touch-none rounde"
     >
       {selected?.path && <ImageCanvas path={selected.path} />}
 

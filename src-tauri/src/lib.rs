@@ -19,20 +19,26 @@ pub fn run() {
             }
 
             let window = app.get_webview_window("main").unwrap();
+
             let db =
                 DbConnection::init_db_connection().expect("Failed to initialize Extents database");
 
-            // Uncomment for platform-specific window effects
-            // #[cfg(target_os = "macos")]
-            // window_vibrancy::apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
-            //     .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
+            let state = AppState::new(db, window.clone());
 
-            // #[cfg(target_os = "windows")]
-            // window_vibrancy::apply_blur(&window, Some((18, 18, 18, 125)))
-            //     .expect("Unsupported platform! 'apply_blur' is only supported on Windows");
-
-            let state = AppState::new(db, window);
             app.manage(state);
+
+            let app_state = app.state::<AppState>();
+
+            let renderer = app_state.renderer.clone();
+
+            window.on_window_event(move |event| {
+                if let tauri::WindowEvent::Resized(size) = event {
+                    let mut renderer_lock = renderer.lock().unwrap();
+                    if let Some(renderer) = renderer_lock.as_mut() {
+                        renderer.resize(size.width, size.height);
+                    }
+                }
+            });
 
             Ok(())
         })
@@ -41,15 +47,22 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         // Handler function invocations
         .invoke_handler(tauri::generate_handler![
+            //Scanner Commands
             commands::scanner::build_fs_tree,
+            // File System Commands
             commands::file::get_file,
             commands::file::get_thumbnail_path,
             commands::file::get_file_metadata,
             commands::file::get_thumbnail,
+            // WGPU Renderer Commands
             commands::renderer::init_renderer,
             commands::renderer::load_image,
             commands::renderer::update_viewport,
             commands::renderer::update_transform,
+            commands::renderer::resize_surface,
+            commands::renderer::should_render_frame,
+            commands::renderer::render_frame,
+            commands::renderer::set_render_state,
         ])
         // Running the application
         .run(tauri::generate_context!())

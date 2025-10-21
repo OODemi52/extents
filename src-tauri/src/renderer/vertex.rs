@@ -1,5 +1,4 @@
 use bytemuck::{Pod, Zeroable};
-use wgpu::util::DeviceExt;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]

@@ -1,10 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin './hero.ts';
+/* Note: You may need to change the path to fit your project structure */
+@source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
+@custom-variant dark (&:is(.dark *));
 
 html,
 body,
 .bg-background {
-  background: rgba(72, 72, 72, 0.5);
+  background: rgba(72, 72, 72, 0);
   overflow: hidden;
 }
