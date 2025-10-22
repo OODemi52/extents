@@ -34,26 +34,25 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
 
       <div className="flex flex-row gap-3 py-2 px-4">
         {/*make maginfying glass disapper once there is text */}
-        <Tooltip content="🚧Coming Soon!🚧">
-          <Input
-            isDisabled
-            placeholder="    Search folders..."
-            radius="sm"
-            startContent={
-              <MagnifyingGlassIcon
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"
-                size={16}
-                weight="bold"
-              />
-            }
-          />
-        </Tooltip>
+        <Input
+          isDisabled
+          placeholder="    🚧Coming Soon!"
+          radius="sm"
+          startContent={
+            <MagnifyingGlassIcon
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"
+              size={16}
+              weight="bold"
+            />
+          }
+        />
 
         <Tooltip
           className="border border-zinc-500"
           closeDelay={0}
-          content="Open Folder..."
+          content="Open Folder"
           delay={1000}
+          radius="sm"
           size="sm"
         >
           <Button

@@ -22,9 +22,9 @@ export const FileTree = () => {
         Individually, walking the tree results in each command call return in ~under 10ms
         */}
       <Accordion
+        fullWidth
         isCompact
         className="truncate"
-        fullWidth
         selectedKeys={expandedKeys}
         selectionMode="multiple"
         variant="splitted"
@@ -34,6 +34,7 @@ export const FileTree = () => {
           const isSelected = selectedId === node.id;
           const isOpen =
             expandedKeys instanceof Set && expandedKeys.has(node.id);
+          // Need to figure out how to seperate AccordianItem press with it's indicator
 
           return (
             <AccordionItem
