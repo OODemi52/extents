@@ -10,6 +10,10 @@ type FsNodeMap = Record<
   }
 >;
 
+export interface FlatNode extends TreeNode {
+  level: number;
+}
+
 export function transformMapToTree(nodes: FsNodeMap): TreeNode[] {
   if (!nodes || typeof nodes !== "object") {
     return [];
@@ -47,23 +51,20 @@ export function transformMapToTree(nodes: FsNodeMap): TreeNode[] {
 export const flattenTreeList = (
   nodes: TreeNode[],
   expandedKeys: Selection,
-): (TreeNode & { level: number })[] => {
-  const flattened: (TreeNode & { level: number })[] = [];
+  level = 0,
+): FlatNode[] => {
+  let flattened: FlatNode[] = [];
 
-  const walk = (items: TreeNode[], level: number) => {
-    items.forEach((item) => {
-      flattened.push({ ...item, level });
-      if (
-        expandedKeys instanceof Set &&
-        expandedKeys.has(item.id) &&
-        item.children?.length > 0
-      ) {
-        walk(item.children, level + 1);
-      }
-    });
-  };
+  nodes.forEach((node) => {
+    flattened.push({ ...node, level });
+    const isExpanded = expandedKeys instanceof Set && expandedKeys.has(node.id);
 
-  walk(nodes, 0);
+    if (isExpanded && node.children?.length) {
+      flattened = flattened.concat(
+        flattenTreeList(node.children, expandedKeys, level + 1),
+      );
+    }
+  });
 
   return flattened;
 };
