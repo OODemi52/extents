@@ -1,126 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { invoke } from "@tauri-apps/api/core";
-import {
-  FolderOpenIcon,
-  MagnifyingGlassIcon,
-  CaretRightIcon,
-  CaretDownIcon,
-  FolderIcon,
-} from "@phosphor-icons/react";
+import { FolderOpenIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { FileTree } from "@/features/file-explorer/components/file-tree";
 
 type SidebarProps = {
   onPickFolder: () => void;
   hasImages: boolean;
 };
 
-interface FolderItem {
-  id: string;
-  name: string;
-  children?: FolderItem[];
-}
-
-const mockFolders: FolderItem[] = [
-  { id: "1", name: "Recent" },
-  {
-    id: "2",
-    name: "Projects",
-    children: [
-      { id: "2-1", name: "Wedding 2024" },
-      { id: "2-2", name: "Portraits" },
-      { id: "2-3", name: "Landscape" },
-    ],
-  },
-  {
-    id: "3",
-    name: "Collections",
-    children: [
-      { id: "3-1", name: "Best of 2024" },
-      { id: "3-2", name: "Client Work" },
-    ],
-  },
-];
-
-// Utility to merge class names (mini version of `cn`)
-function classNames(...classes: (string | false | null | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}
-
-function FolderTree({
-  folder,
-  level = 0,
-  selectedFolder,
-  setSelectedFolder,
-}: {
-  folder: FolderItem;
-  level?: number;
-  selectedFolder: string | null;
-  setSelectedFolder: (id: string) => void;
-}) {
-  const [isExpanded, setIsExpanded] = useState(level === 0);
-  const hasChildren = folder.children && folder.children.length > 0;
-
-  return (
-    <div>
-      <Button
-        className={classNames(
-          "flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm transition-colors bg-transparent justify-start",
-          selectedFolder === folder.id && "bg-neutral-300 dark:bg-neutral-700",
-        )}
-        style={{ paddingLeft: `${level * 12 + 12}px` }}
-        onPress={() => {
-          if (hasChildren) setIsExpanded(!isExpanded);
-          setSelectedFolder(folder.id);
-        }}
-      >
-        {hasChildren && (
-          <span className="flex-shrink-0">
-            {isExpanded ? (
-              <CaretDownIcon size={14} weight="bold" />
-            ) : (
-              <CaretRightIcon size={14} weight="bold" />
-            )}
-          </span>
-        )}
-        <FolderIcon className="flex-shrink-0" size={16} weight="fill" />
-        <span className="truncate">{folder.name}</span>
-      </Button>
-
-      {hasChildren && isExpanded && (
-        <div className="mt-1">
-          {folder.children!.map((child) => (
-            <FolderTree
-              key={child.id}
-              folder={child}
-              level={level + 1}
-              selectedFolder={selectedFolder}
-              setSelectedFolder={setSelectedFolder}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  // Get the React Query client instance
+  const queryClient = useQueryClient();
 
-  // Initialize WGPU renderer once when component mounts
+  // This effect initializes the renderer once on startup.
   useEffect(() => {
-    const init = async () => {
-      try {
-        await invoke("init_renderer");
-        console.log("Renderer initialized successfully!");
-      } catch (e) {
-        console.error("Failed to initialize renderer:", e);
-      }
-    };
-
-    init();
+    invoke("init_renderer").catch(console.error);
   }, []);
+
+  const handlePickFolder = async () => {
+    // Call the original function which opens the dialog
+    await onPickFolder();
+    // After a new folder is picked, invalidate the 'fileTree' query.
+    // This tells React Query to refetch the data from the backend.
+    await queryClient.invalidateQueries({ queryKey: ["fileTree"] });
+  };
 
   return (
     <aside className="bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col min-w-68 w-68 my-2 ml-2 py-2">
@@ -132,13 +39,15 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
           isIconOnly
           className="bg-transparent"
           color="secondary"
-          onPress={onPickFolder}
+          onPress={handlePickFolder} // Use the new handler
         >
           <FolderOpenIcon size={18} weight="fill" />
         </Button>
 
+        {/* Search input - Note: filtering logic will need to be re-implemented */}
         <div className="relative">
           <Input
+            placeholder="    Search folders..."
             radius="sm"
             startContent={
               <MagnifyingGlassIcon
@@ -147,29 +56,14 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
                 weight="bold"
               />
             }
-            placeholder="    Search folders..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
       {/* Folder Tree (scrollable) */}
       <div className="flex-1 overflow-y-auto px-2">
-        <div className="space-y-1 pb-4">
-          {mockFolders
-            .filter((f) =>
-              f.name.toLowerCase().includes(searchQuery.toLowerCase()),
-            )
-            .map((folder) => (
-              <FolderTree
-                key={folder.id}
-                folder={folder}
-                selectedFolder={selectedFolder}
-                setSelectedFolder={setSelectedFolder}
-              />
-            ))}
-        </div>
+        {/* Replace the old mock data map with our new feature component */}
+        <FileTree />
       </div>
 
       {/* Footer */}
