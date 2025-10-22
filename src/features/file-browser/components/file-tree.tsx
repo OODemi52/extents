@@ -17,7 +17,6 @@ export const FileTree = () => {
   return (
     <div className="overflow-scroll h-full">
       {/*
-        The Accordian component is recursively called as children of the AccordionItem component
         They tree structure is dynamically built as a "Folder" Accordian is expanded.
         Individually, walking the tree results in each command call return in ~under 10ms
         */}
