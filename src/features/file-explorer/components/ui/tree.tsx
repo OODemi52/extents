@@ -1,11 +1,5 @@
 import { createContext, useCallback, useContext, useState } from "react";
 
-export type TreeViewElement = {
-  id: string;
-  name: string;
-  children?: TreeViewElement[];
-};
-
 // The context will pass down selection state and icons
 type TreeContextProps = {
   selectedId: string | undefined;

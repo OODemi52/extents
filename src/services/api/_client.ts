@@ -14,7 +14,6 @@ export async function invokeTauri<TCmd extends keyof CommandArgs>(
   const [command, commandArgs] = args;
 
   try {
-    // We cast the result to the looked-up type.
     return (await invoke(command, commandArgs as any)) as CommandReturn[TCmd];
   } catch (error) {
     throw `[${command}, ${args}]: ${error}`;

@@ -48,7 +48,7 @@ pub fn run() {
         // Handler function invocations
         .invoke_handler(tauri::generate_handler![
             //Scanner Commands
-            commands::scanner::build_fs_tree,
+            commands::scanner::get_children_dir_paths,
             // File System Commands
             commands::file::get_file,
             commands::file::get_thumbnail_path,

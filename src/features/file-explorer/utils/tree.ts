@@ -1,4 +1,5 @@
 import { FsNodeMap, TreeViewElement } from "@/types/file-system";
+import { Selection } from "@heroui/react";
 
 /**
  * Transforms the flat map of nodes from the Rust backend into a nested
@@ -54,3 +55,25 @@ export function transformFlatToTree(nodes: FsNodeMap): TreeViewElement[] {
 
   console.log("roots", roots);
 }
+
+// This function takes the full nested tree and the set of expanded keys,
+// and returns a flat array of only the nodes that should be visible.
+export const flattenTree = (
+  nodes: TreeViewElement[],
+  expandedKeys: Selection,
+): (TreeViewElement & { level: number })[] => {
+  const flattened: (TreeViewElement & { level: number })[] = [];
+
+  const walk = (items: TreeViewElement[], level: number) => {
+    items.forEach((item) => {
+      flattened.push({ ...item, level });
+      // If the item is expanded and has children, walk its children
+      if (expandedKeys.has(item.id) && item.children.length > 0) {
+        walk(item.children, level + 1);
+      }
+    });
+  };
+
+  walk(nodes, 0);
+  return flattened;
+};
