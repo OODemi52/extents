@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Divider } from "@heroui/divider";
 import { Tooltip } from "@heroui/tooltip";
 
-import { FileTree } from "@/features/file-explorer/components/file-tree";
+import { FileTree } from "@/features/file-browser/components/file-tree";
 
 type SidebarProps = {
   onPickFolder: () => void;

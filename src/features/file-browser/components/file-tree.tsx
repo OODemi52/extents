@@ -7,7 +7,7 @@ import {
 import { useVisibleNodes } from "../hooks/use-visible-nodes";
 
 import { cn } from "@/lib/cn";
-import { useFileSystemStore } from "@/features/file-explorer/store/file-system-store";
+import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
 
 export const FileTree = () => {
   const visibleNodes = useVisibleNodes();
