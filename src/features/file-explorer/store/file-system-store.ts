@@ -1,5 +1,5 @@
-import { Selection } from "@heroui/react";
 import { create } from "zustand";
+import { Selection } from "@heroui/react";
 
 interface FileSystemState {
   selectedId: string | null;
@@ -10,7 +10,7 @@ interface FileSystemState {
 
 export const useFileSystemStore = create<FileSystemState>((set) => ({
   selectedId: null,
-  expandedKeys: new Set(["/"]),
+  expandedKeys: new Set(),
   selectItem: (id) => set({ selectedId: id }),
   setExpandedKeys: (keys) => set({ expandedKeys: keys }),
 }));

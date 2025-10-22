@@ -3,7 +3,7 @@ import { invokeTauri } from "./_client";
 import { TreeNode } from "@/types/file-system";
 
 interface GetChildrenDirArgs {
-  rootDirPath: string;
+  rootDirPath: string | undefined;
   scanLevel: number;
 }
 

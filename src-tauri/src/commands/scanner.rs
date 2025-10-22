@@ -14,12 +14,16 @@ pub struct TreeNode {
 
 #[tauri::command]
 pub fn get_children_dir_paths(
-    root_dir_path: PathBuf,
+    root_dir_path: Option<PathBuf>,
     scan_level: usize,
 ) -> Result<Vec<TreeNode>, String> {
     let start_time = Instant::now();
 
-    let scan_path = root_dir_path;
+    let scan_path = match root_dir_path {
+        Some(path) => PathBuf::from(path),
+
+        None => dirs::home_dir().expect("Could not find home directory"),
+    };
 
     info!(?scan_path, "Starting directory scan...");
 
@@ -30,6 +34,10 @@ pub fn get_children_dir_paths(
         .build();
 
     for entry in walker.filter_map(Result::ok) {
+        if entry.depth() == 0 {
+            continue;
+        }
+
         if entry.file_type().map_or(false, |ft| ft.is_dir()) {
             let path = entry.into_path();
 

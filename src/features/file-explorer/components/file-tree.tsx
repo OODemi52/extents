@@ -1,84 +1,73 @@
 import { Accordion, AccordionItem } from "@heroui/react";
-import { FolderSimple, FolderOpen } from "@phosphor-icons/react";
+import {
+  FolderSimpleIcon,
+  FolderOpenIcon,
+} from "@phosphor-icons/react/dist/ssr";
 
-import { useFolderChildren } from "../hooks/use-folder-children";
+import { useVisibleNodes } from "../hooks/use-visible-nodes";
 
-import { useFileSystemStore } from "@/store/file-system-store";
-import { TreeNode } from "@/types/file-system";
 import { cn } from "@/lib/cn";
+import { useFileSystemStore } from "@/features/file-explorer/store/file-system-store";
 
-// This component fetches and renders the children for a given node
-const FolderContents = ({ node }: { node: TreeNode }) => {
-  const { data: children, isLoading, error } = useFolderChildren(node.id);
-
-  if (isLoading)
-    return <div className="pl-5 text-sm text-neutral-500">Loading...</div>;
-  if (error) return <div className="pl-5 text-sm text-red-500">Error</div>;
-  if (!children) return null;
-
-  // Recursively render the next level of folders
-  return (
-    <>
-      {children.map((childNode) => (
-        <FolderItem key={childNode.id} node={childNode} />
-      ))}
-    </>
-  );
-};
-
-// This component represents one folder in the tree
-const FolderItem = ({ node }: { node: TreeNode }) => {
-  const { selectedId, expandedKeys, selectItem } = useFileSystemStore();
-  const isSelected = selectedId === node.id;
-  const isOpen = expandedKeys.has(node.id);
-
-  return (
-    <AccordionItem
-      key={node.id}
-      aria-label={node.name}
-      classNames={{
-        base: cn("rounded-md", { "bg-neutral-700": isSelected }),
-        trigger: "h-8 px-2",
-        content: "pt-1 pl-4",
-      }}
-      startContent={
-        isOpen ? (
-          <FolderOpen size={20} weight="duotone" />
-        ) : (
-          <FolderSimple size={20} weight="duotone" />
-        )
-      }
-      title={node.name}
-      onPress={() => selectItem(node.id)}
-    >
-      {/* Conditionally render children only if the item is open */}
-      {isOpen && <FolderContents node={node} />}
-    </AccordionItem>
-  );
-};
-
-// This is the main entry point component for your sidebar
 export const FileTree = () => {
-  const { expandedKeys, setExpandedKeys } = useFileSystemStore();
-
-  const rootNode: TreeNode = {
-    id: "/",
-    name: "My Computer",
-    children: [],
-  };
+  const visibleNodes = useVisibleNodes();
+  const { expandedKeys, setExpandedKeys, selectItem, selectedId } =
+    useFileSystemStore();
 
   return (
-    <div className="overflow-auto h-full px-2">
-      <Accordion selectionMode="multiple">
-        <AccordionItem key="A" title="Users">
-          b<AccordionItem>b</AccordionItem>
-          <AccordionItem key="B" title="oodemi">
-            b
-            <AccordionItem key="C" title="Pictures">
-              e
-            </AccordionItem>
-          </AccordionItem>
-        </AccordionItem>
+    <div className="overflow-scroll h-full">
+      {/*
+        The Accordian component is recursively called as children of the AccordionItem component
+        They tree structure is dynamically built as a "Folder" Accordian is expanded.
+        Individually, walking the tree results in each command call return in ~under 10ms
+        */}
+      <Accordion
+        isCompact
+        className="w-full"
+        selectedKeys={expandedKeys}
+        selectionMode="multiple"
+        variant="splitted"
+        onSelectionChange={setExpandedKeys}
+      >
+        {visibleNodes.map((node) => {
+          const isSelected = selectedId === node.id;
+          const isOpen =
+            expandedKeys instanceof Set && expandedKeys.has(node.id);
+
+          return (
+            <AccordionItem
+              key={node.id}
+              isCompact
+              aria-label={node.name}
+              className="font-medium"
+              classNames={{
+                base: cn(
+                  "rounded-none",
+                  "shadow-none",
+                  "outline-none",
+                  "",
+                  "bg-transparent",
+                  {
+                    "bg-zinc-800": isSelected,
+                  },
+                ),
+                trigger: "h-8",
+                title: "text-xs truncate",
+                content: "hidden",
+              }}
+              startContent={
+                isOpen ? (
+                  <FolderOpenIcon size={16} weight="fill" />
+                ) : (
+                  <FolderSimpleIcon size={16} />
+                )
+              }
+              style={{ paddingLeft: `${node.level * 18}px` }}
+              title={node.name}
+              onPress={() => selectItem(node.id)}
+            />
+          );
+        })}
       </Accordion>
     </div>
   );

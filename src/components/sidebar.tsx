@@ -4,6 +4,7 @@ import { Input } from "@heroui/input";
 import { invoke } from "@tauri-apps/api/core";
 import { FolderOpenIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Divider } from "@heroui/divider";
 
 import { FileTree } from "@/features/file-explorer/components/file-tree";
 
@@ -30,10 +31,10 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
   };
 
   return (
-    <aside className="bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col min-w-68 w-68 my-2 ml-2 py-2">
+    <aside className="bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col min-w-68 w-68 my-2 ml-2 py-2 gap-y-2">
       {/* Header Controls */}
-      <div className="flex flex-col gap-3 p-2">
-        <h1>Browse</h1>
+      <h1 className="ml-2">Browse</h1>
+      <div className="flex flex-row gap-3 p-2">
         <Button
           disableRipple
           isIconOnly
@@ -59,6 +60,8 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
           />
         </div>
       </div>
+
+      <Divider className="w-11/12 mx-auto" />
 
       {/* Folder Tree (scrollable) */}
       <div className="flex-1 overflow-y-auto px-2">
