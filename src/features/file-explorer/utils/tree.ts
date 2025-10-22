@@ -53,7 +53,6 @@ export const flattenTreeList = (
   const walk = (items: TreeNode[], level: number) => {
     items.forEach((item) => {
       flattened.push({ ...item, level });
-      // If the item is expanded and has children, recursively walk its children
       if (
         expandedKeys instanceof Set &&
         expandedKeys.has(item.id) &&

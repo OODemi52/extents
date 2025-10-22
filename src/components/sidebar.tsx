@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { FolderOpenIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Divider } from "@heroui/divider";
+import { Tooltip } from "@heroui/tooltip";
 
 import { FileTree } from "@/features/file-explorer/components/file-tree";
 
@@ -31,23 +32,14 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
   };
 
   return (
-    <aside className="bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col min-w-68 w-68 my-2 ml-2 py-2 gap-y-2">
+    <aside className="bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col min-w-68 w-68 my-2 ml-2 py-2 gap-y-3">
       {/* Header Controls */}
-      <h1 className="ml-2">Browse</h1>
-      <div className="flex flex-row gap-3 p-2">
-        <Button
-          disableRipple
-          isIconOnly
-          className="bg-transparent"
-          color="secondary"
-          onPress={handlePickFolder} // Use the new handler
-        >
-          <FolderOpenIcon size={18} weight="fill" />
-        </Button>
 
-        {/* Search input - Note: filtering logic will need to be re-implemented */}
-        <div className="relative">
+      <div className="flex flex-row gap-3 p-4">
+        {/*make maginfying glass disapper once there is text */}
+        <Tooltip content="🚧Coming Soon!🚧">
           <Input
+            isDisabled
             placeholder="    Search folders..."
             radius="sm"
             startContent={
@@ -58,7 +50,26 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
               />
             }
           />
-        </div>
+        </Tooltip>
+
+        <Tooltip
+          className="border border-zinc-500"
+          closeDelay={0}
+          content="Open Folder..."
+          delay={1000}
+          size="sm"
+        >
+          <Button
+            disableRipple
+            isIconOnly
+            className="bg-transparent"
+            color="secondary"
+            onPress={handlePickFolder}
+          >
+            {/*Com back to this to make custom folder search icon */}
+            <FolderOpenIcon size={18} weight="fill" />
+          </Button>
+        </Tooltip>
       </div>
 
       <Divider className="w-11/12 mx-auto" />

@@ -23,7 +23,8 @@ export const FileTree = () => {
         */}
       <Accordion
         isCompact
-        className="w-full"
+        className="truncate"
+        fullWidth
         selectedKeys={expandedKeys}
         selectionMode="multiple"
         variant="splitted"
@@ -38,21 +39,15 @@ export const FileTree = () => {
             <AccordionItem
               key={node.id}
               isCompact
-              aria-label={node.name}
+              aria-label={`Folder: ${node.name}`}
               className="font-medium"
               classNames={{
-                base: cn(
-                  "rounded-none",
-                  "shadow-none",
-                  "outline-none",
-                  "",
-                  "bg-transparent",
-                  {
-                    "bg-zinc-800": isSelected,
-                  },
-                ),
+                base: "shadow-none p-0",
                 trigger: "h-8",
                 title: "text-xs truncate",
+                heading: cn("rounded-lg px-4 truncate", {
+                  "bg-zinc-800/75": isSelected,
+                }),
                 content: "hidden",
               }}
               startContent={
