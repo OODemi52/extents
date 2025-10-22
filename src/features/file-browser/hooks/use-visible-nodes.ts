@@ -37,13 +37,11 @@ const addChildrenToNode = (
 export const useVisibleNodes = () => {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const { expandedKeys } = useFileSystemStore();
-
   const queryClient = useQueryClient();
-  const prevExpandedKeysRef = useRef<Selection>(expandedKeys);
+  const prevExpandedKeysRef = useRef<Selection>(new Set());
 
-  // This effect is used to initialize the directory on mount
   useEffect(() => {
-    const init = async () => {
+    const fetchRoot = async () => {
       try {
         const homeDir = await queryClient.fetchQuery({
           queryKey: ["homeDir"],
@@ -64,23 +62,30 @@ export const useVisibleNodes = () => {
         setTree([
           { id: homeDir, name: homeName, children: first_level_children },
         ]);
+
+        useFileSystemStore.getState().setExpandedKeys(new Set([homeDir]));
+        prevExpandedKeysRef.current = new Set([homeDir]);
       } catch (error) {
-        throw `[useVisibleNodes:init] -  ${error}`;
+        throw error;
       }
     };
 
-    init();
+    fetchRoot();
   }, [queryClient]);
 
-  // --- Handle folder expansion ---
   useEffect(() => {
-    const currentKeys = new Set(expandedKeys);
-    const prevKeys = new Set(prevExpandedKeysRef.current);
+    const currentKeys =
+      expandedKeys instanceof Set ? expandedKeys : new Set<string>();
+
+    const prevKeys =
+      prevExpandedKeysRef.current instanceof Set
+        ? prevExpandedKeysRef.current
+        : new Set<string>();
 
     const findNodeById = (nodes: TreeNode[], id: string): TreeNode | null => {
       for (const node of nodes) {
         if (node.id === id) return node;
-        if (node.children?.length) {
+        if (node.children) {
           const found = findNodeById(node.children, id);
 
           if (found) return found;
@@ -110,7 +115,7 @@ export const useVisibleNodes = () => {
                 addChildrenToNode(currentTree, key, children),
               );
             } catch (error) {
-              throw `[useVisibleNodes] -  Key: ${key}, ${error}`;
+              throw error;
             }
           };
 
@@ -119,8 +124,8 @@ export const useVisibleNodes = () => {
       }
     });
 
-    prevExpandedKeysRef.current = expandedKeys;
-  }, [expandedKeys, tree, queryClient]);
+    prevExpandedKeysRef.current = currentKeys;
+  }, [expandedKeys, queryClient, tree]);
 
   const visibleNodes = useMemo(
     () => flattenTreeList(tree, expandedKeys),
