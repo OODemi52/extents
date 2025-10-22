@@ -35,6 +35,7 @@ export const FileTree = () => {
           const isOpen =
             expandedKeys instanceof Set && expandedKeys.has(node.id);
           // Need to figure out how to seperate AccordianItem press with it's indicator
+          // Also need to implement fs watcher in the backend
 
           return (
             <AccordionItem
