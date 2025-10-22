@@ -13,6 +13,14 @@ pub struct TreeNode {
 }
 
 #[tauri::command]
+pub fn get_home_dir() -> Result<String, String> {
+    match dirs::home_dir() {
+        Some(path) => Ok(path.to_string_lossy().into_owned()),
+        None => Err("Could not find home directory".to_string()),
+    }
+}
+
+#[tauri::command]
 pub fn get_children_dir_paths(
     root_dir_path: Option<PathBuf>,
     scan_level: usize,
@@ -21,7 +29,6 @@ pub fn get_children_dir_paths(
 
     let scan_path = match root_dir_path {
         Some(path) => PathBuf::from(path),
-
         None => dirs::home_dir().expect("Could not find home directory"),
     };
 
@@ -40,7 +47,6 @@ pub fn get_children_dir_paths(
 
         if entry.file_type().map_or(false, |ft| ft.is_dir()) {
             let path = entry.into_path();
-
             let name = path
                 .file_name()
                 .unwrap_or(path.as_os_str())
@@ -50,7 +56,7 @@ pub fn get_children_dir_paths(
             let id = path.to_string_lossy().into_owned();
 
             node_map.insert(
-                path,
+                path.clone(),
                 TreeNode {
                     id,
                     name,
@@ -61,9 +67,7 @@ pub fn get_children_dir_paths(
     }
 
     let mut roots: Vec<TreeNode> = Vec::new();
-
     let mut sorted_paths: Vec<PathBuf> = node_map.keys().cloned().collect();
-
     sorted_paths.sort();
 
     for path in sorted_paths {
