@@ -39,3 +39,4 @@ tracing-subscriber = { version = "0.3.19", features = ["time", "env-filter"] }
 tracing-appender = "0.2.3"
 ignore = "0.4.23"
 bytemuck = { version = "1.12", features = [ "derive" ] }
+blake3 = "1.8.2"
