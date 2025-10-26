@@ -24,7 +24,7 @@ export function EditPanel() {
           itemClasses={{
             base: "px-2 m-0",
             content: "",
-            title: "tracking-tight",
+            title: "font-mediumtracking-tight",
           }}
           motionProps={{
             variants: {

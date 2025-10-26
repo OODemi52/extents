@@ -23,8 +23,8 @@ export function CenteredSlider({
       classNames={{
         filler: `${trackColor ? "bg-transparent" : fillColor} rounded-xl`,
         track: `${trackColor} !border-transparent !data-[fill-start=true]:border-s-transparent !data-[fill-end=true]:border-e-transparent`,
-        label: "font-light text-xs text-white/65 tracking-tight",
-        value: "font-light text-xs text-white/65",
+        label: "font-medium text-xs text-white tracking-tight",
+        value: "font-medium text-xs text-white",
       }}
       defaultValue={defaultValue}
       fillOffset={0}
