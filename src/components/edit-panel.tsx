@@ -5,14 +5,10 @@ import { RocketLaunchIcon, SunDimIcon } from "@phosphor-icons/react";
 import { PaletteIcon } from "@phosphor-icons/react";
 import { ExportIcon } from "@phosphor-icons/react";
 
-import { useImageEdits } from "../store/image-edits";
-
 import { CenteredSlider } from "./ui/sliders/center-slider";
 import { ThemeSwitch } from "./theme-switch";
 
 export function EditPanel() {
-  const { brightness, contrast } = useImageEdits();
-
   return (
     <aside className="bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col min-w-68 w-68 my-2 mr-2 py-2 px-2">
       <Card className="w-full h-32 mb-2 bg-zinc-800 text-center">
