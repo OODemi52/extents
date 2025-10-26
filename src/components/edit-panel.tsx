@@ -24,7 +24,7 @@ export function EditPanel() {
           itemClasses={{
             base: "px-2 m-0",
             content: "",
-            title: "text-sm tracking-tight",
+            title: "tracking-tight",
           }}
           motionProps={{
             variants: {
@@ -40,7 +40,7 @@ export function EditPanel() {
                     damping: 30,
                     duration: 1,
                   },
-                  opacity: { easings: "ease", duration: 1 },
+                  opacity: { ease: "easeInOut", duration: 1 },
                 },
               },
               exit: {
@@ -49,8 +49,8 @@ export function EditPanel() {
                 height: 0,
                 overflowY: "hidden",
                 transition: {
-                  height: { easings: "ease", duration: 0.25 },
-                  opacity: { easings: "ease", duration: 0.3 },
+                  height: { ease: "easeInOut", duration: 0.25 },
+                  opacity: { ease: "easeInOut", duration: 0.3 },
                 },
               },
             },
