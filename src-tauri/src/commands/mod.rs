@@ -4,3 +4,4 @@ pub mod hasher;
 pub mod logging;
 pub mod renderer;
 pub mod scanner;
+pub mod thumbnail;

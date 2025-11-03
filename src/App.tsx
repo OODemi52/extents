@@ -1,101 +1,75 @@
-import { useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
 import { Sidebar } from "./components/sidebar";
-import { Filmstrip } from "./components/filmstrip";
+import { Filmstrip } from "./features/thumbnails/components/filmstrip";
 import { ImageViewer } from "./components/image-viewer";
-import { useImageStore } from "./store/image-store";
-import { ImageMetadata } from "./types/image";
 import { EditPanel } from "./components/edit-panel";
 import { BottomToolbar } from "./components/bottom-toolbar";
+import { useFolderScanner } from "./hooks/use-folder-scanner";
+import { useWGPURenderLoop } from "./hooks/use-wgpu-render-loop";
+import { useImageStore } from "./store/image-store";
+import { useLayoutStore } from "./store/layout-store";
 
 function App() {
+  const { fileMetadataList } = useImageStore();
+  const { openFolder } = useFolderScanner();
   const {
-    setFileMetadataList,
-    setSelectedIndex,
-    setCurrentImageData,
-    setIsLoading,
-    fileMetadataList,
-  } = useImageStore();
+    panels,
+    sidebarWidth,
+    editPanelWidth,
+    setSidebarWidth,
+    setEditPanelWidth,
+  } = useLayoutStore();
 
-  async function getfileMetadataList(path: string | null = null) {
-    let folderPath: string | null = null;
-
-    if (typeof path === "string" && path.length > 0) {
-      folderPath = path;
-    } else {
-      folderPath = (await open({ directory: true })) as string | null;
-    }
-
-    if (!folderPath || typeof folderPath !== "string") return;
-
-    setIsLoading(true);
-    try {
-      const metadataList: ImageMetadata[] = await invoke("get_file_metadata", {
-        folderPath,
-      });
-
-      setFileMetadataList(metadataList);
-      setSelectedIndex(0);
-      setCurrentImageData("");
-    } catch (err) {
-      alert(`Failed to load folder: ${err}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    let animationFrameId: number;
-
-    const loop = async () => {
-      const shouldRender = await invoke("should_render_frame");
-
-      if (shouldRender) {
-        await invoke("render_frame");
-      }
-      animationFrameId = requestAnimationFrame(loop);
-    };
-
-    animationFrameId = requestAnimationFrame(loop);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  useEffect(() => {
-    const setPaused = () => invoke("set_render_state", { stateStr: "paused" });
-    const setIdle = () => invoke("set_render_state", { stateStr: "idle" });
-
-    window.addEventListener("blur", setPaused);
-    window.addEventListener("focus", setIdle);
-
-    return () => {
-      window.removeEventListener("blur", setPaused);
-      window.removeEventListener("focus", setIdle);
-    };
-  }, []);
+  // WGPU render loop (handles frame rendering and window focus)
+  useWGPURenderLoop();
 
   return (
     <div className="flex flex-col h-screen">
       {/* Main Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar
-          hasImages={fileMetadataList.length > 0}
-          onPickFolder={getfileMetadataList}
-        />
+        <PanelGroup direction="horizontal">
+          {/* Sidebar Panel */}
+          {panels.sidebar && (
+            <>
+              <Panel
+                defaultSize={sidebarWidth}
+                maxSize={30}
+                minSize={10}
+                onResize={(size) => setSidebarWidth(size)}
+              >
+                <Sidebar
+                  hasImages={fileMetadataList.length > 0}
+                  onPickFolder={openFolder}
+                />
+              </Panel>
+              <PanelResizeHandle className="w-1 bg-transparent hover:bg-blue-500/50 transition-colors" />
+            </>
+          )}
 
-        {/* Viewer + Filmstrip column */}
-        <div className="flex flex-col flex-grow overflow-hidden">
-          <ImageViewer />
-          <Filmstrip />
-        </div>
+          {/* Center: Viewer + Filmstrip */}
+          <Panel minSize={30}>
+            <div className="flex flex-col h-full">
+              <ImageViewer />
+              {panels.filmstrip && <Filmstrip />}
+            </div>
+          </Panel>
 
-        {/* Right Edit Panel */}
-        <EditPanel />
+          {/* Edit Panel */}
+          {panels.editPanel && (
+            <>
+              <PanelResizeHandle className="w-1 bg-transparent hover:bg-blue-500/50 transition-colors" />
+              <Panel
+                defaultSize={editPanelWidth}
+                maxSize={40}
+                minSize={15}
+                onResize={(size) => setEditPanelWidth(size)}
+              >
+                <EditPanel />
+              </Panel>
+            </>
+          )}
+        </PanelGroup>
       </div>
 
       {/* Bottom Toolbar */}

@@ -7,22 +7,12 @@ interface GetChildrenDirArgs {
   scanLevel: number;
 }
 
-/**
- * Fetches a nested tree of directories from the Rust backend.
- * @param args - The root path to scan from and the depth of the scan.
- * @returns A promise that resolves to the root nodes of the directory tree.
- */
 export const getChildrenDirPaths = (
   args: GetChildrenDirArgs,
 ): Promise<TreeNode[]> => {
   return invokeTauri("get_children_dir_paths", args);
 };
 
-/**
- * Fetches the users home directory.
- * @param args - null
- * @returns A promise that resolves to the home directory path string.
- */
 export const getHomeDir = (): Promise<string> => {
   return invokeTauri("get_home_dir", null);
 };

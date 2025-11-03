@@ -1,9 +1,10 @@
-pub mod cache;
 pub mod commands;
+pub mod core;
 pub mod renderer;
 pub mod state;
 
 use crate::commands::db::DbConnection;
+use crate::core::cache::manager::CacheManager;
 use crate::state::AppState;
 use tauri::Manager;
 
@@ -18,6 +19,10 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            let cache_manager = CacheManager::new(&app.handle());
+
+            app.manage(cache_manager);
 
             let window = app.get_webview_window("main").unwrap();
 
@@ -53,9 +58,11 @@ pub fn run() {
             commands::scanner::get_home_dir,
             // File System Commands
             commands::file::get_file,
-            commands::file::get_thumbnail_path,
             commands::file::get_file_metadata,
-            commands::file::get_thumbnail,
+            commands::file::start_folder_scan,
+            // Thumbnail Commands
+            commands::thumbnail::get_thumbnail,
+            commands::thumbnail::prefetch_thumbnails,
             // WGPU Renderer Commands
             commands::renderer::init_renderer,
             commands::renderer::load_image,

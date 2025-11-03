@@ -2,10 +2,6 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { CommandArgs, CommandReturn } from "@/types/commands";
 
-/**
- * Typed wrapper for Tauri's `invoke` function.
- * This provides a single, centralized place for logging and error handling.
- */
 export async function invokeTauri<TCmd extends keyof CommandArgs>(
   ...args: CommandArgs[TCmd] extends undefined
     ? [command: TCmd]

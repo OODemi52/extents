@@ -1,8 +1,10 @@
+use anyhow::anyhow;
 use base64::{engine::general_purpose, Engine as _};
 use image::{self, imageops, GenericImageView};
 use std::path::PathBuf;
+use tauri::Emitter;
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageMetadata {
     path: String,
@@ -24,6 +26,99 @@ fn is_valid_file(path: &PathBuf) -> bool {
     }
 }
 
+const SCAN_BATCH_SIZE: usize = 64;
+
+#[tauri::command]
+pub fn start_folder_scan(folder_path: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+    log::info!("Starting folder scan for {}", folder_path);
+    let scan_path = PathBuf::from(&folder_path);
+
+    if !scan_path.exists() {
+        return Err(format!("Folder does not exist: {}", folder_path));
+    }
+
+    let emit_handle = app_handle.clone();
+    let complete_handle = app_handle.clone();
+    let error_handle = app_handle.clone();
+
+    tauri::async_runtime::spawn(async move {
+        let result = tauri::async_runtime::spawn_blocking(move || -> Result<(), anyhow::Error> {
+            let mut batch: Vec<ImageMetadata> = Vec::with_capacity(SCAN_BATCH_SIZE);
+            let entries = std::fs::read_dir(&scan_path)
+                .map_err(|e| anyhow!("Failed to read directory {}: {}", scan_path.display(), e))?;
+            let mut processed = 0usize;
+
+            for entry in entries {
+                let entry = match entry {
+                    Ok(e) => e,
+                    Err(_) => continue,
+                };
+
+                let path = entry.path();
+                if !is_valid_file(&path) {
+                    continue;
+                }
+
+                let file_name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+
+                let file_size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+
+                batch.push(ImageMetadata {
+                    path: path.to_string_lossy().to_string(),
+                    thumbnail_path: None,
+                    width: None,
+                    height: None,
+                    file_size,
+                    file_name,
+                });
+                processed += 1;
+
+                if batch.len() >= SCAN_BATCH_SIZE {
+                    let payload = std::mem::take(&mut batch);
+                    emit_handle
+                        .emit("folder-scan-batch", payload)
+                        .map_err(|e| anyhow!(e.to_string()))?;
+                    batch = Vec::with_capacity(SCAN_BATCH_SIZE);
+                }
+            }
+
+            if !batch.is_empty() {
+                let payload = std::mem::take(&mut batch);
+                emit_handle
+                    .emit("folder-scan-batch", payload)
+                    .map_err(|e| anyhow!(e.to_string()))?;
+            }
+
+            log::info!(
+                "Folder scan complete for {} ({} images)",
+                folder_path,
+                processed
+            );
+
+            Ok(())
+        })
+        .await;
+
+        match result {
+            Ok(Ok(())) => {
+                complete_handle.emit("folder-scan-complete", ()).ok();
+            }
+            Ok(Err(err)) => {
+                error_handle.emit("folder-scan-error", err.to_string()).ok();
+            }
+            Err(err) => {
+                error_handle.emit("folder-scan-error", err.to_string()).ok();
+            }
+        }
+    });
+
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn get_file_metadata(folder_path: String) -> Vec<ImageMetadata> {
     let paths = std::fs::read_dir(folder_path).unwrap(); // Unwrap might panic, discouraged from using it. Either use pattern matching or unrwap_or/unwrap_or_else
@@ -32,10 +127,6 @@ pub async fn get_file_metadata(folder_path: String) -> Vec<ImageMetadata> {
 
     for entry in paths.flatten() {
         let path = entry.path();
-
-        let thumbnail_path = get_thumbnail_path(path.to_string_lossy().to_string(), 100)
-            .await
-            .ok();
 
         if is_valid_file(&path) {
             let file_name = path
@@ -49,25 +140,11 @@ pub async fn get_file_metadata(folder_path: String) -> Vec<ImageMetadata> {
                 Err(_) => continue,
             };
 
-            let (width, height) = match imagesize::size(&path) {
-                Ok(s) => (Some(s.width as u32), Some(s.height as u32)),
-                Err(_) => {
-                    // fallback to image crate if imagesize fails
-                    match image::open(&path) {
-                        Ok(img) => {
-                            let dims = img.dimensions();
-                            (Some(dims.0), Some(dims.1))
-                        }
-                        Err(_) => (None, None),
-                    }
-                }
-            };
-
             files.push(ImageMetadata {
                 path: path.to_string_lossy().to_string(),
-                thumbnail_path,
-                width: width,
-                height: height,
+                thumbnail_path: None,
+                width: None,
+                height: None,
                 file_size: metadata.len(),
                 file_name,
             });
@@ -75,58 +152,6 @@ pub async fn get_file_metadata(folder_path: String) -> Vec<ImageMetadata> {
     }
 
     files
-}
-
-#[tauri::command]
-pub async fn get_thumbnail_path(image_path: String, max_size: u32) -> Result<String, String> {
-    // use spawn_blocking for CPU-heavy sync code
-    tauri::async_runtime::spawn_blocking(move || {
-        let original_path = PathBuf::from(&image_path);
-
-        if !original_path.exists() {
-            return Err("Original file does not exist".into());
-        }
-
-        let cache_dir = dirs::cache_dir()
-            .unwrap_or_else(|| std::env::temp_dir())
-            .join("com.extents.cache");
-
-        std::fs::create_dir_all(&cache_dir).ok();
-
-        let thumb_file_name = format!(
-            "{}_{}.jpg",
-            original_path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy(),
-            max_size
-        );
-
-        let thumb_path = cache_dir.join(thumb_file_name);
-
-        if thumb_path.exists() {
-            return Ok(thumb_path.to_string_lossy().to_string());
-        }
-
-        match image::open(&original_path) {
-            Ok(img) => {
-                let thumb = img.resize(max_size, max_size, imageops::FilterType::Triangle);
-
-                let mut file = std::fs::File::create(&thumb_path)
-                    .map_err(|e| format!("Failed to create thumbnail: {}", e))?;
-
-                thumb
-                    .write_to(&mut file, image::ImageFormat::Jpeg)
-                    .map_err(|e| format!("Failed to write thumbnail: {}", e))?;
-
-                Ok(thumb_path.to_string_lossy().to_string())
-            }
-
-            Err(e) => Err(format!("Failed to open image: {}", e)),
-        }
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
 }
 
 #[tauri::command]
@@ -146,71 +171,6 @@ pub fn get_file(image_path: String) -> Result<String, String> {
 
         Err(e) => Err(format!("Failed to read image: {}", e)),
     }
-}
-
-#[tauri::command]
-pub fn get_thumbnail(image_path: String, max_size: u32) -> Result<String, String> {
-    let original_path = PathBuf::from(&image_path);
-
-    if !original_path.exists() {
-        return Err("Original file does not exist".into());
-    }
-
-    let cache_dir = dirs::cache_dir()
-        .unwrap_or_else(|| std::env::temp_dir())
-        .join("com.extents.cache");
-
-    std::fs::create_dir_all(&cache_dir).ok();
-
-    let thumb_file_name = format!(
-        "{}_{}.jpg",
-        original_path
-            .file_stem()
-            .unwrap_or_default()
-            .to_string_lossy(),
-        max_size
-    );
-
-    let thumb_path = cache_dir.join(thumb_file_name);
-
-    if thumb_path.exists() {
-        println!("Found existing thumbnail at: {}", thumb_path.display());
-        return Ok(thumb_path.to_string_lossy().to_string());
-    }
-
-    println!("Creating new thumbnail at: {}", thumb_path.display());
-
-    let thumbnail_data = if thumb_path.exists() {
-        std::fs::read(&thumb_path).map_err(|e| format!("Failed to read thumbnail: {}", e))?
-    } else {
-        match image::open(&original_path) {
-            Ok(img) => {
-                let thumb = img.resize(max_size, max_size, imageops::FilterType::Triangle);
-
-                let mut buffer = Vec::new();
-
-                let mut cursor = std::io::Cursor::new(&mut buffer);
-
-                thumb
-                    .write_to(&mut cursor, image::ImageFormat::Jpeg)
-                    .map_err(|e| format!("Failed to encode thumbnail: {}", e))?;
-
-                println!("Created new thumbnail at: {}", thumb_path.display());
-                println!("Original: {}, size: {}", original_path.display(), max_size);
-
-                std::fs::write(&thumb_path, &buffer)
-                    .map_err(|e| format!("Failed to cache thumbnail: {}", e))?;
-
-                buffer
-            }
-
-            Err(e) => return Err(format!("Failed to open image: {}", e)),
-        }
-    };
-
-    let base64 = general_purpose::STANDARD.encode(&thumbnail_data);
-
-    Ok(base64)
 }
 
 #[tauri::command]

@@ -8,9 +8,6 @@ import { flattenTreeList } from "../utils/tree";
 import { api } from "@/services/api";
 import { TreeNode } from "@/types/file-system";
 
-/**
- * Helper function to recursively find a node and add its children
- */
 const addChildrenToNode = (
   nodes: TreeNode[],
   parentId: string,

@@ -6,9 +6,6 @@ type ImageCanvasProps = {
   viewportRef: RefObject<HTMLDivElement>;
 };
 
-/**
- * An invisible component that controls the WGPU backend.
- */
 export function ImageCanvas({ path, viewportRef }: ImageCanvasProps) {
   useEffect(() => {
     if (!path) return;

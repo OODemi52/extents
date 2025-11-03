@@ -23,7 +23,6 @@ export function BottomToolbar() {
         rounded-xl
       "
     >
-      {/* Left side: Left Layout Controls */}
       <div className="flex items-center">
         <Button
           isIconOnly

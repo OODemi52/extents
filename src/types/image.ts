@@ -1,8 +1,8 @@
 export type ImageMetadata = {
   path: string;
   fileName: string;
-  width: number;
-  height: number;
+  width: number | null;
+  height: number | null;
   fileSize: number;
   thumbnailPath?: string;
 };
