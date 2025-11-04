@@ -14,3 +14,26 @@ body,
   background: rgba(72, 72, 72, 0);
   overflow: hidden;
 }
+
+.allotment-shell .sash.sash-vertical {
+  width: 6px;
+  background: transparent;
+}
+
+.allotment-shell .sash.sash-vertical::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  background: transparent;
+  transition: background-color 120ms ease;
+}
+
+.allotment-shell .sash.sash-vertical.sash-hover::before,
+.allotment-shell .sash.sash-vertical.sash-active::before {
+  background-color: var(--focus-border);
+}

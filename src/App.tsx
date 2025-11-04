@@ -1,5 +1,8 @@
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Allotment } from "allotment";
 
+import "allotment/dist/style.css";
 import { Sidebar } from "./components/sidebar";
 import { Filmstrip } from "./features/thumbnails/components/filmstrip";
 import { ImageViewer } from "./components/image-viewer";
@@ -8,71 +11,100 @@ import { BottomToolbar } from "./components/bottom-toolbar";
 import { useFolderScanner } from "./hooks/use-folder-scanner";
 import { useWGPURenderLoop } from "./hooks/use-wgpu-render-loop";
 import { useImageStore } from "./store/image-store";
-import { useLayoutStore } from "./store/layout-store";
+import {
+  EDIT_PANEL_DEFAULT_WIDTH,
+  MAIN_MIN_WIDTH,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  useLayoutStore,
+} from "./store/layout-store";
 
 function App() {
   const { fileMetadataList } = useImageStore();
   const { openFolder } = useFolderScanner();
-  const {
-    panels,
-    sidebarWidth,
-    editPanelWidth,
-    setSidebarWidth,
-    setEditPanelWidth,
-  } = useLayoutStore();
+  const { panels } = useLayoutStore();
 
-  // WGPU render loop (handles frame rendering and window focus)
+  const [sidebarSize, setSidebarSize] = useState(SIDEBAR_DEFAULT_WIDTH);
+
   useWGPURenderLoop();
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Main Area */}
-      <div className="flex flex-1 overflow-hidden">
-        <PanelGroup direction="horizontal">
-          {/* Sidebar Panel */}
+      <div className="flex flex-1 overflow-hidden py-2">
+        <Allotment
+          className="h-full allotment-shell"
+          proportionalLayout={false}
+          separator={false}
+          vertical={false}
+          onChange={(sizes) => {
+            if (panels.sidebar && sizes[0]) {
+              setSidebarSize(sizes[0]);
+            }
+          }}
+        >
           {panels.sidebar && (
-            <>
-              <Panel
-                defaultSize={sidebarWidth}
-                maxSize={30}
-                minSize={10}
-                onResize={(size) => setSidebarWidth(size)}
+            <Allotment.Pane
+              snap
+              maxSize={SIDEBAR_MAX_WIDTH}
+              minSize={SIDEBAR_MIN_WIDTH}
+              preferredSize={sidebarSize}
+            >
+              <motion.div
+                key="sidebar-panel-motion"
+                animate={{ x: 0, opacity: 1 }}
+                className="h-full pl-2"
+                initial={{ x: -20, opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
               >
                 <Sidebar
                   hasImages={fileMetadataList.length > 0}
                   onPickFolder={openFolder}
                 />
-              </Panel>
-              <PanelResizeHandle className="w-1 bg-transparent hover:bg-blue-500/50 transition-colors" />
-            </>
+              </motion.div>
+            </Allotment.Pane>
           )}
 
-          {/* Center: Viewer + Filmstrip */}
-          <Panel minSize={30}>
+          <Allotment.Pane minSize={MAIN_MIN_WIDTH}>
             <div className="flex flex-col h-full">
-              <ImageViewer />
-              {panels.filmstrip && <Filmstrip />}
+              <div className="flex-1 overflow-hidden">
+                <ImageViewer />
+              </div>
+              <AnimatePresence>
+                {panels.filmstrip && (
+                  <motion.div
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 100, opacity: 0 }}
+                    initial={{ y: 100, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                  >
+                    <Filmstrip />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </Panel>
+          </Allotment.Pane>
 
-          {/* Edit Panel */}
           {panels.editPanel && (
-            <>
-              <PanelResizeHandle className="w-1 bg-transparent hover:bg-blue-500/50 transition-colors" />
-              <Panel
-                defaultSize={editPanelWidth}
-                maxSize={40}
-                minSize={15}
-                onResize={(size) => setEditPanelWidth(size)}
+            <Allotment.Pane
+              maxSize={EDIT_PANEL_DEFAULT_WIDTH}
+              minSize={EDIT_PANEL_DEFAULT_WIDTH}
+              preferredSize={EDIT_PANEL_DEFAULT_WIDTH}
+            >
+              <motion.div
+                key="edit-panel-motion"
+                animate={{ x: 0, opacity: 1 }}
+                className="h-full pr-2"
+                initial={{ x: 20, opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
               >
                 <EditPanel />
-              </Panel>
-            </>
+              </motion.div>
+            </Allotment.Pane>
           )}
-        </PanelGroup>
+        </Allotment>
       </div>
 
-      {/* Bottom Toolbar */}
       <BottomToolbar />
     </div>
   );

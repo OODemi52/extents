@@ -1,13 +1,22 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export const SIDEBAR_DEFAULT_WIDTH = 280;
+export const SIDEBAR_MIN_WIDTH = 100;
+export const SIDEBAR_MAX_WIDTH = 400;
+
+export const EDIT_PANEL_DEFAULT_WIDTH = 300;
+
+export const MAIN_MIN_WIDTH = 300;
+export const FILMSTRIP_DEFAULT_HEIGHT = 180;
+
 export type PanelId = "sidebar" | "filmstrip" | "editPanel" | "infoPanel";
 
 export type EditPanelTab =
   | "basic"
-  | "color"
+  | "presets"
   | "detail"
-  | "effects"
+  | "ai"
   | "crop"
   | "info";
 
@@ -27,6 +36,9 @@ interface LayoutState {
   setFilmstripHeight: (height: number) => void;
 }
 
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
 export const useLayoutStore = create<LayoutState>()(
   persist(
     (set) => ({
@@ -39,9 +51,9 @@ export const useLayoutStore = create<LayoutState>()(
 
       activeEditTab: "basic",
 
-      sidebarWidth: 15,
-      editPanelWidth: 20,
-      filmstripHeight: 15,
+      sidebarWidth: SIDEBAR_DEFAULT_WIDTH,
+      editPanelWidth: EDIT_PANEL_DEFAULT_WIDTH,
+      filmstripHeight: FILMSTRIP_DEFAULT_HEIGHT,
 
       togglePanel: (panelId) =>
         set((state) => ({
@@ -53,9 +65,15 @@ export const useLayoutStore = create<LayoutState>()(
 
       setActiveEditTab: (tab) => set({ activeEditTab: tab }),
 
-      setSidebarWidth: (width) => set({ sidebarWidth: width }),
+      setSidebarWidth: (width) =>
+        set({
+          sidebarWidth: clamp(width, SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH),
+        }),
 
-      setEditPanelWidth: (width) => set({ editPanelWidth: width }),
+      setEditPanelWidth: (width) =>
+        set({
+          editPanelWidth: Math.max(EDIT_PANEL_DEFAULT_WIDTH, width),
+        }),
 
       setFilmstripHeight: (height) => set({ filmstripHeight: height }),
     }),

@@ -16,7 +16,6 @@ type SidebarProps = {
 
 export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
   const [selectedTab, setSelectedTab] = useState("browse");
-
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -29,14 +28,12 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
   };
 
   return (
-    <aside className="bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col min-w-68 w-68 my-2 ml-2 py-2 gap-y-1">
+    <aside className="w-full h-full bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col pl-2 p-2 gap-y-1 overflow-scroll overflow-x-hidden">
       {/* Header Controls */}
-
-      <div className="flex flex-row gap-3 py-2 px-4">
-        {/*make maginfying glass disapper once there is text */}
+      <div className="flex flex-row gap-3 py-2 px-4 flex-shrink-0">
         <Input
           isDisabled
-          placeholder="    🚧Coming Soon!"
+          placeholder="    Search Coming Soon..."
           radius="sm"
           startContent={
             <MagnifyingGlassIcon
@@ -46,7 +43,6 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
             />
           }
         />
-
         <Tooltip
           className="border border-zinc-500"
           closeDelay={0}
@@ -63,7 +59,6 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
             hidden={selectedTab !== "browse"}
             onPress={handlePickFolder}
           >
-            {/*Come back to this to make custom folder search icon */}
             <FolderOpenIcon size={18} weight="fill" />
           </Button>
         </Tooltip>
@@ -71,9 +66,10 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
 
       <Tabs
         aria-label="File Tabs"
-        className="flex flex-col"
+        className="flex flex-col min-h-0"
         classNames={{
-          panel: " overflow-y-auto p-2",
+          panel: "overflow-y-auto flex-1",
+          tabList: "flex-shrink-0",
         }}
         selectedKey={selectedTab}
         variant="underlined"
@@ -81,7 +77,7 @@ export function Sidebar({ onPickFolder, hasImages }: SidebarProps) {
       >
         <Tab key="collections" title="Collections">
           <h1 className="text-center text-xs bg-zinc-500/50 text-white rounded-md p-4 mt-8">
-            🚧Coming Soon!🚧
+            Collections Comming Soon...
           </h1>
         </Tab>
         <Tab key="browse" title="Browse">

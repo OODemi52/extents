@@ -15,11 +15,7 @@ export const FileTree = () => {
     useFileSystemStore();
 
   return (
-    <div className="overflow-scroll h-full">
-      {/*
-        They tree structure is dynamically built as a AccordionItems are expanded.
-        Individually, walking the tree results in each command call return in ~under 10ms
-        */}
+    <div className="h-full w-full">
       <Accordion
         fullWidth
         isCompact
@@ -41,13 +37,14 @@ export const FileTree = () => {
               aria-label={`Folder: ${node.name}`}
               className="font-medium"
               classNames={{
-                base: "shadow-none p-0",
-                trigger: "h-8",
+                base: "shadow-none bg-transparent",
                 title: "text-xs truncate",
-                heading: cn("rounded-lg px-4 truncate", {
+                titleWrapper: "truncate",
+                heading: cn("rounded-lg truncate mr-[-1rem]", {
                   "bg-zinc-800/75": isSelected,
                 }),
                 content: "hidden",
+                indicator: "flex justify-end",
               }}
               startContent={
                 isOpen ? (

@@ -8,24 +8,24 @@ import { ExportIcon } from "@phosphor-icons/react";
 import { CenteredSlider } from "./ui/sliders/center-slider";
 import { ThemeSwitch } from "./theme-switch";
 
+import { useLayoutStore } from "@/store/layout-store";
+
 export function EditPanel() {
+  const { activeEditTab } = useLayoutStore();
+
   return (
-    <aside className="bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col min-w-68 w-68 my-2 mr-2 py-2 px-2">
-      <Card className="w-full h-32 mb-2 bg-zinc-800 text-center">
+    <aside className="h-full bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col p-2">
+      <Card className="w-full h-32 mb-2 bg-zinc-800 text-center flex-shrink-0">
         Histogram Place Holder
       </Card>
+
       <ThemeSwitch />
 
-      <div className="flex-1 overflow-y-auto rounded-xl bg-transparent">
+      <div className="flex-1 overflow-y-auto rounded-xl bg-transparent min-h-0">
         <Accordion
           isCompact
           className="p-0"
-          defaultExpandedKeys={["1", "2", "3"]}
-          itemClasses={{
-            base: "px-2 m-0",
-            content: "",
-            title: "font-mediumtracking-tight",
-          }}
+          defaultExpandedKeys="all"
           motionProps={{
             variants: {
               enter: {
@@ -58,60 +58,68 @@ export function EditPanel() {
           selectionMode="multiple"
           variant="splitted"
         >
-          <AccordionItem
-            key="1"
-            aria-label="Light Adjustments"
-            className="w-full rounded-xl bg-zinc-800"
-            startContent={<SunDimIcon />}
-            title="Light"
-          >
-            <CenteredSlider label="Exposure" range={2} />
-            <CenteredSlider label="Contrast" range={2} />
-            <CenteredSlider label="Highlights" range={2} />
-            <CenteredSlider label="Shadows" range={2} />
-            <CenteredSlider label="Whites" range={1} />
-            <CenteredSlider label="Blacks" range={1} />
-          </AccordionItem>
+          {(activeEditTab === "basic" || activeEditTab === "detail") && (
+            <AccordionItem
+              key="basic"
+              aria-label="Basic Adjustments"
+              className="w-full rounded-xl bg-zinc-800"
+              startContent={<SunDimIcon />}
+              title="basic"
+            >
+              <CenteredSlider label="Exposure" range={2} />
+              <CenteredSlider label="Contrast" range={2} />
+              <CenteredSlider label="Highlights" range={2} />
+              <CenteredSlider label="Shadows" range={2} />
+              <CenteredSlider label="Whites" range={1} />
+              <CenteredSlider label="Blacks" range={1} />
+            </AccordionItem>
+          )}
 
-          <AccordionItem
-            key="2"
-            aria-label="Color Adjustments"
-            className="w-full rounded-xl bg-zinc-800"
-            startContent={<PaletteIcon />}
-            title="Color"
-          >
-            <CenteredSlider
-              label="White Balance"
-              range={2}
-              trackColor="bg-linear-to-r from-blue-500 to-yellow-500"
-            />
-            <CenteredSlider
-              label="Tint"
-              range={2}
-              trackColor="bg-linear-to-r from-green-500 to-pink-500"
-            />
-            <CenteredSlider label="Vibrance" range={2} />
-            <CenteredSlider label="Saturation" range={2} />
-          </AccordionItem>
+          {(activeEditTab === "presets" || activeEditTab === "basic") && (
+            <AccordionItem
+              key="presets"
+              aria-label="Presets"
+              className="w-full rounded-xl bg-zinc-800"
+              startContent={<PaletteIcon />}
+              title="Presets"
+            >
+              <div className="p-4 text-center text-sm text-zinc-500">
+                Presets coming soon...
+              </div>
+            </AccordionItem>
+          )}
 
-          <AccordionItem
-            key="3"
-            aria-label="Light Adjustments"
-            className="w-full rounded-xl bg-zinc-800"
-            startContent={<SunDimIcon />}
-            title="Light"
-          >
-            <CenteredSlider label="Exposure" range={2} />
-            <CenteredSlider label="Contrast" range={2} />
-            <CenteredSlider label="Highlights" range={2} />
-            <CenteredSlider label="Shadows" range={2} />
-            <CenteredSlider label="Whites" range={1} />
-            <CenteredSlider label="Blacks" range={1} />
-          </AccordionItem>
+          {activeEditTab === "ai" && (
+            <AccordionItem
+              key="ai"
+              aria-label="AI"
+              className="w-full rounded-xl bg-zinc-800"
+              startContent={<RocketLaunchIcon />}
+              title="AI"
+            >
+              <div className="p-4 text-center text-sm text-zinc-500">
+                Effects coming soon...
+              </div>
+            </AccordionItem>
+          )}
+
+          {activeEditTab === "crop" && (
+            <AccordionItem
+              key="crop"
+              aria-label="Crop & Transform"
+              className="w-full rounded-xl bg-zinc-800"
+              startContent={<ExportIcon />}
+              title="Crop"
+            >
+              <div className="p-4 text-center text-sm text-zinc-500">
+                Crop tools coming soon...
+              </div>
+            </AccordionItem>
+          )}
         </Accordion>
       </div>
 
-      <div className="flex flex-row gap-2 sticky bottom-0 py-2">
+      <div className="flex flex-row gap-2 pt-2 flex-shrink-0">
         <Button
           className="rounded-md w-full shadow-md"
           color="default"
