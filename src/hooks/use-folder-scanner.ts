@@ -6,6 +6,7 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { useImageStore } from "@/store/image-store";
 import { useClearThumbnailCache } from "@/features/thumbnails/hooks/use-thumbnails";
 import { ImageMetadata } from "@/types/image";
+import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
 
 export function useFolderScanner() {
   const {
@@ -13,6 +14,7 @@ export function useFolderScanner() {
     appendFileMetadataList,
     setSelectedIndex,
     setCurrentImageData,
+    setCurrentFolderPath,
     setIsLoading,
   } = useImageStore();
 
@@ -31,6 +33,8 @@ export function useFolderScanner() {
     scanListenersRef.current = {};
   }, []);
 
+  const lastOpenedFolderRef = useRef<string | null>(null);
+
   const openFolder = useCallback(
     async (path: string | null = null) => {
       let folderPath: string | null = null;
@@ -43,11 +47,18 @@ export function useFolderScanner() {
 
       if (!folderPath || typeof folderPath !== "string") return;
 
-      // Clean up previous scan
+      const wasProvidedPath = typeof path === "string" && path.length > 0;
+
+      lastOpenedFolderRef.current = folderPath;
+      setCurrentFolderPath(folderPath);
+
+      if (!wasProvidedPath) {
+        useFileSystemStore.getState().selectItem(folderPath);
+      }
+
       cleanupScanListeners();
       clearThumbnailCache();
 
-      // Reset state
       setFileMetadataList([]);
       setSelectedIndex(null);
       setCurrentImageData(null);
@@ -60,7 +71,6 @@ export function useFolderScanner() {
 
           appendFileMetadataList(payload);
 
-          // Select first image if this is the first batch
           if (prevLength === 0 && payload.length > 0) {
             setSelectedIndex(0);
             setCurrentImageData("");
@@ -99,14 +109,36 @@ export function useFolderScanner() {
     },
     [
       appendFileMetadataList,
-      cleanupScanListeners,
       clearThumbnailCache,
+      cleanupScanListeners,
+      setCurrentFolderPath,
       setCurrentImageData,
       setFileMetadataList,
       setIsLoading,
       setSelectedIndex,
     ],
   );
+
+  useEffect(() => {
+    const unsubscribe = useFileSystemStore.subscribe(
+      (state) => state.selectedId,
+      (selectedId) => {
+        if (
+          typeof selectedId !== "string" ||
+          selectedId.length === 0 ||
+          lastOpenedFolderRef.current === selectedId
+        ) {
+          return;
+        }
+
+        openFolder(selectedId);
+      },
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [openFolder]);
 
   // Cleanup on unmount
   useEffect(() => {
