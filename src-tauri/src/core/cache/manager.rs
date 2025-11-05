@@ -9,12 +9,14 @@ use tauri::Manager;
 #[derive(Clone, Copy)]
 pub enum CacheType {
     Thumbnail,
+    Preview,
 }
 
 impl CacheType {
     pub fn sub_directory(&self) -> &'static str {
         match self {
             CacheType::Thumbnail => "thumbnails",
+            CacheType::Preview => "previews",
         }
     }
 }
@@ -22,6 +24,7 @@ impl CacheType {
 pub struct CacheManager {
     pub base_cache_path: PathBuf,
     thumbnail_pool: Arc<ThreadPool>,
+    preview_pool: Arc<ThreadPool>,
 }
 
 impl CacheManager {
@@ -31,10 +34,8 @@ impl CacheManager {
             .app_cache_dir()
             .expect("App cache directory not found");
 
-        // Use fewer threads than CPU cores to avoid oversubscription
-        // Reserve cores for UI and other tasks
         let pool_size = std::thread::available_parallelism()
-            .map(|nz| (nz.get() * 3 / 4).max(2).min(8))
+            .map(|nonzero_value| (nonzero_value.get() * 3 / 4).max(2).min(8))
             .unwrap_or(4);
 
         let thumbnail_pool = ThreadPoolBuilder::new()
@@ -47,9 +48,20 @@ impl CacheManager {
                     .expect("Failed to build thread pool")
             });
 
+        let preview_pool = ThreadPoolBuilder::new()
+            .thread_name(|index| format!("preview-{}", index))
+            .num_threads(pool_size)
+            .build()
+            .unwrap_or_else(|_| {
+                ThreadPoolBuilder::new()
+                    .build()
+                    .expect("Failed to build thread pool")
+            });
+
         Self {
             base_cache_path,
             thumbnail_pool: Arc::new(thumbnail_pool),
+            preview_pool: Arc::new(preview_pool),
         }
     }
 
@@ -96,5 +108,9 @@ impl CacheManager {
 
     pub fn thumbnail_pool(&self) -> Arc<ThreadPool> {
         Arc::clone(&self.thumbnail_pool)
+    }
+
+    pub fn preview_pool(&self) -> Arc<ThreadPool> {
+        Arc::clone(&self.preview_pool)
     }
 }
