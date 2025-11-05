@@ -46,3 +46,6 @@ fast_image_resize = "5.1.4"
 memmap2 = "0.9.9"
 kamadak-exif = "0.6.1"
 tokio = "1.48.0"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-single-instance = "2"
