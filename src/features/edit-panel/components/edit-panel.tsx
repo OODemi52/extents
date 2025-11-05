@@ -3,12 +3,11 @@ import { Card } from "@heroui/card";
 import { RocketLaunchIcon, ExportIcon } from "@phosphor-icons/react";
 
 import { ThemeSwitch } from "@/components/theme-switch";
-
 import { BasicAdjustmentsPanel } from "@/features/edit-panel/basic-adjustments/components/basic-adjustments-panel";
 import { GeometryPanel } from "@/features/edit-panel/geometry/components/geometry-panel";
 import { RetouchPanel } from "@/features/edit-panel/retouch/components/retouch-panel";
-import { AiPanel } from "@/features/edit-panel/components/ai-panel";
-import { PresetsPanel } from "@/features/edit-panel/components/presets-panel";
+import { AiPanel } from "@/features/edit-panel/ai/components/ai-panel";
+import { PresetsPanel } from "@/features/edit-panel/presets/components/presets-panel";
 import { useLayoutStore } from "@/store/layout-store";
 
 export function EditPanel() {
