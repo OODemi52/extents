@@ -47,15 +47,6 @@ export function useFolderScanner() {
 
       if (!folderPath || typeof folderPath !== "string") return;
 
-      const wasProvidedPath = typeof path === "string" && path.length > 0;
-
-      lastOpenedFolderRef.current = folderPath;
-      setCurrentFolderPath(folderPath);
-
-      if (!wasProvidedPath) {
-        useFileSystemStore.getState().selectItem(folderPath);
-      }
-
       cleanupScanListeners();
       clearThumbnailCache();
 
@@ -118,27 +109,6 @@ export function useFolderScanner() {
       setSelectedIndex,
     ],
   );
-
-  useEffect(() => {
-    const unsubscribe = useFileSystemStore.subscribe(
-      (state) => state.selectedId,
-      (selectedId) => {
-        if (
-          typeof selectedId !== "string" ||
-          selectedId.length === 0 ||
-          lastOpenedFolderRef.current === selectedId
-        ) {
-          return;
-        }
-
-        openFolder(selectedId);
-      },
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [openFolder]);
 
   // Cleanup on unmount
   useEffect(() => {
