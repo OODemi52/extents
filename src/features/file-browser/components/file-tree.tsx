@@ -3,8 +3,8 @@ import { Accordion, AccordionItem } from "@heroui/react";
 import {
   FolderSimpleIcon,
   FolderOpenIcon,
-  CaretDownIcon,
 } from "@phosphor-icons/react/dist/ssr";
+import { CaretLeftIcon } from "@phosphor-icons/react";
 
 import { useVisibleNodes } from "../hooks/use-visible-nodes";
 
@@ -87,7 +87,7 @@ export const FileTree = () => {
                     toggleExpandedKey(node.id);
                   }}
                 >
-                  <CaretDownIcon
+                  <CaretLeftIcon
                     className={cn("transition-transform", {
                       "rotate-90": !isOpen,
                     })}
