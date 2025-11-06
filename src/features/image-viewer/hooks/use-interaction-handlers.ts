@@ -97,7 +97,6 @@ export function useInteractionHandlers(
     ],
   );
 
-  // Pointer handlers (drag to pan)
   const handlePointerDown = useCallback(
     (pointerDownEvent: PointerEvent) => {
       if (pointerDownEvent.button !== 0) return;
