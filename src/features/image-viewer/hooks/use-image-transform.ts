@@ -15,7 +15,6 @@ export function useImageTransform(
     useImageTransformStore();
   const lastFitKeyRef = useRef<string | null>(null);
 
-  // Reset transform when image changes
   useEffect(() => {
     if (!imagePath) {
       lastFitKeyRef.current = null;
@@ -23,54 +22,60 @@ export function useImageTransform(
     }
   }, [imagePath, reset]);
 
-  // Fit image to viewport when preview loads or viewport resizes
   const fitToViewport = useCallback(() => {
     if (!preview || !viewportRef.current) return;
 
-    const rect = viewportRef.current.getBoundingClientRect();
+    const boundingRect = viewportRef.current.getBoundingClientRect();
 
-    if (rect.width <= 0 || rect.height <= 0) return;
+    if (boundingRect.width <= 0 || boundingRect.height <= 0) return;
 
-    // Create unique key for this fit operation
     const fitKey = [
       preview.path,
       preview.width,
       preview.height,
-      Math.round(rect.width),
-      Math.round(rect.height),
+      Math.round(boundingRect.width),
+      Math.round(boundingRect.height),
     ].join(":");
 
-    // Skip if we've already fit this exact configuration
     if (lastFitKeyRef.current === fitKey) return;
+
     lastFitKeyRef.current = fitKey;
 
-    // Calculate scale to fit
     const imageAspect = preview.width / preview.height;
-    const viewportAspect = rect.width / rect.height;
+
+    const viewportAspect = boundingRect.width / boundingRect.height;
 
     const fitScale =
       imageAspect > viewportAspect
-        ? (rect.width / preview.width) * FIT_PADDING
-        : (rect.height / preview.height) * FIT_PADDING;
+        ? (boundingRect.width / preview.width) * FIT_PADDING
+        : (boundingRect.height / preview.height) * FIT_PADDING;
 
     reset({ scale: fitScale, offsetX: 0, offsetY: 0 });
   }, [preview, viewportRef, reset]);
 
-  // Fit on preview load/change
   useEffect(() => {
     fitToViewport();
   }, [fitToViewport]);
 
-  // Fit on viewport resize
   useEffect(() => {
-    if (!viewportRef.current) return;
+    let frame: number;
 
-    const resizeObserver = new ResizeObserver(fitToViewport);
+    const handleResize = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        fitToViewport();
+      });
+    };
 
-    resizeObserver.observe(viewportRef.current);
+    handleResize(); // initial fit
+    window.addEventListener("resize", handleResize);
 
-    return () => resizeObserver.disconnect();
-  }, [viewportRef, fitToViewport]);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [fitToViewport]);
 
   return {
     scale,
