@@ -66,9 +66,10 @@ pub fn run() {
             commands::file::get_file,
             commands::file::get_file_metadata,
             commands::file::start_folder_scan,
-            // Thumbnail Commands
-            commands::thumbnail::get_thumbnail,
-            commands::thumbnail::prefetch_thumbnails,
+            // Image Commands
+            commands::image::get_thumbnail,
+            commands::image::prepare_preview,
+            commands::image::prefetch_thumbnails,
             // WGPU Renderer Commands
             commands::renderer::init_renderer,
             commands::renderer::load_image,
