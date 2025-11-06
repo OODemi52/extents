@@ -29,6 +29,7 @@ export function CenteredSlider({
       defaultValue={defaultValue}
       fillOffset={0}
       label={label}
+      value={value}
       maxValue={range}
       minValue={-range}
       renderThumb={(props) => (

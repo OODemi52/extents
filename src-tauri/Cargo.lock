@@ -1323,7 +1323,6 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "wgpu",
- "window-vibrancy",
 ]
 
 [[package]]

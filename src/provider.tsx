@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { NavigateOptions } from "react-router-dom";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ declare module "@react-types/shared" {
 export function Provider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
-  const queryClient = new QueryClient();
+  const [queryClient] = useState(() => new QueryClient());
 
   return (
     <HeroUIProvider navigate={navigate} useHref={useHref}>
