@@ -36,7 +36,7 @@ export function ImageViewer() {
   return (
     <div
       ref={viewportRef}
-      className="w-full h-full relative flex flex-grow items-center justify-center bg-transparent p-4 touch-none border"
+      className="w-full h-full relative flex flex-grow items-center justify-center bg-transparent p-4 touch-none"
     >
       {isLoading && (
         <div className="absolute top-4 right-4 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-gray-300">
