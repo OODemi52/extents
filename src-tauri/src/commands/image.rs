@@ -10,9 +10,10 @@ use crate::core::image::{get_or_create_preview, get_or_create_thumbnail, Preview
 #[tauri::command]
 pub async fn get_thumbnail(path: String, app_handle: tauri::AppHandle) -> Result<String, String> {
     let cache_manager = app_handle.state::<CacheManager>();
-    let info = get_or_create_thumbnail(&cache_manager, &path).await?;
 
-    Ok(info.path.to_string_lossy().into_owned())
+    let thumbnail = get_or_create_thumbnail(&cache_manager, &path).await?;
+
+    Ok(thumbnail.path.to_string_lossy().into_owned())
 }
 
 #[derive(Serialize)]
@@ -46,7 +47,9 @@ pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> 
     info!("Prefetching {} thumbnails", paths.len());
 
     let cache_manager = app_handle.state::<CacheManager>();
+
     let base_cache_path = cache_manager.base_cache_path.clone();
+
     let cache_subdirectory = base_cache_path.join(CacheType::Thumbnail.sub_directory());
 
     std::thread::spawn(move || {
