@@ -3,9 +3,6 @@ use log::{error, info};
 use std::path::PathBuf;
 use tauri::Manager;
 
-/// Returns the thumbnail path for a given image.
-/// If the thumbnail doesn't exist, generates it synchronously.
-/// This is called per-image by the frontend as needed.
 #[tauri::command]
 pub async fn get_thumbnail(path: String, app_handle: tauri::AppHandle) -> Result<String, String> {
     let cache_manager = app_handle.state::<CacheManager>();
@@ -49,9 +46,6 @@ pub async fn get_thumbnail(path: String, app_handle: tauri::AppHandle) -> Result
     }
 }
 
-/// Prefetch thumbnails for a list of paths in the background.
-/// This is a fire-and-forget operation for warming up the cache.
-/// The frontend can call this after loading a folder to prepare off-screen thumbnails.
 #[tauri::command]
 pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> Result<(), String> {
     info!("Prefetching {} thumbnails", paths.len());
@@ -89,7 +83,6 @@ pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> 
     Ok(())
 }
 
-/// Helper function to get cache path without accessing CacheManager state
 fn get_cache_path_direct(
     original_path: &str,
     cache_dir: &std::path::Path,

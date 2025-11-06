@@ -42,7 +42,9 @@ fn generate_scaled_image(
 
 fn load_source_image(original_path: &str) -> Result<RgbaImage, anyhow::Error> {
     let file = File::open(original_path)?;
+
     let mmap = unsafe { MmapOptions::new().map(&file)? };
+
     let mapped_bytes: &[u8] = &mmap;
 
     let image = match decode_embedded_preview(mapped_bytes).transpose()? {
@@ -58,6 +60,7 @@ fn decode_embedded_preview(data: &[u8]) -> Option<Result<RgbaImage, anyhow::Erro
 
     let preview_bytes = match Reader::new().read_from_container(&mut cursor) {
         Ok(exif) => extract_jpeg_preview(&exif),
+
         Err(_) => None,
     }?;
 
@@ -99,11 +102,7 @@ fn decode_full_image(data: &[u8]) -> Result<RgbaImage, anyhow::Error> {
     Ok(image)
 }
 
-fn compute_fit_dimensions(
-    image_width: u32,
-    image_height: u32,
-    max_long_edge: u32,
-) -> (u32, u32) {
+fn compute_fit_dimensions(image_width: u32, image_height: u32, max_long_edge: u32) -> (u32, u32) {
     if image_width <= max_long_edge && image_height <= max_long_edge {
         return (image_width, image_height);
     }
@@ -112,15 +111,18 @@ fn compute_fit_dimensions(
 
     let mut scaled_dimensions = if aspect >= 1.0 {
         let width = max_long_edge;
+
         let height = (max_long_edge as f32 / aspect).round() as u32;
         (width, height.max(1))
     } else {
         let height = max_long_edge;
+
         let width = (max_long_edge as f32 * aspect).round() as u32;
         (width.max(1), height)
     };
 
     scaled_dimensions.0 = scaled_dimensions.0.min(image_width);
+
     scaled_dimensions.1 = scaled_dimensions.1.min(image_height);
 
     scaled_dimensions
