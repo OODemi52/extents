@@ -6,36 +6,51 @@ use std::fs::File;
 use std::io::Cursor;
 use std::path::Path;
 
-const THUMBNAIL_WIDTH: u32 = 300;
-const THUMBNAIL_HEIGHT: u32 = 300;
+const THUMBNAIL_LONGEST_EDGE: u32 = 300;
+const PREVIEW_LONGEST_EDGE: u32 = 2048;
 
 pub fn generate_thumbnail(original_path: &str, cache_path: &Path) -> Result<(), anyhow::Error> {
-    let file = File::open(original_path)?;
-    // Safety: mapping a file for read-only access is safe as long as the file
-    // descriptor remains alive for the lifetime of the mmap.
-    let mmap = unsafe { MmapOptions::new().map(&file)? };
+    generate_scaled_image(original_path, cache_path, THUMBNAIL_LONGEST_EDGE)
+}
 
-    let mapped_bytes: &[u8] = &mmap;
+pub fn generate_preview(original_path: &str, cache_path: &Path) -> Result<(), anyhow::Error> {
+    generate_scaled_image(original_path, cache_path, PREVIEW_LONGEST_EDGE)
+}
 
-    let mut source_image = match decode_embedded_preview(mapped_bytes).transpose()? {
-        Some(image) => image,
-        None => decode_full_image(mapped_bytes)?,
-    };
+fn generate_scaled_image(
+    original_path: &str,
+    cache_path: &Path,
+    max_long_edge: u32,
+) -> Result<(), anyhow::Error> {
+    let mut source_image = load_source_image(original_path)?;
 
     let (image_width, image_height) = source_image.dimensions();
 
-    let (thumbnail_width, thumbnail_height) =
-        compute_thumbnail_dimensions(image_width, image_height);
+    let (target_width, target_height) =
+        compute_fit_dimensions(image_width, image_height, max_long_edge);
 
-    let result_image = if thumbnail_width == image_width && thumbnail_height == image_height {
+    let result_image = if target_width == image_width && target_height == image_height {
         source_image
     } else {
-        resize_image(&mut source_image, thumbnail_width, thumbnail_height)?
+        resize_image(&mut source_image, target_width, target_height)?
     };
 
     save_as_jpeg(cache_path, &result_image)?;
 
     Ok(())
+}
+
+fn load_source_image(original_path: &str) -> Result<RgbaImage, anyhow::Error> {
+    let file = File::open(original_path)?;
+    let mmap = unsafe { MmapOptions::new().map(&file)? };
+    let mapped_bytes: &[u8] = &mmap;
+
+    let image = match decode_embedded_preview(mapped_bytes).transpose()? {
+        Some(image) => image,
+        None => decode_full_image(mapped_bytes)?,
+    };
+
+    Ok(image)
 }
 
 fn decode_embedded_preview(data: &[u8]) -> Option<Result<RgbaImage, anyhow::Error>> {
@@ -54,16 +69,19 @@ fn decode_embedded_preview(data: &[u8]) -> Option<Result<RgbaImage, anyhow::Erro
 }
 
 fn extract_jpeg_preview(exif: &exif::Exif) -> Option<Vec<u8>> {
-    for ifd in [In::THUMBNAIL, In::PRIMARY] {
+    for image_file_directory in [In::THUMBNAIL, In::PRIMARY] {
         if let (Some(offset_field), Some(length_field)) = (
-            exif.get_field(Tag::JPEGInterchangeFormat, ifd),
-            exif.get_field(Tag::JPEGInterchangeFormatLength, ifd),
+            exif.get_field(Tag::JPEGInterchangeFormat, image_file_directory),
+            exif.get_field(Tag::JPEGInterchangeFormatLength, image_file_directory),
         ) {
             let offset = offset_field.value.get_uint(0)? as usize;
+
             let length = length_field.value.get_uint(0)? as usize;
-            let buf = exif.buf();
-            if offset + length <= buf.len() {
-                return Some(buf[offset..offset + length].to_vec());
+
+            let buffer = exif.buf();
+
+            if offset + length <= buffer.len() {
+                return Some(buffer[offset..offset + length].to_vec());
             }
         }
     }
@@ -73,32 +91,39 @@ fn extract_jpeg_preview(exif: &exif::Exif) -> Option<Vec<u8>> {
 
 fn decode_full_image(data: &[u8]) -> Result<RgbaImage, anyhow::Error> {
     let cursor = Cursor::new(data);
+
     let reader = ImageReader::new(cursor).with_guessed_format()?;
+
     let image = reader.decode()?.to_rgba8();
+
     Ok(image)
 }
 
-fn compute_thumbnail_dimensions(image_width: u32, image_height: u32) -> (u32, u32) {
-    if image_width <= THUMBNAIL_WIDTH && image_height <= THUMBNAIL_HEIGHT {
+fn compute_fit_dimensions(
+    image_width: u32,
+    image_height: u32,
+    max_long_edge: u32,
+) -> (u32, u32) {
+    if image_width <= max_long_edge && image_height <= max_long_edge {
         return (image_width, image_height);
     }
 
     let aspect = image_width as f32 / image_height as f32;
 
-    let mut thumbnail_dimensions = if aspect >= 1.0 {
-        let width = THUMBNAIL_WIDTH;
-        let height = (THUMBNAIL_WIDTH as f32 / aspect).round() as u32;
+    let mut scaled_dimensions = if aspect >= 1.0 {
+        let width = max_long_edge;
+        let height = (max_long_edge as f32 / aspect).round() as u32;
         (width, height.max(1))
     } else {
-        let height = THUMBNAIL_HEIGHT;
-        let width = (THUMBNAIL_HEIGHT as f32 * aspect).round() as u32;
+        let height = max_long_edge;
+        let width = (max_long_edge as f32 * aspect).round() as u32;
         (width.max(1), height)
     };
 
-    thumbnail_dimensions.0 = thumbnail_dimensions.0.min(image_width);
-    thumbnail_dimensions.1 = thumbnail_dimensions.1.min(image_height);
+    scaled_dimensions.0 = scaled_dimensions.0.min(image_width);
+    scaled_dimensions.1 = scaled_dimensions.1.min(image_height);
 
-    thumbnail_dimensions
+    scaled_dimensions
 }
 
 fn resize_image(
