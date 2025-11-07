@@ -28,7 +28,7 @@ pub fn generate_preview(original_path: &str, cache_path: &Path) -> Result<(), an
         original_path,
         cache_path,
         PREVIEW_LONGEST_EDGE,
-        false,
+        true,
         PREVIEW_JPEG_QUALITY,
     )
 }
@@ -206,7 +206,7 @@ fn resize_image(
         &source_ref,
         &mut destination_image,
         &fast_image_resize::ResizeOptions::new().resize_alg(ResizeAlg::Convolution(
-            fast_image_resize::FilterType::Bilinear,
+            fast_image_resize::FilterType::Lanczos3,
         )),
     )?;
 
