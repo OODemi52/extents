@@ -1,12 +1,10 @@
 import { useEffect, useRef, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
 
-import { useImageTransformStore } from "../store/transform-store";
+import { useImageTransformStore } from "@/store/transform-store";
 
 const MIN_SCALE = 0.01;
 const MAX_SCALE = 30;
 const PAN_SPEED = 1.5;
-const IDLE_TIMEOUT_MS = 150;
 
 export function useInteractionHandlers(
   viewportRef: React.RefObject<HTMLDivElement>,
@@ -25,19 +23,9 @@ export function useInteractionHandlers(
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
 
   const bumpRenderActivity = useCallback(() => {
-    invoke("set_render_state", { stateStr: "active" }).catch((err) =>
-      console.error("[useInteractionHandlers] set_render_state failed:", err),
-    );
-
     if (idleTimeoutRef.current !== null) {
       clearTimeout(idleTimeoutRef.current);
     }
-
-    idleTimeoutRef.current = window.setTimeout(() => {
-      invoke("set_render_state", { stateStr: "idle" }).catch((err) =>
-        console.error("[useInteractionHandlers] set_render_state failed:", err),
-      );
-    }, IDLE_TIMEOUT_MS);
   }, []);
 
   const handleWheel = useCallback(

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
-import { invoke } from "@tauri-apps/api/core";
 import { FolderOpenIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Tooltip } from "@heroui/tooltip";
 import { Tab, Tabs } from "@heroui/tabs";
 
 import { FileTree } from "@/features/file-browser/components/file-tree";
+import { api } from "@/services/api";
 
 type SidebarProps = {
   onPickFolder: () => void;
@@ -19,7 +19,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    invoke("init_renderer").catch(console.error);
+    api.renderer.initRenderer().catch(console.error);
   }, []);
 
   const handlePickFolder = async () => {

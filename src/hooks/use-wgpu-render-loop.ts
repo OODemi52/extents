@@ -1,50 +1,65 @@
 import { useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+
+import { api } from "@/services/api";
 
 export function useWGPURenderLoop() {
   useEffect(() => {
-    let animationFrameId: number;
+    let animationFrameId: number | null = null;
+    let isActive = true;
 
-    const loop = async () => {
-      try {
-        const shouldRender = await invoke<boolean>("should_render_frame");
-
-        if (shouldRender) {
-          await invoke("render_frame");
-        }
-      } catch (error) {
-        console.error("WGPU render error:", error);
+    const loop = () => {
+      if (!isActive) {
+        return;
       }
 
-      animationFrameId = requestAnimationFrame(loop);
+      void api.renderer
+        .shouldRenderFrame()
+        .then((shouldRender) => {
+          if (shouldRender) {
+            return api.renderer.renderFrame();
+          }
+
+          return undefined;
+        })
+        .catch((error) => {
+          console.error("WGPU render error:", error);
+        })
+        .finally(() => {
+          animationFrameId = requestAnimationFrame(loop);
+        });
     };
 
-    animationFrameId = requestAnimationFrame(loop);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  useEffect(() => {
     const setPaused = () => {
-      invoke("set_render_state", { stateStr: "paused" }).catch((err) =>
-        console.error("Failed to pause renderer:", err),
-      );
+      isActive = false;
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+
+      api.renderer.setRenderState("paused").catch((err) => {
+        console.error("Failed to pause renderer:", err);
+      });
     };
 
     const setIdle = () => {
-      invoke("set_render_state", { stateStr: "idle" }).catch((err) =>
-        console.error("Failed to resume renderer:", err),
-      );
+      if (!isActive) {
+        isActive = true;
+        animationFrameId = requestAnimationFrame(loop);
+      }
+
+      api.renderer.setRenderState("idle").catch((err) => {
+        console.error("Failed to resume renderer:", err);
+      });
     };
 
+    animationFrameId = requestAnimationFrame(loop);
     window.addEventListener("blur", setPaused);
     window.addEventListener("focus", setIdle);
 
     return () => {
       window.removeEventListener("blur", setPaused);
       window.removeEventListener("focus", setIdle);
+      setPaused();
     };
   }, []);
 }

@@ -1,7 +1,8 @@
 import type { PreviewInfo } from "@/services/api/image";
 
 import { useEffect, useRef, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
+
+import { api } from "@/services/api";
 
 const VIEWPORT_DEBOUNCE_MS = 100;
 
@@ -17,16 +18,10 @@ export function useViewportSync(
   const transformTimeoutRef = useRef<number | null>(null);
   const lastTransformRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
 
-  // Send viewport dimensions to backend (debounced)
   const updateViewport = useCallback(() => {
     if (!viewportRef.current) {
-      console.log("[useViewportSync] Skip viewport update: no ref");
-
       return;
     }
-
-    // Set render state to active during viewport changes
-    invoke("set_render_state", { stateStr: "active" }).catch(console.error);
 
     if (viewportTimeoutRef.current !== null) {
       clearTimeout(viewportTimeoutRef.current);
@@ -35,26 +30,24 @@ export function useViewportSync(
     viewportTimeoutRef.current = window.setTimeout(() => {
       if (!viewportRef.current) return;
 
-      const boundingRect = viewportRef.current.getBoundingClientRect();
+      const clientViewportDimensions =
+        viewportRef.current.getBoundingClientRect();
+
       const devicePixelRatio = window.devicePixelRatio;
 
-      invoke("update_viewport", {
-        x: boundingRect.x * devicePixelRatio,
-        y: boundingRect.y * devicePixelRatio,
-        width: boundingRect.width * devicePixelRatio,
-        height: boundingRect.height * devicePixelRatio,
-      }).catch((err) =>
-        console.error("[useViewportSync] update_viewport failed:", err),
-      );
-
-      // Set back to idle after viewport update completes
-      setTimeout(() => {
-        invoke("set_render_state", { stateStr: "idle" }).catch(console.error);
-      }, 150);
+      api.renderer
+        .syncViewport({
+          x: clientViewportDimensions.x * devicePixelRatio,
+          y: clientViewportDimensions.y * devicePixelRatio,
+          width: clientViewportDimensions.width * devicePixelRatio,
+          height: clientViewportDimensions.height * devicePixelRatio,
+        })
+        .catch((error) =>
+          console.error("[useViewportSync] update_viewport failed:", error),
+        );
     }, VIEWPORT_DEBOUNCE_MS);
   }, [viewportRef]);
 
-  // Load new image when preview changes
   useEffect(() => {
     if (!preview || !viewportRef.current) return;
 
@@ -62,80 +55,123 @@ export function useViewportSync(
 
     lastImagePathRef.current = preview.path;
 
-    const boundingRect = viewportRef.current.getBoundingClientRect();
+    const clientViewportDimensions =
+      viewportRef.current.getBoundingClientRect();
 
     const devicePixelRatio = window.devicePixelRatio;
 
-    invoke("load_image", {
-      path: preview.path,
-      viewportX: boundingRect.x * devicePixelRatio,
-      viewportY: boundingRect.y * devicePixelRatio,
-      viewportWidth: boundingRect.width * devicePixelRatio,
-      viewportHeight: boundingRect.height * devicePixelRatio,
-    }).catch((err) =>
-      console.error("[useViewportSync] load_image failed:", err),
-    );
-  }, [preview?.path, viewportRef]);
+    let rafId: number | null = null;
 
-  // Update viewport on resize/scroll
-  // Don't trigger render state changes for viewport updates
+    api.renderer
+      .loadImage({
+        path: preview.path,
+        viewportX: clientViewportDimensions.x * devicePixelRatio,
+        viewportY: clientViewportDimensions.y * devicePixelRatio,
+        viewportWidth: clientViewportDimensions.width * devicePixelRatio,
+        viewportHeight: clientViewportDimensions.height * devicePixelRatio,
+      })
+      .then(() => {
+        rafId = window.requestAnimationFrame(() => {
+          updateViewport();
+        });
+      })
+      .catch((error) =>
+        console.error("[useViewportSync] load_image failed:", error),
+      );
+
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, [preview?.path, viewportRef, updateViewport]);
+
+  // Was tryign to use this previously to manage scaling the image when adjusting the window
+  // but honestly it seems kinda fine without it. Obviously needs some tuning, but i think its
+  // fine for now.
+
+  // Realized cause of the thrashing. Initial load currently has the image aspect squished.
+  // When resizing the window, gpu corrects the aspect, but this function fires on observer changed
+  // of th viewport, then tries to update and resquishes the image
+  // To clarify the client does not direct affect the image, it is just passing the wrong dimensions
+
+  // Update viewport on resize/scroll. Don't trigger render state changes for viewport updates
+  // useEffect(() => {
+  //   if (!viewportRef.current) return;
+
+  //   const resizeObserver = new ResizeObserver(() => {
+  //     updateViewport();
+  //   });
+
+  //   resizeObserver.observe(viewportRef.current);
+
+  //   const handleScroll = () => {
+  //     updateViewport();
+  //   };
+
+  //   window.addEventListener("scroll", handleScroll, true);
+
+  //   // Initial update
+  //   updateViewport();
+
+  //   return () => {
+  //     resizeObserver.disconnect();
+
+  //     window.removeEventListener("scroll", handleScroll, true);
+
+  //     if (viewportTimeoutRef.current !== null) {
+  //       clearTimeout(viewportTimeoutRef.current);
+  //     }
+  //   };
+  // }, [updateViewport]);
+
+  // Keep viewport in sync with window resizes without re-enabling the full observer
   useEffect(() => {
     if (!viewportRef.current) return;
 
-    const resizeObserver = new ResizeObserver(() => {
-      updateViewport();
-    });
-
-    resizeObserver.observe(viewportRef.current);
-
-    const handleScroll = () => {
+    const handleWindowResize = () => {
       updateViewport();
     };
 
-    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleWindowResize);
 
-    // Initial update
+    // Capture the current layout when the effect mounts
     updateViewport();
 
     return () => {
-      resizeObserver.disconnect();
-
-      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleWindowResize);
 
       if (viewportTimeoutRef.current !== null) {
         clearTimeout(viewportTimeoutRef.current);
       }
     };
-  }, [updateViewport]);
+  }, [updateViewport, viewportRef]);
 
-  // Update transform using requestAnimationFrame for smooth performance
-  // Only send transform updates if we have a loaded preview AND values actually changed
   useEffect(() => {
     if (!preview) return;
 
-    // Skip if values haven't actually changed
-    const last = lastTransformRef.current;
+    const lastTransform = lastTransformRef.current;
 
     if (
-      last.scale === scale &&
-      last.offsetX === offsetX &&
-      last.offsetY === offsetY
+      lastTransform.scale === scale &&
+      lastTransform.offsetX === offsetX &&
+      lastTransform.offsetY === offsetY
     ) {
       return;
     }
 
-    // Cancel any pending transform update
     if (transformTimeoutRef.current !== null) {
       cancelAnimationFrame(transformTimeoutRef.current);
     }
 
-    // Use requestAnimationFrame to sync with display refresh
     transformTimeoutRef.current = requestAnimationFrame(() => {
       lastTransformRef.current = { scale, offsetX, offsetY };
 
-      invoke("update_transform", { scale, offsetX, offsetY }).catch((err) =>
-        console.error("[useViewportSync] update_transform failed:", err),
-      );
+      api.renderer
+        .updateTransform({ scale, offsetX, offsetY })
+        .catch((error) =>
+          console.error("[useViewportSync] update_transform failed:", error),
+        );
     });
 
     return () => {

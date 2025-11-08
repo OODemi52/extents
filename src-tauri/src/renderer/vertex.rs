@@ -8,7 +8,6 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    /// Create a new vertex
     pub fn new(position: [f32; 3], tex_coords: [f32; 2]) -> Self {
         Self {
             position,
@@ -20,7 +19,9 @@ impl Vertex {
     pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+
             step_mode: wgpu::VertexStepMode::Vertex,
+
             attributes: &[
                 wgpu::VertexAttribute {
                     offset: 0,
@@ -43,7 +44,6 @@ pub struct VertexBuffer {
 }
 
 impl VertexBuffer {
-    /// Create a new vertex buffer
     pub fn new(device: &wgpu::Device) -> Self {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
@@ -59,22 +59,23 @@ impl VertexBuffer {
     pub fn update_for_aspect_ratio(
         &self,
         queue: &wgpu::Queue,
-        viewport_width: u32,
-        viewport_height: u32,
+        surface_width: u32,
+        surface_height: u32,
         image_width: u32,
         image_height: u32,
-    ) {
-        if viewport_width == 0 || viewport_height == 0 || image_width == 0 || image_height == 0 {
-            return;
+    ) -> (f32, f32) {
+        if surface_width == 0 || surface_height == 0 || image_width == 0 || image_height == 0 {
+            return (1.0, 1.0);
         }
 
-        let viewport_aspect = viewport_width as f32 / viewport_height as f32;
+        let surface_aspect = surface_width as f32 / surface_height as f32;
+
         let image_aspect = image_width as f32 / image_height as f32;
 
-        let (scale_x, scale_y) = if image_aspect > viewport_aspect {
-            (1.0, viewport_aspect / image_aspect)
+        let (scale_x, scale_y) = if image_aspect > surface_aspect {
+            (1.0, surface_aspect / image_aspect)
         } else {
-            (image_aspect / viewport_aspect, 1.0)
+            (image_aspect / surface_aspect, 1.0)
         };
 
         let vertices = [
@@ -84,7 +85,6 @@ impl VertexBuffer {
             Vertex::new([scale_x, scale_y, 0.0], [1.0, 0.0]),
         ];
 
-        // Create two triangles to form a quad
         let quad = [
             vertices[0],
             vertices[1],
@@ -95,6 +95,8 @@ impl VertexBuffer {
         ];
 
         queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&quad));
+
+        (scale_x, scale_y)
     }
 
     /// Get a slice of the entire buffer

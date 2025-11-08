@@ -22,13 +22,14 @@ pub fn init_renderer(state: State<AppState>) {
     let window_ref: &'static WebviewWindow = unsafe { std::mem::transmute(&state.window) };
 
     *renderer_lock = Some(Renderer::new(window_ref));
-    info!("Renderer initialized, performing first render.");
+
     renderer_lock.as_mut().unwrap().render();
 }
 
 #[tauri::command]
 pub fn resize_surface(width: u32, height: u32, state: State<AppState>) {
     let mut renderer_lock = state.renderer.lock().unwrap();
+
     if let Some(renderer) = renderer_lock.as_mut() {
         renderer.resize(width, height);
     }
@@ -45,9 +46,9 @@ pub fn load_image(
 ) {
     info!("[CMD] Loading image from path: {}", path);
 
-    // Load and decode image
     let image = match image::open(&path) {
         Ok(image) => image,
+
         Err(e) => {
             error!("[CMD] Failed to open image at {}: {}", path, e);
             return;
@@ -55,19 +56,23 @@ pub fn load_image(
     };
 
     let rgba = image.to_rgba8();
+
     let image_width = image.width();
+
     let image_height = image.height();
+
     info!("[CMD] Image decoded ({}x{})", image_width, image_height);
 
     let mut renderer_lock = state.renderer.lock().unwrap();
+
     if let Some(renderer) = renderer_lock.as_mut() {
-        {
-            let mut viewport = renderer.viewport.lock().unwrap();
-            viewport.x = viewport_x;
-            viewport.y = viewport_y;
-            viewport.width = viewport_width;
-            viewport.height = viewport_height;
-        }
+        renderer.update_proxy_viewport(
+            viewport_x as f32,
+            viewport_y as f32,
+            viewport_width as f32,
+            viewport_height as f32,
+        );
+
         renderer.update_texture(&rgba, image_width, image_height);
     }
 }
@@ -75,15 +80,9 @@ pub fn load_image(
 #[tauri::command]
 pub fn update_viewport(x: f32, y: f32, width: f32, height: f32, state: State<AppState>) {
     let mut renderer_lock = state.renderer.lock().unwrap();
+
     if let Some(renderer) = renderer_lock.as_mut() {
-        // Update viewport in a nested scope to release the lock
-        {
-            let mut viewport = renderer.viewport.lock().unwrap();
-            viewport.x = x as u32;
-            viewport.y = y as u32;
-            viewport.width = width as u32;
-            viewport.height = height as u32;
-        }
+        renderer.update_proxy_viewport(x, y, width, height);
 
         renderer.update_vertices();
     }
@@ -92,8 +91,10 @@ pub fn update_viewport(x: f32, y: f32, width: f32, height: f32, state: State<App
 #[tauri::command]
 pub fn update_transform(scale: f32, offset_x: f32, offset_y: f32, state: State<AppState>) {
     let mut renderer_lock = state.renderer.lock().unwrap();
+
     if let Some(renderer) = renderer_lock.as_mut() {
         renderer.update_transform(scale, offset_x, offset_y);
+
         renderer.render();
     }
 }
@@ -110,6 +111,7 @@ pub fn should_render_frame(state: State<AppState>) -> bool {
 #[tauri::command]
 pub fn render_frame(state: State<AppState>) {
     let mut renderer_lock = state.renderer.lock().unwrap();
+
     if let Some(renderer) = renderer_lock.as_mut() {
         renderer.render();
         renderer.last_render = Instant::now(); // Update the timestamp
@@ -120,6 +122,7 @@ pub fn render_frame(state: State<AppState>) {
 pub fn set_render_state(state_str: String, state: State<AppState>) {
     if let Some(renderer) = state.renderer.lock().unwrap().as_mut() {
         println!("Render state changed to: {}", state_str);
+
         renderer.render_state = match state_str.as_str() {
             "active" => RenderState::Active,
             "idle" => RenderState::Idle,

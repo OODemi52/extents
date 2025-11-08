@@ -1,6 +1,5 @@
 use super::vertex::Vertex;
 
-/// Manages the render pipeline and bind group layout
 pub struct RenderPipeline {
     pub pipeline: wgpu::RenderPipeline,
     pub bind_group_layout: wgpu::BindGroupLayout,
@@ -8,25 +7,20 @@ pub struct RenderPipeline {
 }
 
 impl RenderPipeline {
-    /// Create a new render pipeline
     pub fn new(device: &wgpu::Device, surface_format: wgpu::TextureFormat) -> Self {
-        // Create bind group layout
         let bind_group_layout = Self::create_bind_group_layout(device);
 
-        // Create pipeline layout
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
             bind_group_layouts: &[&bind_group_layout],
             push_constant_ranges: &[],
         });
 
-        // Load shader
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/shader.wgsl").into()),
         });
 
-        // Create render pipeline
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Render Pipeline"),
             layout: Some(&pipeline_layout),
@@ -56,7 +50,6 @@ impl RenderPipeline {
             cache: None,
         });
 
-        // Create sampler
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
 
         Self {
@@ -66,13 +59,12 @@ impl RenderPipeline {
         }
     }
 
-    /// Create the bind group layout for texture, sampler, and transform uniforms
     fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Render Bind Group Layout"),
             entries: &[
-                // Texture
                 wgpu::BindGroupLayoutEntry {
+                    // Texture
                     binding: 0,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
@@ -82,15 +74,15 @@ impl RenderPipeline {
                     },
                     count: None,
                 },
-                // Sampler
                 wgpu::BindGroupLayoutEntry {
+                    // Sampler
                     binding: 1,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
-                // Transform uniform buffer
                 wgpu::BindGroupLayoutEntry {
+                    // Transform uniform buffer
                     binding: 2,
                     visibility: wgpu::ShaderStages::VERTEX,
                     ty: wgpu::BindingType::Buffer {
@@ -104,7 +96,6 @@ impl RenderPipeline {
         })
     }
 
-    /// Create a bind group with the given texture view and transform buffer
     pub fn create_bind_group(
         &self,
         device: &wgpu::Device,

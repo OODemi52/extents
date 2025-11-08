@@ -16,3 +16,9 @@ export const getChildrenDirPaths = (
 export const getHomeDir = (): Promise<string> => {
   return invokeTauri("get_home_dir", null);
 };
+
+export const startFolderScan = (args: {
+  folderPath: string;
+}): Promise<void> => {
+  return invokeTauri("start_folder_scan", args);
+};

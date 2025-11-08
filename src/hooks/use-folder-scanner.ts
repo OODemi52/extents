@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
@@ -7,6 +6,7 @@ import { useImageStore } from "@/store/image-store";
 import { useClearThumbnailCache } from "@/features/thumbnails/hooks/use-thumbnails";
 import { ImageMetadata } from "@/types/image";
 import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
+import { api } from "@/services/api";
 
 export function useFolderScanner() {
   const {
@@ -101,7 +101,7 @@ export function useFolderScanner() {
       };
 
       try {
-        await invoke("start_folder_scan", { folderPath });
+        await api.fs.startFolderScan({ folderPath });
       } catch (err) {
         console.error("Failed to start folder scan:", err);
         setIsLoading(false);
@@ -135,6 +135,7 @@ export function useFolderScanner() {
       ) {
         prevSelectedIdRef.current = currentSelected;
         openFolder(currentSelected);
+
         return;
       }
 
@@ -146,7 +147,6 @@ export function useFolderScanner() {
     };
   }, [openFolder]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanupScanListeners();

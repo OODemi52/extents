@@ -3,7 +3,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { ImageMetadata } from "../types/image";
 
-import { useTransformStore } from "./transform-store";
+import { useImageTransformStore } from "./transform-store";
 
 interface ImageStore {
   fileMetadataList: ImageMetadata[];
@@ -43,7 +43,7 @@ export const useImageStore = create<ImageStore>((set) => ({
     set({ selectedIndex: index });
 
     if (index !== null) {
-      useTransformStore.getState().resetTransform();
+      useImageTransformStore.getState().resetTransform();
     }
   },
   setCurrentImageData: (data) => set({ currentImageData: data }),

@@ -9,10 +9,12 @@ import { useImageStore } from "@/store/image-store";
 
 export function ImageViewer() {
   const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
+
   const viewportRef = useRef<HTMLDivElement>(null);
 
   const selected =
     selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
+
   const imagePath = selected?.path || null;
 
   const {
@@ -21,11 +23,7 @@ export function ImageViewer() {
     error: previewError,
   } = useImagePreview(imagePath);
 
-  const { scale, offsetX, offsetY } = useImageTransform(
-    preview,
-    viewportRef,
-    imagePath,
-  );
+  const { scale, offsetX, offsetY } = useImageTransform(imagePath);
 
   useViewportSync(viewportRef, preview, scale, offsetX, offsetY);
 

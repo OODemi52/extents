@@ -1,6 +1,5 @@
 use tauri::WebviewWindow;
 
-/// Holds the core WebGPU components: device, queue, surface, and configuration
 pub struct RenderContext<'a> {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -9,26 +8,23 @@ pub struct RenderContext<'a> {
 }
 
 impl<'a> RenderContext<'a> {
-    /// Initialize WebGPU context from a Tauri window
     pub fn new(window: &'a WebviewWindow) -> Self {
         let size = window.inner_size().unwrap();
 
-        // Create WGPU instance
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
 
-        // Create surface from window
+        // Key to note, our surface target is the background of the window
+        // Due to this, the app will not work if the main window background
+        //  is set to be transparent
         let surface = instance.create_surface(window).unwrap();
 
-        // Request adapter
         let adapter =
             pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
                 .unwrap();
 
-        // Request device and queue
         let (device, queue) =
             pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default())).unwrap();
 
-        // Configure surface
         let surface_capabilities = surface.get_capabilities(&adapter);
 
         let surface_format = surface_capabilities
@@ -59,11 +55,12 @@ impl<'a> RenderContext<'a> {
         }
     }
 
-    /// Resize the surface
-    pub fn resize(&mut self, new_width: u32, new_height: u32) {
-        if new_width > 0 && new_height > 0 {
-            self.config.width = new_width;
-            self.config.height = new_height;
+    pub fn resize(&mut self, width: u32, height: u32) {
+        if width > 0 && height > 0 {
+            self.config.width = width;
+
+            self.config.height = height;
+
             self.surface.configure(&self.device, &self.config);
         }
     }
