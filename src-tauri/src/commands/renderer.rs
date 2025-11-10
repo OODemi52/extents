@@ -50,9 +50,8 @@ pub fn load_image(
 
     let renderer_handle = state.renderer.clone();
 
-    {
+    let request_id = {
         let mut renderer_lock = renderer_handle.lock().unwrap();
-
         if let Some(renderer) = renderer_lock.as_mut() {
             renderer.update_proxy_viewport(
                 viewport_x as f32,
@@ -60,6 +59,8 @@ pub fn load_image(
                 viewport_width as f32,
                 viewport_height as f32,
             );
+
+            let request_id = renderer.begin_image_request();
 
             if let Some(preview_path) = preview_path {
                 if let Err(err) = load_texture_from_path(renderer, &preview_path) {
@@ -71,14 +72,17 @@ pub fn load_image(
                     renderer.render();
                 }
             }
+
+            request_id
         } else {
             return;
         }
-    }
+    };
 
     let full_path = path.clone();
+    let renderer_for_task = renderer_handle.clone();
 
-    async_runtime::spawn(async move {
+    let join_handle = async_runtime::spawn(async move {
         let decode_result = async_runtime::spawn_blocking(move || {
             image::open(&full_path).map(|img| {
                 let width = img.width();
@@ -94,12 +98,16 @@ pub fn load_image(
 
         match decode_result {
             Ok(Ok((rgba, width, height))) => {
-                let mut renderer_lock = renderer_handle.lock().unwrap();
+                let mut renderer_lock = renderer_for_task.lock().unwrap();
 
                 if let Some(renderer) = renderer_lock.as_mut() {
-                    renderer.update_texture(&rgba, width, height);
+                    if renderer.is_request_active(request_id) {
+                        renderer.update_texture(&rgba, width, height);
 
-                    renderer.render();
+                        renderer.render();
+
+                        renderer.complete_image_request(request_id);
+                    }
                 }
             }
             Ok(Err(err)) => {
@@ -108,15 +116,30 @@ pub fn load_image(
                     path,
                     err.to_string()
                 );
+
+                let mut renderer_lock = renderer_for_task.lock().unwrap();
+                if let Some(renderer) = renderer_lock.as_mut() {
+                    renderer.complete_image_request(request_id);
+                }
             }
             Err(join_err) => {
                 error!(
                     "[CMD] Image decode task panicked for {}: {:?}",
                     path, join_err
                 );
+
+                let mut renderer_lock = renderer_for_task.lock().unwrap();
+                if let Some(renderer) = renderer_lock.as_mut() {
+                    renderer.complete_image_request(request_id);
+                }
             }
         }
     });
+
+    let mut renderer_lock = renderer_handle.lock().unwrap();
+    if let Some(renderer) = renderer_lock.as_mut() {
+        renderer.attach_load_handle(request_id, join_handle);
+    }
 }
 
 fn load_texture_from_path(

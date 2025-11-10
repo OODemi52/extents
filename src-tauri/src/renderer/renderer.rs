@@ -7,6 +7,7 @@ use super::viewport::Viewport;
 use log::{error, info};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
+use tauri::async_runtime::JoinHandle;
 use tauri::WebviewWindow;
 
 #[derive(Debug)]
@@ -29,6 +30,9 @@ pub struct Renderer<'a> {
     vertex_scale_x: f32,
     vertex_scale_y: f32,
     fit_scale: f32,
+    pending_load: Option<JoinHandle<()>>,
+    request_counter: u64,
+    active_request_id: Option<u64>,
     pub viewport: Mutex<Viewport>,
     pub render_state: RenderState,
     pub last_render: Instant,
@@ -76,11 +80,48 @@ impl<'a> Renderer<'a> {
             vertex_scale_x: 1.0,
             vertex_scale_y: 1.0,
             fit_scale: 1.0,
+            pending_load: None,
+            request_counter: 0,
+            active_request_id: None,
         };
 
         renderer.update_vertices();
 
         renderer
+    }
+
+    pub fn begin_image_request(&mut self) -> u64 {
+        if let Some(handle) = self.pending_load.take() {
+            handle.abort();
+        }
+
+        self.request_counter = self.request_counter.wrapping_add(1);
+        let request_id = self.request_counter;
+        self.active_request_id = Some(request_id);
+
+        request_id
+    }
+
+    pub fn attach_load_handle(&mut self, request_id: u64, handle: JoinHandle<()>) {
+        if self.active_request_id == Some(request_id) {
+            if let Some(existing) = self.pending_load.take() {
+                existing.abort();
+            }
+            self.pending_load = Some(handle);
+        } else {
+            handle.abort();
+        }
+    }
+
+    pub fn complete_image_request(&mut self, request_id: u64) {
+        if self.active_request_id == Some(request_id) {
+            self.pending_load = None;
+            self.active_request_id = None;
+        }
+    }
+
+    pub fn is_request_active(&self, request_id: u64) -> bool {
+        self.active_request_id == Some(request_id)
     }
 
     pub fn update_vertices(&mut self) {
