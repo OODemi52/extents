@@ -2,6 +2,7 @@ use crate::renderer::{RenderState, Renderer};
 use crate::state::AppState;
 use log::{error, info, warn};
 use std::time::Instant;
+use tauri::async_runtime;
 use tauri::{State, WebviewWindow};
 
 #[tauri::command]
@@ -38,6 +39,7 @@ pub fn resize_surface(width: u32, height: u32, state: State<AppState>) {
 #[tauri::command]
 pub fn load_image(
     path: String,
+    preview_path: Option<String>,
     viewport_x: u32,
     viewport_y: u32,
     viewport_width: u32,
@@ -46,35 +48,92 @@ pub fn load_image(
 ) {
     info!("[CMD] Loading image from path: {}", path);
 
-    let image = match image::open(&path) {
-        Ok(image) => image,
+    let renderer_handle = state.renderer.clone();
 
-        Err(e) => {
-            error!("[CMD] Failed to open image at {}: {}", path, e);
+    {
+        let mut renderer_lock = renderer_handle.lock().unwrap();
+
+        if let Some(renderer) = renderer_lock.as_mut() {
+            renderer.update_proxy_viewport(
+                viewport_x as f32,
+                viewport_y as f32,
+                viewport_width as f32,
+                viewport_height as f32,
+            );
+
+            if let Some(preview_path) = preview_path {
+                if let Err(err) = load_texture_from_path(renderer, &preview_path) {
+                    warn!(
+                        "[CMD] Failed to load preview texture from {}: {}",
+                        preview_path, err
+                    );
+                } else {
+                    renderer.render();
+                }
+            }
+        } else {
             return;
         }
-    };
-
-    let rgba = image.to_rgba8();
-
-    let image_width = image.width();
-
-    let image_height = image.height();
-
-    info!("[CMD] Image decoded ({}x{})", image_width, image_height);
-
-    let mut renderer_lock = state.renderer.lock().unwrap();
-
-    if let Some(renderer) = renderer_lock.as_mut() {
-        renderer.update_proxy_viewport(
-            viewport_x as f32,
-            viewport_y as f32,
-            viewport_width as f32,
-            viewport_height as f32,
-        );
-
-        renderer.update_texture(&rgba, image_width, image_height);
     }
+
+    let full_path = path.clone();
+
+    async_runtime::spawn(async move {
+        let decode_result = async_runtime::spawn_blocking(move || {
+            image::open(&full_path).map(|img| {
+                let width = img.width();
+
+                let height = img.height();
+
+                let rgba = img.into_rgba8().into_raw();
+
+                (rgba, width, height)
+            })
+        })
+        .await;
+
+        match decode_result {
+            Ok(Ok((rgba, width, height))) => {
+                let mut renderer_lock = renderer_handle.lock().unwrap();
+
+                if let Some(renderer) = renderer_lock.as_mut() {
+                    renderer.update_texture(&rgba, width, height);
+
+                    renderer.render();
+                }
+            }
+            Ok(Err(err)) => {
+                error!(
+                    "[CMD] Failed to decode full image {}: {}",
+                    path,
+                    err.to_string()
+                );
+            }
+            Err(join_err) => {
+                error!(
+                    "[CMD] Image decode task panicked for {}: {:?}",
+                    path, join_err
+                );
+            }
+        }
+    });
+}
+
+fn load_texture_from_path(
+    renderer: &mut Renderer,
+    path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let image = image::open(path)?;
+
+    let rgba = image.into_rgba8();
+
+    let (width, height) = rgba.dimensions();
+
+    let raw = rgba.into_raw();
+
+    renderer.update_texture(&raw, width, height);
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -114,7 +173,7 @@ pub fn render_frame(state: State<AppState>) {
 
     if let Some(renderer) = renderer_lock.as_mut() {
         renderer.render();
-        renderer.last_render = Instant::now(); // Update the timestamp
+        renderer.last_render = Instant::now();
     }
 }
 

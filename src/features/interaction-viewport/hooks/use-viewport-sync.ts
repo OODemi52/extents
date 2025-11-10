@@ -9,6 +9,7 @@ const VIEWPORT_DEBOUNCE_MS = 100;
 export function useViewportSync(
   viewportRef: React.RefObject<HTMLDivElement>,
   preview: PreviewInfo | undefined,
+  imagePath: string | null,
   scale: number,
   offsetX: number,
   offsetY: number,
@@ -49,11 +50,11 @@ export function useViewportSync(
   }, [viewportRef]);
 
   useEffect(() => {
-    if (!preview || !viewportRef.current) return;
+    if (!preview || !viewportRef.current || !imagePath) return;
 
-    if (lastImagePathRef.current === preview.path) return;
+    if (lastImagePathRef.current === imagePath) return;
 
-    lastImagePathRef.current = preview.path;
+    lastImagePathRef.current = imagePath;
 
     const clientViewportDimensions =
       viewportRef.current.getBoundingClientRect();
@@ -64,7 +65,8 @@ export function useViewportSync(
 
     api.renderer
       .loadImage({
-        path: preview.path,
+        path: imagePath,
+        previewPath: preview.path,
         viewportX: clientViewportDimensions.x * devicePixelRatio,
         viewportY: clientViewportDimensions.y * devicePixelRatio,
         viewportWidth: clientViewportDimensions.width * devicePixelRatio,
@@ -84,7 +86,7 @@ export function useViewportSync(
         cancelAnimationFrame(rafId);
       }
     };
-  }, [preview?.path, viewportRef, updateViewport]);
+  }, [imagePath, preview?.path, viewportRef, updateViewport]);
 
   // Was tryign to use this previously to manage scaling the image when adjusting the window
   // but honestly it seems kinda fine without it. Obviously needs some tuning, but i think its
@@ -95,7 +97,6 @@ export function useViewportSync(
   // of th viewport, then tries to update and resquishes the image
   // To clarify the client does not direct affect the image, it is just passing the wrong dimensions
 
-  // Update viewport on resize/scroll. Don't trigger render state changes for viewport updates
   // useEffect(() => {
   //   if (!viewportRef.current) return;
 

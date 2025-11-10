@@ -165,7 +165,6 @@ impl<'a> Renderer<'a> {
         viewport.height = height.max(0.0).round() as u32;
     }
 
-    /// Decide if the renderer will render a frame by changing render state
     pub fn should_render(&self) -> bool {
         match self.render_state {
             RenderState::Paused => false,
@@ -176,7 +175,6 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    /// Render the current frame
     pub fn render(&mut self) {
         let output = match self.context.surface.get_current_texture() {
             Ok(texture) => texture,
@@ -233,7 +231,6 @@ impl<'a> Renderer<'a> {
                 1.0,
             );
 
-            // Draw
             render_pass.set_pipeline(&self.pipeline.pipeline);
 
             render_pass.set_bind_group(0, &self.bind_group, &[]);
@@ -263,20 +260,25 @@ impl<'a> Renderer<'a> {
         }
 
         let window_width = self.context.config.width as f32;
+
         let window_height = self.context.config.height as f32;
 
         let viewport_center_x = viewport.x as f32 + viewport.width as f32 / 2.0;
+
         let viewport_center_y = viewport.y as f32 + viewport.height as f32 / 2.0;
 
         let viewport_fraction_x = viewport.width as f32 / window_width;
+
         let viewport_fraction_y = viewport.height as f32 / window_height;
 
         let combined_scale = self.pending_scale * self.fit_scale;
 
         let ndc_center_x = (viewport_center_x / window_width) * 2.0 - 1.0;
+
         let ndc_center_y = 1.0 - (viewport_center_y / window_height) * 2.0;
 
         let offset_x = ndc_center_x + self.pending_offset_x * viewport_fraction_x;
+
         let offset_y = ndc_center_y + self.pending_offset_y * viewport_fraction_y;
 
         self.transform_buffer
@@ -293,10 +295,12 @@ impl<'a> Renderer<'a> {
         }
 
         let window_width = self.context.config.width as f32;
+
         let window_height = self.context.config.height as f32;
 
         let scale_from_width =
             (viewport.width as f32 / window_width) / self.vertex_scale_x.max(f32::EPSILON);
+
         let scale_from_height =
             (viewport.height as f32 / window_height) / self.vertex_scale_y.max(f32::EPSILON);
 

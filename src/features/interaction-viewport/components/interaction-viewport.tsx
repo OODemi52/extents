@@ -25,7 +25,7 @@ export function InteractionViewport() {
 
   const { scale, offsetX, offsetY } = useImageTransform(imagePath);
 
-  useViewportSync(viewportRef, preview, scale, offsetX, offsetY);
+  useViewportSync(viewportRef, preview, imagePath, scale, offsetX, offsetY);
 
   useInteractionHandlers(viewportRef, scale, offsetX, offsetY);
 

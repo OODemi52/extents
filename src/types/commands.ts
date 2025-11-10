@@ -11,6 +11,7 @@ export interface CommandArgs {
   resize_surface: { width: number; height: number };
   load_image: {
     path: string;
+    previewPath?: string | null;
     viewportX: number;
     viewportY: number;
     viewportWidth: number;
