@@ -6,7 +6,7 @@ import "allotment/dist/style.css";
 import { Sidebar } from "./components/sidebar";
 import { Filmstrip } from "./features/thumbnails/components/filmstrip";
 import { BottomToolbar } from "./components/bottom-toolbar";
-import { ImageViewer } from "./features/image-viewer/components/image-viewer";
+import { InteractionViewport } from "./features/interaction-viewport/components/interaction-viewport";
 import { EditPanel } from "./features/edit-panel/components/edit-panel";
 import { useFolderScanner } from "./hooks/use-folder-scanner";
 import { useWGPURenderLoop } from "./hooks/use-wgpu-render-loop";
@@ -68,7 +68,7 @@ function App() {
           <Allotment.Pane minSize={MAIN_MIN_WIDTH}>
             <div className="flex flex-col h-full">
               <div className="flex-1 overflow-hidden">
-                <ImageViewer />
+                <InteractionViewport />
               </div>
               <AnimatePresence>
                 {panels.filmstrip && (

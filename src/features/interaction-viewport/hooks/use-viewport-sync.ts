@@ -125,7 +125,6 @@ export function useViewportSync(
   //   };
   // }, [updateViewport]);
 
-  // Keep viewport in sync with window resizes without re-enabling the full observer
   useEffect(() => {
     if (!viewportRef.current) return;
 
@@ -135,7 +134,6 @@ export function useViewportSync(
 
     window.addEventListener("resize", handleWindowResize);
 
-    // Capture the current layout when the effect mounts
     updateViewport();
 
     return () => {

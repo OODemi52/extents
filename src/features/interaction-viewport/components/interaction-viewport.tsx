@@ -7,7 +7,7 @@ import { useInteractionHandlers } from "../hooks/use-interaction-handlers";
 
 import { useImageStore } from "@/store/image-store";
 
-export function ImageViewer() {
+export function InteractionViewport() {
   const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -39,14 +39,6 @@ export function ImageViewer() {
       {isLoading && (
         <div className="absolute top-4 right-4 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-gray-300">
           Loading folder…
-        </div>
-      )}
-
-      {isPreviewLoading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center">
-          <p className="rounded-lg bg-black bg-opacity-50 p-4 text-white">
-            Loading preview…
-          </p>
         </div>
       )}
 
