@@ -17,6 +17,9 @@ interface ImageStore {
   setFileMetadataList: (list: ImageMetadata[]) => void;
   appendFileMetadataList: (list: ImageMetadata[]) => void;
   setSelectedIndex: (index: number | null) => void;
+  selectRelative: (delta: number) => void;
+  selectFirst: () => void;
+  selectLast: () => void;
   setCurrentImageData: (data: string | null) => void;
   setIsLoading: (loading: boolean) => void;
   setThumbnailPath: (originalPath: string, cachePath: string) => void;
@@ -46,6 +49,54 @@ export const useImageStore = create<ImageStore>((set) => ({
       useImageTransformStore.getState().resetTransform();
     }
   },
+  selectRelative: (delta: number) =>
+    set((state) => {
+      const total = state.fileMetadataList.length;
+
+      if (total === 0 || delta === 0) {
+        return {};
+      }
+
+      const current =
+        state.selectedIndex !== null
+          ? state.selectedIndex
+          : delta > 0
+            ? -1
+            : total;
+
+      const next = Math.min(Math.max(current + delta, 0), total - 1);
+
+      if (next === state.selectedIndex) {
+        return {};
+      }
+
+      useImageTransformStore.getState().resetTransform();
+
+      return { selectedIndex: next };
+    }),
+  selectFirst: () =>
+    set((state) => {
+      if (!state.fileMetadataList.length || state.selectedIndex === 0) {
+        return {};
+      }
+
+      useImageTransformStore.getState().resetTransform();
+
+      return { selectedIndex: 0 };
+    }),
+  selectLast: () =>
+    set((state) => {
+      const total = state.fileMetadataList.length;
+      const lastIndex = total - 1;
+
+      if (!total || state.selectedIndex === lastIndex) {
+        return {};
+      }
+
+      useImageTransformStore.getState().resetTransform();
+
+      return { selectedIndex: lastIndex };
+    }),
   setCurrentImageData: (data) => set({ currentImageData: data }),
   setIsLoading: (loading) => set({ isLoading: loading }),
   setThumbnailPath: (originalPath, cachePath) => {
