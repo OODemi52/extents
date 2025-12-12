@@ -184,6 +184,32 @@ impl<'a> Renderer<'a> {
         self.update_vertices();
     }
 
+    pub fn clear(&mut self) {
+        if let Some(handle) = self.pending_load.take() {
+            handle.abort();
+        }
+
+        self.active_request_id = None;
+
+        self.texture_manager = TextureManager::new(&self.context.device, &self.context.queue);
+
+        self.bind_group = self.pipeline.create_bind_group(
+            &self.context.device,
+            self.texture_manager.view(),
+            self.transform_buffer.as_entire_binding(),
+        );
+
+        self.pending_scale = 1.0;
+        self.pending_offset_x = 0.0;
+        self.pending_offset_y = 0.0;
+        self.fit_scale = 1.0;
+        self.vertex_scale_x = 1.0;
+        self.vertex_scale_y = 1.0;
+
+        self.update_vertices();
+        self.render();
+    }
+
     pub fn update_transform(&mut self, scale: f32, offset_x: f32, offset_y: f32) {
         self.pending_scale = scale;
 

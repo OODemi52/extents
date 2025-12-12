@@ -22,6 +22,7 @@ export interface CommandArgs {
   render_frame: null;
   should_render_frame: null;
   set_render_state: { stateStr: "active" | "idle" | "paused" };
+  clear_renderer: null;
 }
 
 export interface CommandReturn {
@@ -39,4 +40,5 @@ export interface CommandReturn {
   render_frame: void;
   should_render_frame: boolean;
   set_render_state: void;
+  clear_renderer: void;
 }

@@ -28,3 +28,5 @@ export const shouldRenderFrame = () => invokeTauri("should_render_frame", null);
 export const prefetch = (paths: string[]): Promise<void> => {
   return invokeTauri("prefetch_thumbnails", { paths });
 };
+
+export const clear = () => invokeTauri("clear_renderer", null);

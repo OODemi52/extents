@@ -78,6 +78,7 @@ pub fn run() {
             commands::renderer::resize_surface,
             commands::renderer::should_render_frame,
             commands::renderer::render_frame,
+            commands::renderer::clear_renderer,
             commands::renderer::set_render_state,
         ])
         // Running the application

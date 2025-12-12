@@ -201,6 +201,15 @@ pub fn render_frame(state: State<AppState>) {
 }
 
 #[tauri::command]
+pub fn clear_renderer(state: State<AppState>) {
+    let mut renderer_lock = state.renderer.lock().unwrap();
+
+    if let Some(renderer) = renderer_lock.as_mut() {
+        renderer.clear();
+    }
+}
+
+#[tauri::command]
 pub fn set_render_state(state_str: String, state: State<AppState>) {
     if let Some(renderer) = state.renderer.lock().unwrap().as_mut() {
         println!("Render state changed to: {}", state_str);
