@@ -12,6 +12,8 @@ export const FILMSTRIP_DEFAULT_HEIGHT = 180;
 
 export type PanelId = "sidebar" | "filmstrip" | "editPanel" | "infoPanel";
 
+export type LayoutId = "editor" | "thumbnails";
+
 export type EditPanelTab =
   | "basic"
   | "presets"
@@ -21,6 +23,7 @@ export type EditPanelTab =
   | "info";
 
 interface LayoutState {
+  activeLayout: LayoutId;
   panels: Record<PanelId, boolean>;
 
   activeEditTab: EditPanelTab;
@@ -34,6 +37,7 @@ interface LayoutState {
   setSidebarWidth: (width: number) => void;
   setEditPanelWidth: (width: number) => void;
   setFilmstripHeight: (height: number) => void;
+  setActiveLayout: (layout: LayoutId) => void;
 }
 
 const clamp = (value: number, min: number, max: number) =>
@@ -42,6 +46,7 @@ const clamp = (value: number, min: number, max: number) =>
 export const useLayoutStore = create<LayoutState>()(
   persist(
     (set) => ({
+      activeLayout: "editor",
       panels: {
         sidebar: true,
         filmstrip: true,
@@ -76,6 +81,7 @@ export const useLayoutStore = create<LayoutState>()(
         }),
 
       setFilmstripHeight: (height) => set({ filmstripHeight: height }),
+      setActiveLayout: (layout) => set({ activeLayout: layout }),
     }),
     {
       name: "extents-layout",
