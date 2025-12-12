@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
-import { useImageLoader } from "@/hooks/use-image-loader";
-import { useImageStore } from "@/store/image-store";
-
-import { Thumbnail } from "./thumbnail";
 import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
+
+import { Thumbnail } from "./thumbnail";
+
+import { useImageLoader } from "@/hooks/use-image-loader";
+import { useImageStore } from "@/store/image-store";
 
 const THUMBNAIL_SIZE = 140;
 const GAP = 12;
@@ -23,10 +24,12 @@ export function ThumbnailGrid() {
 
   useEffect(() => {
     const element = containerRef.current;
+
     if (!element) return;
 
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
+
       if (!entry) return;
 
       setContainerWidth(entry.contentRect.width);
@@ -65,13 +68,6 @@ export function ThumbnailGrid() {
   }, [columns, cellSize, fileMetadataList.length, virtualizer]);
 
   useEffect(() => {
-    if (selectedIndex === null || columns === 0) return;
-
-    const targetRow = Math.floor(selectedIndex / columns);
-    virtualizer.scrollToIndex(targetRow, { align: "center" });
-  }, [selectedIndex, columns, virtualizer]);
-
-  useEffect(() => {
     if (!fileMetadataList.length) return;
 
     const visibleRows = virtualizer.getVirtualItems().map((item) => item.index);
@@ -106,7 +102,7 @@ export function ThumbnailGrid() {
   const showEmptyState = fileMetadataList.length === 0;
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full py-2">
       <div
         ref={containerRef}
         className="h-full overflow-y-auto px-4 pb-6"

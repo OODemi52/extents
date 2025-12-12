@@ -13,7 +13,7 @@ import {
   useLayoutStore,
 } from "@/store/layout-store";
 
-export function ThumbnailLayout() {
+export function ThumbnailGridLayout() {
   const { fileMetadataList } = useImageStore();
   const { openFolder } = useFolderScanner();
   const { panels, sidebarWidth, setSidebarWidth } = useLayoutStore();

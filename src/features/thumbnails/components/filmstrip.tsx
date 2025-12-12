@@ -2,9 +2,9 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useEffect } from "react";
 
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
+import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
 
 import { Thumbnail } from "./thumbnail";
-import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
 
 import { useImageStore } from "@/store/image-store";
 import { useImageLoader } from "@/hooks/use-image-loader";
@@ -17,6 +17,7 @@ export function Filmstrip() {
   const { fileMetadataList, selectedIndex } = useImageStore();
   const { handleSelectImage } = useImageLoader();
   const prefetchThumbnails = usePrefetchThumbnails();
+
   useImageKeyboardNavigation(fileMetadataList.length > 0);
 
   const virtualizer = useVirtualizer({

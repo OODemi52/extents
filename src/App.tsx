@@ -1,6 +1,7 @@
 import "allotment/dist/style.css";
 import { useWGPURenderLoop } from "./hooks/use-wgpu-render-loop";
-import { EditorLayout, ThumbnailLayout } from "./layouts";
+import { ThumbnailGridLayout } from "./layouts/thumbnai-grid-layout";
+import { EditorLayout } from "./layouts/editor-layout";
 import { useLayoutStore } from "./store/layout-store";
 
 function App() {
@@ -10,7 +11,11 @@ function App() {
 
   return (
     <div className="flex h-screen flex-col">
-      {activeLayout === "thumbnails" ? <ThumbnailLayout /> : <EditorLayout />}
+      {activeLayout === "thumbnails" ? (
+        <ThumbnailGridLayout />
+      ) : (
+        <EditorLayout />
+      )}
     </div>
   );
 }
