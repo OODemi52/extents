@@ -46,7 +46,12 @@ export function FilmstripItem({
         className={`pointer-events-none flex justify-center px-0 py-0 transition-opacity duration-200 ease-out ${isHovering ? "opacity-100" : "opacity-0"}`}
       >
         <div className="pointer-events-auto rounded-full bg-zinc-900/70 px-1 py-0.5">
-          <RatingStars className="mr-0" path={file.path} />
+          <RatingStars
+            compact
+            className="mr-0 !gap-0"
+            path={file.path}
+            size="sm"
+          />
         </div>
       </CardFooter>
     </Card>

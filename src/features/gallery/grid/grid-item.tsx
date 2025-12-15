@@ -7,6 +7,7 @@ import { FlagControls } from "@/features/metadata/flagging/components/flag-contr
 import { RatingStars } from "@/features/metadata/rating/components/rating-stars";
 import { ImageMetadata } from "@/types/image";
 import { useLayoutStore } from "@/store/layout-store";
+import { useFlagStore } from "@/features/metadata/flagging/store/use-flagging-store";
 
 interface GridItemProps {
   file: ImageMetadata;
@@ -20,6 +21,7 @@ export function GridItem({ file, index, isSelected, onSelect }: GridItemProps) {
     (selected) => selected.setActiveLayout,
   );
   const [isHovering, setIsHovering] = useState(false);
+  const flagState = useFlagStore((s) => s.flags[file.path] ?? "unflagged");
 
   const lastDotIndex = file.fileName.lastIndexOf(".");
   const baseName =
@@ -49,6 +51,11 @@ export function GridItem({ file, index, isSelected, onSelect }: GridItemProps) {
         <div className="truncate">{baseName}</div>
         <div className="rounded-sm bg-zinc-900 px-1 uppercase">{extension}</div>
       </CardHeader>
+      <div
+        className={`z-20 pointer-events-none absolute inset-0 rounded-md bg-black/60 transition-opacity duration-200 ${
+          flagState === "rejected" ? "opacity-60" : "opacity-0"
+        }`}
+      />
       <CardBody className="h-full w-full p-2">
         <Thumbnail
           disableAnimation

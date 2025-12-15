@@ -10,26 +10,31 @@ interface RatingStarsProps {
   path: string;
   size?: "sm" | "md";
   className?: string;
+  compact?: boolean;
 }
 
 export function RatingStars({
   path,
   size = "sm",
   className,
+  compact = false,
 }: RatingStarsProps) {
   const rating = useRatingStore((s) => s.ratings[path] ?? 0);
   const setRating = useRatingStore((s) => s.setRating);
   const [hoveredStar, setHoveredStar] = useState<RatingValue | null>(null);
-  const effectiveRating = hoveredStar ?? rating;
+  const effectiveRating =
+    hoveredStar !== null ? Math.max(rating, hoveredStar) : rating;
+  const buttonSizeClass = compact ? "!min-w-3 !w-3 !h-3" : "!min-w-4 !w-4";
+  const iconSize = compact ? 12 : undefined;
 
   return (
-    <ButtonGroup className={className}>
+    <ButtonGroup className={`${className ?? ""} ${compact ? "!gap-0" : ""}`}>
       {STAR_VALUES.map((value) => (
         <Button
           key={value}
           disableRipple
           isIconOnly
-          className="!min-w-4 !w-4 bg-transparent !hover:bg-transparent"
+          className={`${buttonSizeClass} bg-transparent !hover:bg-transparent`}
           size={size}
           title={`${value} Star`}
           variant="light"
@@ -39,6 +44,7 @@ export function RatingStars({
         >
           <StarIcon
             className="scale-x-[-1]"
+            size={iconSize}
             weight={effectiveRating >= value ? "fill" : "regular"}
           />
         </Button>

@@ -7,7 +7,6 @@ type FlagStateStore = {
   setFlag: (path: string, state: FlagState) => void;
 };
 
-// TODO: Persist via Tauri in a follow-up.
 export const useFlagStore = create<FlagStateStore>((set) => ({
   flags: {},
   setFlag: (path, state) =>

@@ -28,7 +28,6 @@ export function Thumbnail({
   return (
     <Card
       disableRipple
-      isPressable
       className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-sm bg-transparent shadow-none ${
         isSelected && showSelectionRing ? "ring-2 ring-blue-500" : ""
       }`}

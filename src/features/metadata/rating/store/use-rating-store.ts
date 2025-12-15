@@ -7,7 +7,6 @@ type RatingState = {
   setRating: (path: string, value: RatingValue) => void;
 };
 
-// TODO: Persist via Tauri in a follow-up.
 export const useRatingStore = create<RatingState>((set) => ({
   ratings: {},
   setRating: (path, value) =>
