@@ -3,7 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
 import { useImageStore } from "@/store/image-store";
-import { useClearThumbnailCache } from "@/features/thumbnails/hooks/use-thumbnails";
+import { useClearThumbnailCache } from "@/features/gallery/hooks/use-thumbnails";
 import { ImageMetadata } from "@/types/image";
 import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
 import { api } from "@/services/api";

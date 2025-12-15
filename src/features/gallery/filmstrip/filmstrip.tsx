@@ -4,7 +4,7 @@ import { useRef, useEffect } from "react";
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
 import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
 
-import { Thumbnail } from "./thumbnail";
+import { FilmstripItem } from "./filmstrip-item";
 
 import { useImageStore } from "@/store/image-store";
 import { useImageLoader } from "@/hooks/use-image-loader";
@@ -88,11 +88,11 @@ export function Filmstrip() {
                 transform: `translateX(${virtualItem.start}px)`,
               }}
             >
-              <Thumbnail
+              <FilmstripItem
+                file={file}
                 index={virtualItem.index}
                 isSelected={virtualItem.index === selectedIndex}
-                path={file.path}
-                onClick={() => handleSelectImage(virtualItem.index)}
+                onSelect={() => handleSelectImage(virtualItem.index)}
               />
             </div>
           );

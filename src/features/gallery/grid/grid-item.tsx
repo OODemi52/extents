@@ -1,0 +1,74 @@
+import { Card, CardHeader, CardBody, CardFooter } from "@heroui/card";
+import { useState } from "react";
+
+import { Thumbnail } from "../thumbnail/thumbnail";
+
+import { FlagControls } from "@/features/metadata/flagging/components/flag-controls";
+import { RatingStars } from "@/features/metadata/rating/components/rating-stars";
+import { ImageMetadata } from "@/types/image";
+import { useLayoutStore } from "@/store/layout-store";
+
+interface GridItemProps {
+  file: ImageMetadata;
+  index: number;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+export function GridItem({ file, index, isSelected, onSelect }: GridItemProps) {
+  const setActiveLayout = useLayoutStore(
+    (selected) => selected.setActiveLayout,
+  );
+  const [isHovering, setIsHovering] = useState(false);
+
+  const lastDotIndex = file.fileName.lastIndexOf(".");
+  const baseName =
+    lastDotIndex > 0 ? file.fileName.slice(0, lastDotIndex) : file.fileName;
+  const extension =
+    lastDotIndex > 0 ? file.fileName.slice(lastDotIndex + 1) : "";
+
+  return (
+    <Card
+      key={file.path}
+      disableAnimation
+      disableRipple
+      isPressable
+      className={`group relative m-1 h-full w-full overflow-hidden rounded-md bg-zinc-700 p-0 ${
+        isSelected ? "ring-2 ring-blue-500" : ""
+      }`}
+      title={file.fileName}
+      onDoubleClick={() => {
+        onSelect();
+        setActiveLayout("editor");
+      }}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      onPress={onSelect}
+    >
+      <CardHeader className="z-10 flex justify-between px-2 py-1 text-[8px] font-bold">
+        <div className="truncate">{baseName}</div>
+        <div className="rounded-sm bg-zinc-900 px-1 uppercase">{extension}</div>
+      </CardHeader>
+      <CardBody className="h-full w-full p-2">
+        <Thumbnail
+          disableAnimation
+          index={index}
+          isSelected={isSelected}
+          path={file.path}
+          showSelectionRing={false}
+          onClick={onSelect}
+        />
+      </CardBody>
+      <CardFooter
+        className={`pointer-events-none z-10 flex justify-between px-2 py-0 transition-opacity duration-200 ease-out ${isHovering ? "opacity-100" : "opacity-0"}`}
+      >
+        <div className="pointer-events-auto flex items-center gap-1">
+          <FlagControls path={file.path} />
+        </div>
+        <div className="pointer-events-auto flex items-center">
+          <RatingStars path={file.path} />
+        </div>
+      </CardFooter>
+    </Card>
+  );
+}

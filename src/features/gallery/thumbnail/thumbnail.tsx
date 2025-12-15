@@ -10,6 +10,8 @@ interface ThumbnailProps {
   index: number;
   isSelected: boolean;
   onClick: () => void;
+  disableAnimation?: boolean;
+  showSelectionRing?: boolean;
 }
 
 export function Thumbnail({
@@ -17,6 +19,8 @@ export function Thumbnail({
   index,
   isSelected,
   onClick,
+  disableAnimation,
+  showSelectionRing = true,
 }: ThumbnailProps) {
   const { thumbnail, isLoading, error } = useThumbnailQuery(path);
   const [loaded, setLoaded] = useState(false);
@@ -25,29 +29,30 @@ export function Thumbnail({
     <Card
       disableRipple
       isPressable
+      className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-sm bg-transparent shadow-none ${
+        isSelected && showSelectionRing ? "ring-2 ring-blue-500" : ""
+      }`}
       // Gonna go woth a square aspect for now until I decide tp come back and nit pick
       // Keep in mind the gutter for the scroll bar
-      className={`aspect-square shrink-0 cursor-pointer transition-all ${
-        isSelected ? "ring-2 ring-blue-500 scale-105" : ""
-      }`}
+      disableAnimation={disableAnimation}
       radius="sm"
       onPress={onClick}
     >
       {error ? (
-        <div className="h-[60px] aspect-square bg-danger-100 text-red-300 flex items-center justify-center">
-          <ImageBrokenIcon className="" size={24} weight="duotone" />
+        <div className="flex h-full w-full items-center justify-center text-red-300">
+          <ImageBrokenIcon size={24} weight="duotone" />
         </div>
       ) : thumbnail ? (
         <img
           alt={`Thumbnail ${index}`}
-          className={`w-full h-full object-cover transition-opacity duration-500 ${
-            loaded ? "opacity-100" : "opacity-50"
+          className={`max-h-full max-w-full object-contain transition-opacity duration-500 ${
+            loaded || disableAnimation ? "opacity-100" : "opacity-50"
           }`}
           src={thumbnail}
           onLoad={() => setLoaded(true)}
         />
       ) : (
-        <Skeleton className="h-[60px] aspect-square" isLoaded={isLoading} />
+        <Skeleton className="h-full w-full" isLoaded={isLoading} />
       )}
     </Card>
   );

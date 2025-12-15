@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { fetchThumbnail } from "../utils/fetch-thumbnail";
+import { fetchThumbnail } from "../thumbnail/fetch-thumbnail";
 
 export function useThumbnailQuery(imagePath: string) {
   const query = useQuery({

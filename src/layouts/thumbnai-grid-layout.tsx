@@ -3,7 +3,7 @@ import { Allotment } from "allotment";
 
 import { Sidebar } from "@/components/sidebar";
 import { BottomToolbar } from "@/components/bottom-toolbar";
-import { ThumbnailGrid } from "@/features/thumbnails/components/thumbnail-grid";
+import { ThumbnailGrid } from "@/features/gallery/grid/grid";
 import { useFolderScanner } from "@/hooks/use-folder-scanner";
 import { useImageStore } from "@/store/image-store";
 import {

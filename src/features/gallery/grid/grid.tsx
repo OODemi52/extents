@@ -4,13 +4,13 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
 
-import { Thumbnail } from "./thumbnail";
+import { GridItem } from "./grid-item";
 
 import { useImageLoader } from "@/hooks/use-image-loader";
 import { useImageStore } from "@/store/image-store";
 
 const THUMBNAIL_SIZE = 140;
-const GAP = 12;
+const GAP = 8;
 
 export function ThumbnailGrid() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -144,6 +144,7 @@ export function ThumbnailGrid() {
                     className="grid"
                     style={{
                       gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                      gridAutoRows: `${cellSize}px`,
                       gap: `${GAP}px`,
                     }}
                   >
@@ -152,21 +153,13 @@ export function ThumbnailGrid() {
                       const isSelected = index === selectedIndex;
 
                       return (
-                        <div
+                        <GridItem
                           key={file.path}
-                          className="relative"
-                          title={file.fileName}
-                        >
-                          <Thumbnail
-                            index={index}
-                            isSelected={isSelected}
-                            path={file.path}
-                            onClick={() => handleSelectImage(index)}
-                          />
-                          <div className="pointer-events-none absolute inset-x-1 bottom-1 rounded-md bg-black/60 px-2 py-1 text-[10px] text-white/90 backdrop-blur">
-                            <div className="truncate">{file.fileName}</div>
-                          </div>
-                        </div>
+                          file={file}
+                          index={index}
+                          isSelected={isSelected}
+                          onSelect={() => handleSelectImage(index)}
+                        />
                       );
                     })}
                   </div>
