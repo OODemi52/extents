@@ -7,6 +7,7 @@ import { ThumbnailGridLayout } from "./layouts/thumbnai-grid-layout";
 import { EditorLayout } from "./layouts/editor-layout";
 import { useLayoutStore } from "./store/layout-store";
 import { clearRenderer } from "./services/api/renderer";
+import { TitleBar } from "./components/title-bar";
 
 function App() {
   const { activeLayout } = useLayoutStore();
@@ -20,6 +21,7 @@ function App() {
 
   return (
     <div className="flex h-screen flex-col">
+      <TitleBar />
       {activeLayout === "thumbnails" ? (
         <ThumbnailGridLayout />
       ) : (

@@ -1,11 +1,15 @@
 import { Button } from "@heroui/button";
 import { Tooltip } from "@heroui/tooltip";
 
+import { cn } from "@/lib/cn";
+
 interface ToolbarIconButtonProps {
   tooltip: string;
   icon: React.ReactNode;
   isActive?: boolean;
   onPress: () => void;
+  isDisabled?: boolean;
+  className?: string;
 }
 
 export function ToolbarIconButton({
@@ -13,6 +17,8 @@ export function ToolbarIconButton({
   icon,
   isActive = false,
   onPress,
+  isDisabled,
+  className,
 }: ToolbarIconButtonProps) {
   return (
     <Tooltip
@@ -27,9 +33,12 @@ export function ToolbarIconButton({
       <Button
         disableRipple
         isIconOnly
-        className={`transition-colors bg-transparent ${
-          isActive ? "text-blue-500" : "hover:text-white"
-        }`}
+        className={cn(
+          "transition-colors bg-transparent",
+          isActive ? "text-blue-500" : "hover:text-white",
+          className,
+        )}
+        isDisabled={isDisabled}
         size="sm"
         onPress={onPress}
       >

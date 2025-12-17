@@ -17,7 +17,7 @@
         "title": "Extents",
         "transparent": true,
         "label": "main",
-        "titleBarStyle": "Visible",
+        "titleBarStyle": "Overlay",
         "width": 1280,
         "height": 800,
         "minWidth": 900,

@@ -3,5 +3,12 @@
   "identifier": "default",
   "description": "enables the default permissions",
   "windows": ["main"],
-  "permissions": ["core:default", "fs:default", "dialog:default"]
+  "permissions": [
+    "core:default",
+    "fs:default",
+    "dialog:default",
+    "core:window:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-toggle-maximize"
+  ]
 }
