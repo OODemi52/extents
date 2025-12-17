@@ -8,6 +8,9 @@ import { GridItem } from "./grid-item";
 
 import { useImageLoader } from "@/hooks/use-image-loader";
 import { useImageStore } from "@/store/image-store";
+import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
+import { FilterMenuBar } from "@/features/filter/components/menu-bar/menu-bar";
+import { useFilterStore } from "@/features/filter/stores/filter-store";
 
 const THUMBNAIL_SIZE = 140;
 const GAP = 8;
@@ -17,10 +20,18 @@ export function ThumbnailGrid() {
   const [containerWidth, setContainerWidth] = useState(0);
 
   const { fileMetadataList, selectedIndex } = useImageStore();
-  const { handleSelectImage } = useImageLoader();
+  const filteredFiles = useFilteredImages();
+  const { handleSelectImageByPath } = useImageLoader();
   const prefetchThumbnails = usePrefetchThumbnails();
+  const hasBaseImages = fileMetadataList.length > 0;
+  const isFilterOpen = useFilterStore((state) => state.isOpen);
 
-  useImageKeyboardNavigation(fileMetadataList.length > 0);
+  const selectedPath =
+    selectedIndex !== null
+      ? (fileMetadataList[selectedIndex]?.path ?? null)
+      : null;
+
+  useImageKeyboardNavigation(filteredFiles.length > 0);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -54,7 +65,7 @@ export function ThumbnailGrid() {
     (availableWidth - GAP * (columns - 1)) / columns,
   );
 
-  const rowCount = Math.ceil(fileMetadataList.length / columns);
+  const rowCount = Math.ceil(filteredFiles.length / columns);
 
   const virtualizer = useVirtualizer({
     count: rowCount || 0,
@@ -65,10 +76,10 @@ export function ThumbnailGrid() {
 
   useEffect(() => {
     virtualizer.measure();
-  }, [columns, cellSize, fileMetadataList.length, virtualizer]);
+  }, [columns, cellSize, filteredFiles.length, virtualizer]);
 
   useEffect(() => {
-    if (!fileMetadataList.length) return;
+    if (!filteredFiles.length) return;
 
     const visibleRows = virtualizer.getVirtualItems().map((item) => item.index);
     const visibleIndices = new Set<number>();
@@ -79,13 +90,13 @@ export function ThumbnailGrid() {
       for (let i = 0; i < columns; i += 1) {
         const index = start + i;
 
-        if (index < fileMetadataList.length) {
+        if (index < filteredFiles.length) {
           visibleIndices.add(index);
         }
       }
     });
 
-    const offScreenPaths = fileMetadataList
+    const offScreenPaths = filteredFiles
       .map((file, idx) => ({ file, idx }))
       .filter(({ idx }) => !visibleIndices.has(idx))
       .map(({ file }) => file.path);
@@ -97,12 +108,22 @@ export function ThumbnailGrid() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [fileMetadataList, virtualizer, columns, prefetchThumbnails]);
+  }, [filteredFiles, virtualizer, columns, prefetchThumbnails]);
 
-  const showEmptyState = fileMetadataList.length === 0;
+  const showEmptyState = filteredFiles.length === 0;
 
   return (
-    <div className="h-full w-full py-2">
+    <div className="h-full w-full">
+      <div
+        className={`w-full overflow-hidden transition-[max-height,opacity,transform] duration-200 ${
+          isFilterOpen
+            ? "max-h-24 opacity-100 translate-y-0 pointer-events-auto"
+            : "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
+        }`}
+        data-filter-ui="true"
+      >
+        <FilterMenuBar />
+      </div>
       <div
         ref={containerRef}
         className="h-full overflow-y-auto px-4 pb-6"
@@ -110,7 +131,9 @@ export function ThumbnailGrid() {
       >
         {showEmptyState ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-500">
-            No folder selected. Open a folder to start browsing thumbnails.
+            {hasBaseImages
+              ? "No images match the current filters."
+              : "No folder selected. Open a folder to start browsing thumbnails."}
           </div>
         ) : (
           <div
@@ -122,7 +145,7 @@ export function ThumbnailGrid() {
           >
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const startIndex = virtualRow.index * columns;
-              const rowItems = fileMetadataList.slice(
+              const rowItems = filteredFiles.slice(
                 startIndex,
                 startIndex + columns,
               );
@@ -149,16 +172,15 @@ export function ThumbnailGrid() {
                     }}
                   >
                     {rowItems.map((file, columnIndex) => {
-                      const index = startIndex + columnIndex;
-                      const isSelected = index === selectedIndex;
+                      const isSelected = file.path === selectedPath;
 
                       return (
                         <GridItem
                           key={file.path}
                           file={file}
-                          index={index}
+                          index={startIndex + columnIndex}
                           isSelected={isSelected}
-                          onSelect={() => handleSelectImage(index)}
+                          onSelect={() => handleSelectImageByPath(file.path)}
                         />
                       );
                     })}

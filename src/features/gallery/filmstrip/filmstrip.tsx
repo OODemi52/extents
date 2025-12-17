@@ -7,6 +7,7 @@ import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigati
 import { FilmstripItem } from "./filmstrip-item";
 
 import { useImageStore } from "@/store/image-store";
+import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
 import { useImageLoader } from "@/hooks/use-image-loader";
 
 const THUMBNAIL_SIZE = 60;
@@ -15,35 +16,41 @@ const GAP = 8;
 export function Filmstrip() {
   const filmstripRef = useRef<HTMLDivElement>(null);
   const { fileMetadataList, selectedIndex } = useImageStore();
-  const { handleSelectImage } = useImageLoader();
+  const filteredFiles = useFilteredImages();
+  const { handleSelectImageByPath } = useImageLoader();
   const prefetchThumbnails = usePrefetchThumbnails();
 
-  useImageKeyboardNavigation(fileMetadataList.length > 0);
+  const selectedPath =
+    selectedIndex !== null
+      ? (fileMetadataList[selectedIndex]?.path ?? null)
+      : null;
+
+  useImageKeyboardNavigation(filteredFiles.length > 0);
 
   const virtualizer = useVirtualizer({
     horizontal: true,
-    count: fileMetadataList.length,
+    count: filteredFiles.length,
     getScrollElement: () => filmstripRef.current,
     estimateSize: () => THUMBNAIL_SIZE + GAP,
     overscan: 5,
   });
 
   useEffect(() => {
-    if (fileMetadataList.length > 0) {
+    if (filteredFiles.length > 0) {
       virtualizer.measure();
     }
-  }, [fileMetadataList.length, virtualizer]);
+  }, [filteredFiles.length, virtualizer]);
 
   useEffect(() => {
-    if (fileMetadataList.length === 0) return;
+    if (filteredFiles.length === 0) return;
 
     const visibleIndices = new Set(
       virtualizer.getVirtualItems().map((item) => item.index),
     );
 
-    const offScreenPaths = fileMetadataList
-      .map((file, idx) => ({ file, idx }))
-      .filter(({ idx }) => !visibleIndices.has(idx))
+    const offScreenPaths = filteredFiles
+      .map((file, index) => ({ file, index }))
+      .filter(({ index }) => !visibleIndices.has(index))
       .map(({ file }) => file.path);
 
     if (offScreenPaths.length > 0) {
@@ -53,12 +60,16 @@ export function Filmstrip() {
 
       return () => clearTimeout(timer);
     }
-  }, [fileMetadataList, virtualizer, prefetchThumbnails]);
+  }, [filteredFiles, virtualizer, prefetchThumbnails]);
 
   useEffect(() => {
-    if (selectedIndex === null || fileMetadataList.length === 0) return;
-    virtualizer.scrollToIndex(selectedIndex, { align: "center" });
-  }, [selectedIndex, fileMetadataList.length, virtualizer]);
+    if (!selectedPath || filteredFiles.length === 0) return;
+    const index = filteredFiles.findIndex((file) => file.path === selectedPath);
+
+    if (index >= 0) {
+      virtualizer.scrollToIndex(index, { align: "center" });
+    }
+  }, [selectedPath, filteredFiles, virtualizer]);
 
   return (
     <div
@@ -74,7 +85,7 @@ export function Filmstrip() {
         }}
       >
         {virtualizer.getVirtualItems().map((virtualItem) => {
-          const file = fileMetadataList[virtualItem.index];
+          const file = filteredFiles[virtualItem.index];
 
           return (
             <div
@@ -91,8 +102,8 @@ export function Filmstrip() {
               <FilmstripItem
                 file={file}
                 index={virtualItem.index}
-                isSelected={virtualItem.index === selectedIndex}
-                onSelect={() => handleSelectImage(virtualItem.index)}
+                isSelected={file.path === selectedPath}
+                onSelect={() => handleSelectImageByPath(file.path)}
               />
             </div>
           );

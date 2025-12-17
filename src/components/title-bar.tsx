@@ -1,4 +1,3 @@
-import { Input } from "@heroui/input";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -8,11 +7,17 @@ import { ButtonGroup } from "@heroui/button";
 
 import { ToolbarIconButton } from "./ui/buttons/toolbar-icon-button";
 
+import { FilterSearchInput } from "@/features/filter/components/title-bar/search-input";
+import { useFilterStore } from "@/features/filter/stores/filter-store";
+
 export function TitleBar() {
+  const isFilterOpen = useFilterStore((state) => state.isOpen);
+  const toggleFilter = useFilterStore((state) => state.toggleOpen);
+
   return (
     <div
       data-tauri-drag-region
-      className="w-full flex items-center justify-between py-1 px-2 border-b border-b-zinc-700"
+      className="w-full flex items-center justify-between py-1 px-2"
     >
       {/* Load bearing div, used as a spacer/padding */}
       <div className="w-1" />
@@ -20,12 +25,14 @@ export function TitleBar() {
       <div className="flex items-center space-x-2 max-w-3xl w-full">
         <ButtonGroup>
           <ToolbarIconButton
+            isDisabled
             icon={<ArrowLeftIcon size={20} />}
             isActive={false}
             tooltip="Back"
             onPress={() => console.log("back")}
           />
           <ToolbarIconButton
+            isDisabled
             icon={<ArrowRightIcon size={20} />}
             isActive={false}
             tooltip="Forward"
@@ -33,13 +40,13 @@ export function TitleBar() {
           />
         </ButtonGroup>
 
-        <Input className="flex-1 px-4" placeholder="Search [insert folder]" />
+        <FilterSearchInput />
 
         <ToolbarIconButton
           icon={<FunnelIcon size={20} weight="duotone" />}
-          isActive={false}
-          tooltip="Filter"
-          onPress={() => console.log("filter")}
+          isActive={isFilterOpen}
+          tooltip={isFilterOpen ? "Hide filters" : "Show filters"}
+          onPress={toggleFilter}
         />
       </div>
 

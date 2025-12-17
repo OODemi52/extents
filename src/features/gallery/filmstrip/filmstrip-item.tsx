@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { Thumbnail } from "../thumbnail/thumbnail";
 
-import { RatingStars } from "@/features/metadata/rating/components/rating-stars";
+import { RatingStars } from "@/features/annotate/rating/components/rating-stars";
 import { ImageMetadata } from "@/types/image";
 
 interface FilmstripItemProps {

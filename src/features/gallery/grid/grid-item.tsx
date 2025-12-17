@@ -3,11 +3,11 @@ import { useState } from "react";
 
 import { Thumbnail } from "../thumbnail/thumbnail";
 
-import { FlagControls } from "@/features/metadata/flagging/components/flag-controls";
-import { RatingStars } from "@/features/metadata/rating/components/rating-stars";
+import { FlagControls } from "@/features/annotate/flagging/components/flag-controls";
+import { RatingStars } from "@/features/annotate/rating/components/rating-stars";
 import { ImageMetadata } from "@/types/image";
 import { useLayoutStore } from "@/store/layout-store";
-import { useFlagStore } from "@/features/metadata/flagging/store/use-flagging-store";
+import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-store";
 
 interface GridItemProps {
   file: ImageMetadata;

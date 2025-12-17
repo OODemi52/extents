@@ -10,68 +10,25 @@ interface FlagControlsProps {
   path: string;
   className?: string;
   size?: "sm" | "md";
-  showClear?: boolean;
 }
 
 export function FlagControls({
   path,
   className,
   size = "sm",
-  showClear = false,
 }: FlagControlsProps) {
-  const flag = useFlagStore((s) => s.flags[path] ?? "unflagged");
-  const setFlag = useFlagStore((s) => s.setFlag);
+  const flag = useFlagStore((state) => state.flags[path] ?? "unflagged");
+  const setFlag = useFlagStore((state) => state.setFlag);
   const [hovered, setHovered] = useState<FlagValue | null>(null);
-
-  const chipClass =
-    "!min-w-5 !w-5 !h-5 px-0 transition-colors !hover:bg-transparent";
-  const activeBg = (key: FlagValue) => {
-    if (key === "flagged") return "#16a34a";
-    if (key === "rejected") return "#ef4444";
-
-    return "transparent";
-  };
-  const chipStyle = (key: FlagValue) => ({
-    backgroundColor:
-      flag === key
-        ? activeBg(key)
-        : hovered === key
-          ? "#ffffff26"
-          : "transparent",
-    borderRadius: "6px",
-  });
 
   return (
     <ButtonGroup className={`${className ?? ""} gap-0 z-30`}>
-      {showClear ? (
-        <Button
-          disableRipple
-          isIconOnly
-          className={chipClass}
-          size={size}
-          style={chipStyle("unflagged")}
-          title="Clear Flag"
-          variant="light"
-          onMouseEnter={() => setHovered("unflagged")}
-          onMouseLeave={() => setHovered(null)}
-          onPress={() => setFlag(path, "unflagged")}
-        >
-          <FlagApproveIcon
-            hovered={hovered === "unflagged"}
-            overlaySize={5}
-            size={20}
-            state="idle"
-          />
-        </Button>
-      ) : null}
-
       <Button
         disableRipple
         isIconOnly
-        className={chipClass}
+        className="!min-w-7 !w-7 !h-7 px-0 transition-opacity !hover:bg-transparent"
         size={size}
-        style={chipStyle("rejected")}
-        title="Reject"
+        title={flag === "rejected" ? "Clear reject" : "Reject"}
         variant="light"
         onMouseEnter={() => setHovered("rejected")}
         onMouseLeave={() => setHovered(null)}
@@ -90,10 +47,9 @@ export function FlagControls({
       <Button
         disableRipple
         isIconOnly
-        className={chipClass}
+        className="!min-w-7 !w-7 !h-7 px-0 transition-opacity !hover:bg-transparent"
         size={size}
-        style={chipStyle("flagged")}
-        title="Flag"
+        title={flag === "flagged" ? "Clear flag" : "Flag"}
         variant="light"
         onMouseEnter={() => setHovered("flagged")}
         onMouseLeave={() => setHovered(null)}

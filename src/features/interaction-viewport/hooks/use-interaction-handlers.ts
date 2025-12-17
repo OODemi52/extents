@@ -30,6 +30,13 @@ export function useInteractionHandlers(
 
   const handleWheel = useCallback(
     (wheelEvent: WheelEvent) => {
+      if (
+        wheelEvent.target instanceof HTMLElement &&
+        wheelEvent.target.closest('[data-filter-ui="true"]')
+      ) {
+        return;
+      }
+
       wheelEvent.preventDefault();
       bumpRenderActivity();
 
@@ -87,6 +94,13 @@ export function useInteractionHandlers(
 
   const handlePointerDown = useCallback(
     (pointerDownEvent: PointerEvent) => {
+      if (
+        pointerDownEvent.target instanceof HTMLElement &&
+        pointerDownEvent.target.closest('[data-filter-ui="true"]')
+      ) {
+        return;
+      }
+
       if (pointerDownEvent.button !== 0) return;
 
       const viewer = viewportRef.current;
@@ -116,6 +130,13 @@ export function useInteractionHandlers(
 
   const handlePointerMove = useCallback(
     (pointerMoveEvent: PointerEvent) => {
+      if (
+        pointerMoveEvent.target instanceof HTMLElement &&
+        pointerMoveEvent.target.closest('[data-filter-ui="true"]')
+      ) {
+        return;
+      }
+
       if (!isDraggingRef.current || !viewportRef.current) return;
 
       pointerMoveEvent.preventDefault();
@@ -164,6 +185,13 @@ export function useInteractionHandlers(
 
   const handlePointerUp = useCallback(
     (pointerUpEvent: PointerEvent) => {
+      if (
+        pointerUpEvent.target instanceof HTMLElement &&
+        pointerUpEvent.target.closest('[data-filter-ui="true"]')
+      ) {
+        return;
+      }
+
       if (!isDraggingRef.current) return;
 
       isDraggingRef.current = false;

@@ -12,5 +12,17 @@ export function useImageLoader() {
     setSelectedIndex(index);
   }
 
-  return { handleSelectImage };
+  function handleSelectImageByPath(path: string) {
+    const index = fileMetadataList.findIndex((file) => file.path === path);
+
+    if (index === -1) {
+      console.warn(`[image-loader] No file found for path ${path}`);
+
+      return;
+    }
+
+    handleSelectImage(index);
+  }
+
+  return { handleSelectImage, handleSelectImageByPath };
 }

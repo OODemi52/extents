@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 
-import { useFlagStore } from "@/features/metadata/flagging/store/use-flagging-store";
-import { useRatingStore } from "@/features/metadata/rating/store/use-rating-store";
+import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-store";
+import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
 import { useImageStore } from "@/store/image-store";
 import { getAnnotations } from "@/services/api/annotations";
 
