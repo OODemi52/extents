@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Accordion, AccordionItem } from "@heroui/react";
+import { Accordion, AccordionItem } from "@heroui/accordion";
 import {
   FolderSimpleIcon,
   FolderOpenIcon,

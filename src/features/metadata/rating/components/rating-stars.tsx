@@ -1,8 +1,10 @@
-import { Button, ButtonGroup } from "@heroui/react";
+import { Button, ButtonGroup } from "@heroui/button";
 import { StarIcon } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
 
-import { useRatingStore, type RatingValue } from "../store/use-rating-store";
+import { useRatingStore } from "../store/use-rating-store";
+
+import { RatingValue } from "@/types/file-annotations";
 
 const STAR_VALUES: RatingValue[] = [1, 2, 3, 4, 5];
 

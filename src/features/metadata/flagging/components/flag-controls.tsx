@@ -1,4 +1,4 @@
-import { Button, ButtonGroup } from "@heroui/react";
+import { Button, ButtonGroup } from "@heroui/button";
 import { useState } from "react";
 
 import { useFlagStore } from "../store/use-flagging-store";

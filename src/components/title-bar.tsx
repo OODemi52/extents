@@ -1,4 +1,4 @@
-import { Chip, Input } from "@heroui/react";
+import { Input } from "@heroui/input";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
