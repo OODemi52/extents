@@ -1,9 +1,10 @@
 import { Button, ButtonGroup } from "@heroui/react";
 import { useState } from "react";
 
-import { useFlagStore, type FlagState } from "../store/use-flagging-store";
+import { useFlagStore } from "../store/use-flagging-store";
 
 import { FlagApproveIcon, FlagRejectIcon } from "@/components/icons/flag-icons";
+import { FlagValue } from "@/types/file-annotations";
 
 interface FlagControlsProps {
   path: string;
@@ -20,10 +21,25 @@ export function FlagControls({
 }: FlagControlsProps) {
   const flag = useFlagStore((s) => s.flags[path] ?? "unflagged");
   const setFlag = useFlagStore((s) => s.setFlag);
-  const [hovered, setHovered] = useState<FlagState | null>(null);
+  const [hovered, setHovered] = useState<FlagValue | null>(null);
 
   const chipClass =
     "!min-w-5 !w-5 !h-5 px-0 transition-colors !hover:bg-transparent";
+  const activeBg = (key: FlagValue) => {
+    if (key === "flagged") return "#16a34a";
+    if (key === "rejected") return "#ef4444";
+
+    return "transparent";
+  };
+  const chipStyle = (key: FlagValue) => ({
+    backgroundColor:
+      flag === key
+        ? activeBg(key)
+        : hovered === key
+          ? "#ffffff26"
+          : "transparent",
+    borderRadius: "6px",
+  });
 
   return (
     <ButtonGroup className={`${className ?? ""} gap-0 z-30`}>
@@ -33,6 +49,7 @@ export function FlagControls({
           isIconOnly
           className={chipClass}
           size={size}
+          style={chipStyle("unflagged")}
           title="Clear Flag"
           variant="light"
           onMouseEnter={() => setHovered("unflagged")}
@@ -41,7 +58,7 @@ export function FlagControls({
         >
           <FlagApproveIcon
             hovered={hovered === "unflagged"}
-            overlaySize={7}
+            overlaySize={5}
             size={20}
             state="idle"
           />
@@ -53,6 +70,7 @@ export function FlagControls({
         isIconOnly
         className={chipClass}
         size={size}
+        style={chipStyle("rejected")}
         title="Reject"
         variant="light"
         onMouseEnter={() => setHovered("rejected")}
@@ -63,7 +81,7 @@ export function FlagControls({
       >
         <FlagRejectIcon
           hovered={hovered === "rejected"}
-          overlaySize={7}
+          overlaySize={5}
           size={20}
           state={flag === "rejected" ? "rejected" : "idle"}
         />
@@ -74,6 +92,7 @@ export function FlagControls({
         isIconOnly
         className={chipClass}
         size={size}
+        style={chipStyle("flagged")}
         title="Flag"
         variant="light"
         onMouseEnter={() => setHovered("flagged")}
@@ -84,7 +103,7 @@ export function FlagControls({
       >
         <FlagApproveIcon
           hovered={hovered === "flagged"}
-          overlaySize={7}
+          overlaySize={5}
           size={20}
           state={flag === "flagged" ? "flagged" : "idle"}
         />

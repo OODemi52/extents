@@ -1,4 +1,4 @@
-pub mod db;
+pub mod annotations;
 pub mod file;
 pub mod hasher;
 pub mod image;

@@ -1,4 +1,4 @@
-use crate::commands::db::DbConnection;
+use crate::core::db::connection::DbConnection;
 use crate::renderer::Renderer;
 use std::sync::{Arc, Mutex};
 use tauri::{WebviewWindow, Wry};

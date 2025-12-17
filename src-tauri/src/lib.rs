@@ -3,8 +3,8 @@ pub mod core;
 pub mod renderer;
 pub mod state;
 
-use crate::commands::db::DbConnection;
 use crate::core::cache::manager::CacheManager;
+use crate::core::db::connection::DbConnection;
 use crate::state::AppState;
 use tauri::Manager;
 
@@ -80,6 +80,10 @@ pub fn run() {
             commands::renderer::render_frame,
             commands::renderer::clear_renderer,
             commands::renderer::set_render_state,
+            // Annotation Commands
+            commands::annotations::set_rating,
+            commands::annotations::set_flag,
+            commands::annotations::get_annotations,
         ])
         // Running the application
         .run(tauri::generate_context!())

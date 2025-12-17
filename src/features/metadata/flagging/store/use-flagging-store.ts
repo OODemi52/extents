@@ -1,16 +1,26 @@
 import { create } from "zustand";
 
-export type FlagState = "unflagged" | "flagged" | "rejected";
+import { setFlag as setFlagApi } from "@/services/api/annotations";
+import { FlagState } from "@/types/file-annotations";
 
-type FlagStateStore = {
-  flags: Record<string, FlagState>;
-  setFlag: (path: string, state: FlagState) => void;
-};
-
-export const useFlagStore = create<FlagStateStore>((set) => ({
+export const useFlagStore = create<FlagState>((set, get) => ({
   flags: {},
-  setFlag: (path, state) =>
-    set((curr) => ({
-      flags: { ...curr.flags, [path]: state },
+  setFlag: (path, state) => {
+    const next = state;
+
+    set((current) => ({
+      flags: { ...current.flags, [path]: next },
+    }));
+
+    void setFlagApi(path, next).catch((err) => {
+      console.error("[flag] persist failed", err);
+      const prev = get().flags[path] ?? "unflagged";
+
+      set((current) => ({ flags: { ...current.flags, [path]: prev } }));
+    });
+  },
+  setFlags: (entries) =>
+    set((current) => ({
+      flags: { ...current.flags, ...entries },
     })),
 }));
