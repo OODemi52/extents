@@ -55,10 +55,10 @@ function App() {
             >
               <Allotment.Pane
                 snap
-                visible={isSidebarOpen}
-                minSize={sidebarMinSize}
                 maxSize={SIDEBAR_MAX_WIDTH}
+                minSize={sidebarMinSize}
                 preferredSize={sidebarPreferredSize}
+                visible={isSidebarOpen}
               >
                 <motion.div
                   key="sidebar-panel-motion"
