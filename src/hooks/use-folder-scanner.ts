@@ -73,14 +73,7 @@ export function useFolderScanner() {
       const batchListener = await listen<ImageMetadata[]>(
         "folder-scan-batch",
         ({ payload }) => {
-          const prevLength = useImageStore.getState().fileMetadataList.length;
-
           appendFileMetadataList(payload);
-
-          if (prevLength === 0 && payload.length > 0) {
-            setSelectedIndex(0);
-            setCurrentImageData("");
-          }
         },
       );
 
