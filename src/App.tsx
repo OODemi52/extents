@@ -1,9 +1,8 @@
 import "allotment/dist/style.css";
 import { Allotment } from "allotment";
 import { motion } from "framer-motion";
+import { useRef } from "react";
 
-import { useWGPURenderLoop } from "./hooks/use-wgpu-render-loop";
-import { useAnnotations } from "./hooks/use-annotations";
 import { ThumbnailGridLayout } from "./layouts/thumbnai-grid-layout";
 import { EditorLayout } from "./layouts/editor-layout";
 import { Sidebar } from "./components/sidebar";
@@ -12,6 +11,7 @@ import {
   MAIN_MIN_WIDTH,
   SIDEBAR_MAX_WIDTH,
   SIDEBAR_MIN_WIDTH,
+  SIDEBAR_DEFAULT_WIDTH,
   useLayoutStore,
 } from "./store/layout-store";
 import { TitleBar } from "./components/title-bar";
@@ -23,9 +23,11 @@ function App() {
     useLayoutStore();
   const { fileMetadataList } = useImageStore();
   const { openFolder } = useFolderScanner();
-
-  useWGPURenderLoop();
-  useAnnotations();
+  const lastSidebarWidthRef = useRef(sidebarWidth);
+  const isSidebarOpen = panels.sidebar;
+  const sidebarPreferredSize =
+    lastSidebarWidthRef.current || SIDEBAR_DEFAULT_WIDTH;
+  const sidebarMinSize = SIDEBAR_MIN_WIDTH;
 
   return (
     <div
@@ -41,32 +43,39 @@ function App() {
               separator={false}
               vertical={false}
               onChange={(sizes) => {
-                if (panels.sidebar && sizes[0]) {
+                if (
+                  panels.sidebar &&
+                  typeof sizes[0] === "number" &&
+                  sizes[0] > 0
+                ) {
+                  lastSidebarWidthRef.current = sizes[0];
                   setSidebarWidth(sizes[0]);
                 }
               }}
             >
-              {panels.sidebar && (
-                <Allotment.Pane
-                  snap
-                  maxSize={SIDEBAR_MAX_WIDTH}
-                  minSize={SIDEBAR_MIN_WIDTH}
-                  preferredSize={sidebarWidth}
+              <Allotment.Pane
+                snap
+                visible={isSidebarOpen}
+                minSize={sidebarMinSize}
+                maxSize={SIDEBAR_MAX_WIDTH}
+                preferredSize={sidebarPreferredSize}
+              >
+                <motion.div
+                  key="sidebar-panel-motion"
+                  animate={{
+                    x: isSidebarOpen ? 0 : -20,
+                    opacity: isSidebarOpen ? 1 : 0,
+                  }}
+                  className={`h-full pl-2 ${isSidebarOpen ? "pointer-events-auto" : "pointer-events-none"}`}
+                  initial={false}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
                 >
-                  <motion.div
-                    key="sidebar-panel-motion"
-                    animate={{ x: 0, opacity: 1 }}
-                    className="h-full pl-2"
-                    initial={{ x: -20, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                  >
-                    <Sidebar
-                      hasImages={fileMetadataList.length > 0}
-                      onPickFolder={openFolder}
-                    />
-                  </motion.div>
-                </Allotment.Pane>
-              )}
+                  <Sidebar
+                    hasImages={fileMetadataList.length > 0}
+                    onPickFolder={openFolder}
+                  />
+                </motion.div>
+              </Allotment.Pane>
 
               <Allotment.Pane minSize={MAIN_MIN_WIDTH}>
                 <div className="relative h-full">

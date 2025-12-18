@@ -72,7 +72,7 @@ export function Sidebar({ onPickFolder, hasImages: _hasImages }: SidebarProps) {
           tabList: "flex-shrink-0",
         }}
         selectedKey={selectedTab}
-        variant="underlined"
+        variant="solid"
         onSelectionChange={(key) => setSelectedTab(key as string)}
       >
         <Tab key="collections" title="Collections">
