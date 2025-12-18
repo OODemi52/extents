@@ -243,6 +243,10 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn render(&mut self) {
+        if matches!(self.render_state, RenderState::Paused) {
+            return;
+        }
+
         let output = match self.context.surface.get_current_texture() {
             Ok(texture) => texture,
 
@@ -310,6 +314,8 @@ impl<'a> Renderer<'a> {
         self.context.queue.submit(std::iter::once(encoder.finish()));
 
         output.present();
+
+        self.last_render = Instant::now();
     }
 
     fn apply_transform(&mut self) {
