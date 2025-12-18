@@ -1,66 +1,29 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Allotment } from "allotment";
 
-import { Sidebar } from "@/components/sidebar";
-import { BottomToolbar } from "@/components/bottom-toolbar";
 import { EditPanel } from "@/features/edit-panel/components/edit-panel";
 import { InteractionViewport } from "@/features/interaction-viewport/components/interaction-viewport";
 import { Filmstrip } from "@/features/gallery/filmstrip/filmstrip";
-import { useImageStore } from "@/store/image-store";
 import {
   EDIT_PANEL_DEFAULT_WIDTH,
   MAIN_MIN_WIDTH,
-  SIDEBAR_MAX_WIDTH,
-  SIDEBAR_MIN_WIDTH,
   useLayoutStore,
 } from "@/store/layout-store";
 
-type EditorLayoutProps = {
-  openFolder: () => void;
-};
-
-export function EditorLayout({ openFolder }: EditorLayoutProps) {
-  const { fileMetadataList } = useImageStore();
-  const { panels, sidebarWidth, setSidebarWidth } = useLayoutStore();
+export function EditorLayout() {
+  const { panels } = useLayoutStore();
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex flex-1 overflow-hidden py-2">
+    <div className="flex h-full flex-col">
+      <div className="flex-1 overflow-hidden">
         <Allotment
           className="h-full allotment-shell"
           proportionalLayout={false}
           separator={false}
           vertical={false}
-          onChange={(sizes) => {
-            if (panels.sidebar && sizes[0]) {
-              setSidebarWidth(sizes[0]);
-            }
-          }}
         >
-          {panels.sidebar && (
-            <Allotment.Pane
-              snap
-              maxSize={SIDEBAR_MAX_WIDTH}
-              minSize={SIDEBAR_MIN_WIDTH}
-              preferredSize={sidebarWidth}
-            >
-              <motion.div
-                key="sidebar-panel-motion"
-                animate={{ x: 0, opacity: 1 }}
-                className="h-full pl-2"
-                initial={{ x: -20, opacity: 0 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-              >
-                <Sidebar
-                  hasImages={fileMetadataList.length > 0}
-                  onPickFolder={openFolder}
-                />
-              </motion.div>
-            </Allotment.Pane>
-          )}
-
           <Allotment.Pane minSize={MAIN_MIN_WIDTH}>
-            <div className="flex flex-col h-full">
+            <div className="flex h-full flex-col">
               <div className="flex-1 overflow-hidden">
                 <InteractionViewport />
               </div>
@@ -98,8 +61,6 @@ export function EditorLayout({ openFolder }: EditorLayoutProps) {
           )}
         </Allotment>
       </div>
-
-      <BottomToolbar />
     </div>
   );
 }
