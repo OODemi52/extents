@@ -13,8 +13,9 @@ export function useViewportSync(
   scale: number,
   offsetX: number,
   offsetY: number,
+  isActiveView: boolean,
 ) {
-  const lastImagePathRef = useRef<string | null>(null);
+  const lastLoadKeyRef = useRef<string | null>(null);
   const viewportTimeoutRef = useRef<number | null>(null);
   const transformTimeoutRef = useRef<number | null>(null);
   const lastTransformRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
@@ -50,11 +51,13 @@ export function useViewportSync(
   }, [viewportRef]);
 
   useEffect(() => {
-    if (!preview || !viewportRef.current || !imagePath) return;
+    if (!preview || !viewportRef.current || !imagePath || !isActiveView) return;
 
-    if (lastImagePathRef.current === imagePath) return;
+    const loadKey = `${imagePath}|${preview.path}`;
 
-    lastImagePathRef.current = imagePath;
+    if (lastLoadKeyRef.current === loadKey) return;
+
+    lastLoadKeyRef.current = loadKey;
 
     const clientViewportDimensions =
       viewportRef.current.getBoundingClientRect();
@@ -63,30 +66,36 @@ export function useViewportSync(
 
     let rafId: number | null = null;
 
-    api.renderer
-      .loadImage({
-        path: imagePath,
-        previewPath: preview.path,
-        viewportX: clientViewportDimensions.x * devicePixelRatio,
-        viewportY: clientViewportDimensions.y * devicePixelRatio,
-        viewportWidth: clientViewportDimensions.width * devicePixelRatio,
-        viewportHeight: clientViewportDimensions.height * devicePixelRatio,
-      })
-      .then(() => {
-        rafId = window.requestAnimationFrame(() => {
+    rafId = window.requestAnimationFrame(() => {
+      api.renderer
+        .loadImage({
+          path: imagePath,
+          previewPath: preview.path,
+          viewportX: clientViewportDimensions.x * devicePixelRatio,
+          viewportY: clientViewportDimensions.y * devicePixelRatio,
+          viewportWidth: clientViewportDimensions.width * devicePixelRatio,
+          viewportHeight: clientViewportDimensions.height * devicePixelRatio,
+        })
+        .then(() => {
           updateViewport();
-        });
-      })
-      .catch((error) =>
-        console.error("[useViewportSync] load_image failed:", error),
-      );
+        })
+        .catch((error) =>
+          console.error("[useViewportSync] load_image failed:", error),
+        );
+    });
 
     return () => {
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
       }
     };
-  }, [imagePath, preview?.path, viewportRef, updateViewport]);
+  }, [imagePath, preview?.path, viewportRef, updateViewport, isActiveView]);
+
+  useEffect(() => {
+    if (!isActiveView) {
+      lastLoadKeyRef.current = null;
+    }
+  }, [isActiveView]);
 
   // Was tryign to use this previously to manage scaling the image when adjusting the window
   // but honestly it seems kinda fine without it. Obviously needs some tuning, but i think its

@@ -4,7 +4,6 @@ import { Allotment } from "allotment";
 import { Sidebar } from "@/components/sidebar";
 import { BottomToolbar } from "@/components/bottom-toolbar";
 import { ThumbnailGrid } from "@/features/gallery/grid/grid";
-import { useFolderScanner } from "@/hooks/use-folder-scanner";
 import { useImageStore } from "@/store/image-store";
 import {
   MAIN_MIN_WIDTH,
@@ -13,9 +12,12 @@ import {
   useLayoutStore,
 } from "@/store/layout-store";
 
-export function ThumbnailGridLayout() {
+type GridLayoutProps = {
+  openFolder: () => void;
+};
+
+export function ThumbnailGridLayout({ openFolder }: GridLayoutProps) {
   const { fileMetadataList } = useImageStore();
-  const { openFolder } = useFolderScanner();
   const { panels, sidebarWidth, setSidebarWidth } = useLayoutStore();
 
   return (

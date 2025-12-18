@@ -1,8 +1,11 @@
 import { useEffect } from "react";
 
 import { api } from "@/services/api";
+import { useLayoutStore } from "@/store/layout-store";
 
 export function useWGPURenderLoop() {
+  const activeLayout = useLayoutStore((state) => state.activeLayout);
+
   useEffect(() => {
     let animationFrameId: number | null = null;
     let isActive = true;
@@ -52,7 +55,17 @@ export function useWGPURenderLoop() {
       });
     };
 
-    animationFrameId = requestAnimationFrame(loop);
+    if (activeLayout === "editor") {
+      api.renderer.setRenderState("idle").catch((err) => {
+        console.error("Failed to resume renderer:", err);
+      });
+      animationFrameId = requestAnimationFrame(loop);
+    } else {
+      api.renderer.setRenderState("paused").catch((err) => {
+        console.error("Failed to pause renderer:", err);
+      });
+      isActive = false;
+    }
     window.addEventListener("blur", setPaused);
     window.addEventListener("focus", setIdle);
 
@@ -61,5 +74,5 @@ export function useWGPURenderLoop() {
       window.removeEventListener("focus", setIdle);
       setPaused();
     };
-  }, []);
+  }, [activeLayout]);
 }

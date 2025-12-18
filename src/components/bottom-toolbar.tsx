@@ -12,7 +12,7 @@ import {
 
 import { ToolbarIconButton } from "./ui/buttons/toolbar-icon-button";
 
-import { LayoutId, useLayoutStore } from "@/store/layout-store";
+import { useLayoutStore } from "@/store/layout-store";
 import { useImageStore } from "@/store/image-store";
 
 export function BottomToolbar() {
@@ -45,12 +45,6 @@ export function BottomToolbar() {
     }
   };
 
-  const changeLayout = (layout: LayoutId) => {
-    if (layout !== activeLayout) {
-      setActiveLayout(layout);
-    }
-  };
-
   return (
     <footer
       className="
@@ -72,13 +66,13 @@ export function BottomToolbar() {
           icon={<ImageSquareIcon size={16} />}
           isActive={activeLayout === "editor"}
           tooltip="Editor Layout"
-          onPress={() => changeLayout("editor")}
+          onPress={() => setActiveLayout("editor")}
         />
         <ToolbarIconButton
           icon={<SquaresFourIcon size={16} />}
           isActive={activeLayout === "thumbnails"}
           tooltip="Thumbnail Layout"
-          onPress={() => changeLayout("thumbnails")}
+          onPress={() => setActiveLayout("thumbnails")}
         />
         {fileMetadataList.length > 0 ? (
           <div className="ml-1">

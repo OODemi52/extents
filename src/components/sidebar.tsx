@@ -14,7 +14,7 @@ type SidebarProps = {
   hasImages: boolean;
 };
 
-export function Sidebar({ onPickFolder }: SidebarProps) {
+export function Sidebar({ onPickFolder, hasImages: _hasImages }: SidebarProps) {
   const [selectedTab, setSelectedTab] = useState("browse");
   const queryClient = useQueryClient();
 

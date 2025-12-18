@@ -6,7 +6,6 @@ import { BottomToolbar } from "@/components/bottom-toolbar";
 import { EditPanel } from "@/features/edit-panel/components/edit-panel";
 import { InteractionViewport } from "@/features/interaction-viewport/components/interaction-viewport";
 import { Filmstrip } from "@/features/gallery/filmstrip/filmstrip";
-import { useFolderScanner } from "@/hooks/use-folder-scanner";
 import { useImageStore } from "@/store/image-store";
 import {
   EDIT_PANEL_DEFAULT_WIDTH,
@@ -16,9 +15,12 @@ import {
   useLayoutStore,
 } from "@/store/layout-store";
 
-export function EditorLayout() {
+type EditorLayoutProps = {
+  openFolder: () => void;
+};
+
+export function EditorLayout({ openFolder }: EditorLayoutProps) {
   const { fileMetadataList } = useImageStore();
-  const { openFolder } = useFolderScanner();
   const { panels, sidebarWidth, setSidebarWidth } = useLayoutStore();
 
   return (
