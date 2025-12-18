@@ -1,6 +1,4 @@
 import "allotment/dist/style.css";
-import { useEffect } from "react";
-
 import { useWGPURenderLoop } from "./hooks/use-wgpu-render-loop";
 import { useAnnotations } from "./hooks/use-annotations";
 import { ThumbnailGridLayout } from "./layouts/thumbnai-grid-layout";
@@ -8,7 +6,6 @@ import { EditorLayout } from "./layouts/editor-layout";
 import { useLayoutStore } from "./store/layout-store";
 import { TitleBar } from "./components/title-bar";
 import { useFolderScanner } from "./hooks/use-folder-scanner";
-import { clearRenderer } from "./services/api/renderer";
 
 function App() {
   const { activeLayout } = useLayoutStore();
@@ -17,22 +14,28 @@ function App() {
   useWGPURenderLoop();
   useAnnotations();
 
-  useEffect(() => {
-    if (activeLayout === "thumbnails") {
-      void clearRenderer();
-    }
-  }, [activeLayout]);
-
   return (
-    <div className="flex h-screen flex-col">
+    <div
+      className={`flex h-screen flex-col ${activeLayout === "thumbnails" ? "bg-[#191919]" : ""}`}
+    >
       <TitleBar />
-      <div className="flex-1 overflow-hidden">
+      <div className="relative flex-1 overflow-hidden">
         <div
-          className={activeLayout === "thumbnails" ? "block h-full" : "hidden"}
+          className={`absolute inset-0 ${
+            activeLayout === "thumbnails"
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none"
+          }`}
         >
           <ThumbnailGridLayout openFolder={openFolder} />
         </div>
-        <div className={activeLayout === "editor" ? "block h-full" : "hidden"}>
+        <div
+          className={`absolute inset-0 ${
+            activeLayout === "editor"
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none"
+          }`}
+        >
           <EditorLayout openFolder={openFolder} />
         </div>
       </div>

@@ -13,7 +13,6 @@ export function useViewportSync(
   scale: number,
   offsetX: number,
   offsetY: number,
-  isActiveView: boolean,
 ) {
   const lastLoadKeyRef = useRef<string | null>(null);
   const viewportTimeoutRef = useRef<number | null>(null);
@@ -51,7 +50,7 @@ export function useViewportSync(
   }, [viewportRef]);
 
   useEffect(() => {
-    if (!preview || !viewportRef.current || !imagePath || !isActiveView) return;
+    if (!preview || !viewportRef.current || !imagePath) return;
 
     const loadKey = `${imagePath}|${preview.path}`;
 
@@ -89,13 +88,7 @@ export function useViewportSync(
         cancelAnimationFrame(rafId);
       }
     };
-  }, [imagePath, preview?.path, viewportRef, updateViewport, isActiveView]);
-
-  useEffect(() => {
-    if (!isActiveView) {
-      lastLoadKeyRef.current = null;
-    }
-  }, [isActiveView]);
+  }, [imagePath, preview?.path, viewportRef, updateViewport]);
 
   // Was tryign to use this previously to manage scaling the image when adjusting the window
   // but honestly it seems kinda fine without it. Obviously needs some tuning, but i think its

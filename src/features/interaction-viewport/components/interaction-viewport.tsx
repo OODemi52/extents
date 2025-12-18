@@ -10,14 +10,12 @@ import { FilterMenuBar } from "@/features/filter/components/menu-bar/menu-bar";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
 import { useImageLoader } from "@/hooks/use-image-loader";
-import { useLayoutStore } from "@/store/layout-store";
 
 export function InteractionViewport() {
   const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
-  const activeLayout = useLayoutStore((state) => state.activeLayout);
 
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -34,15 +32,7 @@ export function InteractionViewport() {
 
   const { scale, offsetX, offsetY } = useImageTransform(imagePath);
 
-  useViewportSync(
-    viewportRef,
-    preview,
-    imagePath,
-    scale,
-    offsetX,
-    offsetY,
-    activeLayout === "editor",
-  );
+  useViewportSync(viewportRef, preview, imagePath, scale, offsetX, offsetY);
 
   useInteractionHandlers(viewportRef, scale, offsetX, offsetY);
 
