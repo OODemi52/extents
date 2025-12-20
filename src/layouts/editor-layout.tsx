@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Allotment } from "allotment";
 
 import { EditPanel } from "@/features/edit-panel/components/edit-panel";
@@ -7,11 +7,14 @@ import { Filmstrip } from "@/features/gallery/filmstrip/filmstrip";
 import {
   EDIT_PANEL_DEFAULT_WIDTH,
   MAIN_MIN_WIDTH,
+  FILMSTRIP_DEFAULT_HEIGHT,
+  FILMSTRIP_MIN_HEIGHT,
+  FILMSTRIP_MAX_HEIGHT,
   useLayoutStore,
 } from "@/store/layout-store";
 
 export function EditorLayout() {
-  const { panels } = useLayoutStore();
+  const { panels, filmstripHeight, setFilmstripHeight } = useLayoutStore();
 
   return (
     <div className="flex h-full flex-col">
@@ -23,22 +26,40 @@ export function EditorLayout() {
           vertical={false}
         >
           <Allotment.Pane minSize={MAIN_MIN_WIDTH}>
-            <div className="flex h-full flex-col">
-              <div className="flex-1 overflow-hidden">
-                <InteractionViewport />
-              </div>
-              <AnimatePresence>
-                {panels.filmstrip && (
-                  <motion.div
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: 100, opacity: 0 }}
-                    initial={{ y: 100, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
+            <div className="h-full">
+              {panels.filmstrip ? (
+                <Allotment
+                  vertical
+                  proportionalLayout={false}
+                  separator={false}
+                  onChange={(sizes) => {
+                    if (sizes[1]) {
+                      setFilmstripHeight(sizes[1]);
+                    }
+                  }}
+                >
+                  <Allotment.Pane minSize={240}>
+                    <InteractionViewport />
+                  </Allotment.Pane>
+                  <Allotment.Pane
+                    maxSize={FILMSTRIP_MAX_HEIGHT}
+                    minSize={FILMSTRIP_MIN_HEIGHT}
+                    preferredSize={filmstripHeight || FILMSTRIP_DEFAULT_HEIGHT}
                   >
-                    <Filmstrip />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    <motion.div
+                      animate={{ y: 0, opacity: 1 }}
+                      className="h-full"
+                      exit={{ y: 40, opacity: 0 }}
+                      initial={{ y: 40, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                    >
+                      <Filmstrip />
+                    </motion.div>
+                  </Allotment.Pane>
+                </Allotment>
+              ) : (
+                <InteractionViewport />
+              )}
             </div>
           </Allotment.Pane>
 

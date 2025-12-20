@@ -70,10 +70,7 @@ function App() {
                   initial={false}
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
-                  <Sidebar
-                    hasImages={fileMetadataList.length > 0}
-                    onPickFolder={openFolder}
-                  />
+                  <Sidebar onPickFolder={openFolder} />
                 </motion.div>
               </Allotment.Pane>
 

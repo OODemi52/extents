@@ -1,20 +1,33 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
 import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
 
 import { FilmstripItem } from "./filmstrip-item";
 
-import { useImageStore } from "@/store/image-store";
 import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
 import { useImageLoader } from "@/hooks/use-image-loader";
+import {
+  FILMSTRIP_GAP as GAP,
+  FILMSTRIP_MAX_ITEM_SIZE,
+  FILMSTRIP_MIN_ITEM_SIZE,
+} from "@/store/layout-store";
+import { useImageStore } from "@/store/image-store";
 
-const THUMBNAIL_SIZE = 60;
-const GAP = 8;
+type Density = "thumb" | "meta" | "rating" | "full";
+
+function densityForSize(size: number): Density {
+  if (size < 72) return "thumb";
+  if (size < 104) return "meta";
+  if (size < 136) return "rating";
+
+  return "full";
+}
 
 export function Filmstrip() {
   const filmstripRef = useRef<HTMLDivElement>(null);
+  const [itemSize, setItemSize] = useState(72);
   const { fileMetadataList, selectedIndex } = useImageStore();
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
@@ -24,6 +37,7 @@ export function Filmstrip() {
     selectedIndex !== null
       ? (fileMetadataList[selectedIndex]?.path ?? null)
       : null;
+  const density = useMemo(() => densityForSize(itemSize), [itemSize]);
 
   useImageKeyboardNavigation(filteredFiles.length > 0);
 
@@ -31,15 +45,39 @@ export function Filmstrip() {
     horizontal: true,
     count: filteredFiles.length,
     getScrollElement: () => filmstripRef.current,
-    estimateSize: () => THUMBNAIL_SIZE + GAP,
+    estimateSize: () => itemSize + GAP,
     overscan: 5,
   });
+
+  useEffect(() => {
+    const el = filmstripRef.current;
+
+    if (!el) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+
+      if (!entry) return;
+
+      const height = entry.contentRect.height;
+      const nextSize = Math.max(
+        FILMSTRIP_MIN_ITEM_SIZE,
+        Math.min(FILMSTRIP_MAX_ITEM_SIZE, height - GAP * 2),
+      );
+
+      setItemSize(nextSize);
+    });
+
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (filteredFiles.length > 0) {
       virtualizer.measure();
     }
-  }, [filteredFiles.length, virtualizer]);
+  }, [filteredFiles.length, virtualizer, itemSize]);
 
   useEffect(() => {
     if (filteredFiles.length === 0) return;
@@ -74,7 +112,7 @@ export function Filmstrip() {
   return (
     <div
       ref={filmstripRef}
-      className="h-24 overflow-x-auto overflow-y-hidden p-2 pb-4"
+      className="h-full overflow-x-auto overflow-y-hidden px-2 pb-2"
       style={{ contain: "strict" }}
     >
       <div
@@ -92,17 +130,19 @@ export function Filmstrip() {
               key={virtualItem.key}
               style={{
                 position: "absolute",
-                top: 0,
+                bottom: 0,
                 left: 0,
-                width: `${THUMBNAIL_SIZE}px`,
-                height: `${THUMBNAIL_SIZE}px`,
+                width: `${itemSize}px`,
+                height: `${itemSize}px`,
                 transform: `translateX(${virtualItem.start}px)`,
               }}
             >
               <FilmstripItem
+                density={density}
                 file={file}
                 index={virtualItem.index}
                 isSelected={file.path === selectedPath}
+                size={itemSize}
                 onSelect={() => handleSelectImageByPath(file.path)}
               />
             </div>

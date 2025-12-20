@@ -8,7 +8,12 @@ export const SIDEBAR_MAX_WIDTH = 400;
 export const EDIT_PANEL_DEFAULT_WIDTH = 300;
 
 export const MAIN_MIN_WIDTH = 300;
+export const FILMSTRIP_GAP = 8;
+export const FILMSTRIP_MIN_ITEM_SIZE = 56;
+export const FILMSTRIP_MAX_ITEM_SIZE = 180;
 export const FILMSTRIP_DEFAULT_HEIGHT = 180;
+export const FILMSTRIP_MIN_HEIGHT = FILMSTRIP_MIN_ITEM_SIZE + FILMSTRIP_GAP * 2;
+export const FILMSTRIP_MAX_HEIGHT = FILMSTRIP_MAX_ITEM_SIZE + FILMSTRIP_GAP * 2;
 
 export type PanelId = "sidebar" | "filmstrip" | "editPanel" | "infoPanel";
 
@@ -80,7 +85,14 @@ export const useLayoutStore = create<LayoutState>()(
           editPanelWidth: Math.max(EDIT_PANEL_DEFAULT_WIDTH, width),
         }),
 
-      setFilmstripHeight: (height) => set({ filmstripHeight: height }),
+      setFilmstripHeight: (height) =>
+        set({
+          filmstripHeight: clamp(
+            height,
+            FILMSTRIP_MIN_HEIGHT,
+            FILMSTRIP_MAX_HEIGHT,
+          ),
+        }),
       setActiveLayout: (layout) => set({ activeLayout: layout }),
     }),
     {
