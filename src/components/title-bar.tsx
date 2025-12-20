@@ -8,6 +8,7 @@ import { ButtonGroup } from "@heroui/button";
 import { ToolbarIconButton } from "./ui/buttons/toolbar-icon-button";
 
 import { FilterSearchInput } from "@/features/filter/components/title-bar/search-input";
+import { SortSelect } from "@/features/filter/components/title-bar/sort-select";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
 
 export function TitleBar() {
@@ -48,6 +49,8 @@ export function TitleBar() {
           tooltip={isFilterOpen ? "Hide filters" : "Show filters"}
           onPress={toggleFilter}
         />
+
+        <SortSelect />
       </div>
 
       {/* Load bearing div, used as a spacer/padding */}

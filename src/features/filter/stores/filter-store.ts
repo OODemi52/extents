@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import { FlagValue } from "@/types/file-annotations";
 
-type SortField =
+export type SortField =
   | "name"
   | "size"
   | "ext"
@@ -10,7 +10,7 @@ type SortField =
   | "flag"
   | "addedAt"
   | "modifiedAt";
-type SortDirection = "asc" | "desc";
+export type SortDirection = "asc" | "desc";
 type Comparator = "gte" | "lte" | "eq";
 type RatingFilter = { operation: Comparator; value: number } | null;
 type SizeFilter = { operation: Comparator; value: number } | null;
