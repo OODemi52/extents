@@ -28,6 +28,7 @@ function densityForSize(size: number): Density {
 export function Filmstrip() {
   const filmstripRef = useRef<HTMLDivElement>(null);
   const [itemSize, setItemSize] = useState(72);
+  const lastSizeRef = useRef(itemSize);
   const { fileMetadataList, selectedIndex } = useImageStore();
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
@@ -54,23 +55,43 @@ export function Filmstrip() {
 
     if (!el) return;
 
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
+    let frame = 0;
+    let pendingHeight = 0;
 
-      if (!entry) return;
-
-      const height = entry.contentRect.height;
+    const updateSize = (height: number) => {
       const nextSize = Math.max(
         FILMSTRIP_MIN_ITEM_SIZE,
         Math.min(FILMSTRIP_MAX_ITEM_SIZE, height - GAP * 2),
       );
 
+      if (Math.abs(nextSize - lastSizeRef.current) < 1) return;
+
+      lastSizeRef.current = nextSize;
       setItemSize(nextSize);
+    };
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+
+      if (!entry) return;
+
+      pendingHeight = entry.contentRect.height;
+      if (frame) return;
+
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        updateSize(pendingHeight);
+      });
     });
 
     observer.observe(el);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (frame) {
+        cancelAnimationFrame(frame);
+      }
+    };
   }, []);
 
   useEffect(() => {

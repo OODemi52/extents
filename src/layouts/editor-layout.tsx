@@ -32,8 +32,8 @@ export function EditorLayout() {
                   vertical
                   proportionalLayout={false}
                   separator={false}
-                  onChange={(sizes) => {
-                    if (sizes[1]) {
+                  onDragEnd={(sizes) => {
+                    if (sizes[1] !== undefined) {
                       setFilmstripHeight(sizes[1]);
                     }
                   }}
