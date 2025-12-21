@@ -36,6 +36,7 @@ interface LayoutState {
   sidebarWidth: number;
   editPanelWidth: number;
   filmstripHeight: number;
+  isSidebarResizing: boolean;
 
   togglePanel: (panelId: PanelId) => void;
   setActiveEditTab: (tab: EditPanelTab) => void;
@@ -43,6 +44,7 @@ interface LayoutState {
   setEditPanelWidth: (width: number) => void;
   setFilmstripHeight: (height: number) => void;
   setActiveLayout: (layout: LayoutId) => void;
+  setSidebarResizing: (isResizing: boolean) => void;
 }
 
 const clamp = (value: number, min: number, max: number) =>
@@ -64,6 +66,7 @@ export const useLayoutStore = create<LayoutState>()(
       sidebarWidth: SIDEBAR_DEFAULT_WIDTH,
       editPanelWidth: EDIT_PANEL_DEFAULT_WIDTH,
       filmstripHeight: FILMSTRIP_DEFAULT_HEIGHT,
+      isSidebarResizing: false,
 
       togglePanel: (panelId) =>
         set((state) => ({
@@ -94,9 +97,19 @@ export const useLayoutStore = create<LayoutState>()(
           ),
         }),
       setActiveLayout: (layout) => set({ activeLayout: layout }),
+      setSidebarResizing: (isResizing) =>
+        set({ isSidebarResizing: isResizing }),
     }),
     {
       name: "extents-layout",
+      partialize: (state) => ({
+        activeLayout: state.activeLayout,
+        panels: state.panels,
+        activeEditTab: state.activeEditTab,
+        sidebarWidth: state.sidebarWidth,
+        editPanelWidth: state.editPanelWidth,
+        filmstripHeight: state.filmstripHeight,
+      }),
     },
   ),
 );

@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/card";
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 
 import { Thumbnail } from "../thumbnail/thumbnail";
 
@@ -13,15 +13,24 @@ interface GridItemProps {
   file: ImageMetadata;
   index: number;
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect: (path: string) => void;
 }
 
-export function GridItem({ file, index, isSelected, onSelect }: GridItemProps) {
+export const GridItem = memo(function GridItem({
+  file,
+  index,
+  isSelected,
+  onSelect,
+}: GridItemProps) {
   const setActiveLayout = useLayoutStore(
     (selected) => selected.setActiveLayout,
   );
   const [isHovering, setIsHovering] = useState(false);
   const flagState = useFlagStore((s) => s.flags[file.path] ?? "unflagged");
+  const handleSelect = useCallback(
+    () => onSelect(file.path),
+    [file.path, onSelect],
+  );
 
   const lastDotIndex = file.fileName.lastIndexOf(".");
   const baseName =
@@ -40,12 +49,12 @@ export function GridItem({ file, index, isSelected, onSelect }: GridItemProps) {
       }`}
       title={file.fileName}
       onDoubleClick={() => {
-        onSelect();
+        handleSelect();
         setActiveLayout("editor");
       }}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
-      onPress={onSelect}
+      onPress={handleSelect}
     >
       <CardHeader className="z-10 flex justify-between px-2 py-1 text-[8px] font-bold">
         <div className="truncate">{baseName}</div>
@@ -63,7 +72,7 @@ export function GridItem({ file, index, isSelected, onSelect }: GridItemProps) {
           isSelected={isSelected}
           path={file.path}
           showSelectionRing={false}
-          onClick={onSelect}
+          onClick={handleSelect}
         />
       </CardBody>
       <CardFooter
@@ -78,4 +87,4 @@ export function GridItem({ file, index, isSelected, onSelect }: GridItemProps) {
       </CardFooter>
     </Card>
   );
-}
+});

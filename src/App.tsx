@@ -16,12 +16,15 @@ import {
 } from "./store/layout-store";
 import { TitleBar } from "./components/title-bar";
 import { useFolderScanner } from "./hooks/use-folder-scanner";
-import { useImageStore } from "./store/image-store";
 
 function App() {
-  const { activeLayout, panels, sidebarWidth, setSidebarWidth } =
-    useLayoutStore();
-  const { fileMetadataList } = useImageStore();
+  const {
+    activeLayout,
+    panels,
+    sidebarWidth,
+    setSidebarWidth,
+    setSidebarResizing,
+  } = useLayoutStore();
   const { openFolder } = useFolderScanner();
   const lastSidebarWidthRef = useRef(sidebarWidth);
   const isSidebarOpen = panels.sidebar;
@@ -49,9 +52,20 @@ function App() {
                   sizes[0] > 0
                 ) {
                   lastSidebarWidthRef.current = sizes[0];
-                  setSidebarWidth(sizes[0]);
                 }
               }}
+              onDragEnd={(sizes) => {
+                if (
+                  panels.sidebar &&
+                  typeof sizes[0] === "number" &&
+                  sizes[0] > 0
+                ) {
+                  lastSidebarWidthRef.current = sizes[0];
+                  setSidebarWidth(sizes[0]);
+                }
+                setSidebarResizing(false);
+              }}
+              onDragStart={() => setSidebarResizing(true)}
             >
               <Allotment.Pane
                 snap

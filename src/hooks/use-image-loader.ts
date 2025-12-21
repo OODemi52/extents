@@ -1,9 +1,12 @@
+import { useCallback } from "react";
+
 import { useImageStore } from "../store/image-store";
 
 export function useImageLoader() {
-  const { setSelectedIndex, fileMetadataList, selectedIndex } = useImageStore();
+  const handleSelectImage = useCallback((index: number) => {
+    const { fileMetadataList, selectedIndex, setSelectedIndex } =
+      useImageStore.getState();
 
-  function handleSelectImage(index: number) {
     if (index < 0 || index >= fileMetadataList.length) {
       console.warn(`Selected index ${index} is out of bounds.`);
 
@@ -13,19 +16,23 @@ export function useImageLoader() {
       return;
     }
     setSelectedIndex(index);
-  }
+  }, []);
 
-  function handleSelectImageByPath(path: string) {
-    const index = fileMetadataList.findIndex((file) => file.path === path);
+  const handleSelectImageByPath = useCallback(
+    (path: string) => {
+      const { fileMetadataList } = useImageStore.getState();
+      const index = fileMetadataList.findIndex((file) => file.path === path);
 
-    if (index === -1) {
-      console.warn(`[image-loader] No file found for path ${path}`);
+      if (index === -1) {
+        console.warn(`[image-loader] No file found for path ${path}`);
 
-      return;
-    }
+        return;
+      }
 
-    handleSelectImage(index);
-  }
+      handleSelectImage(index);
+    },
+    [handleSelectImage],
+  );
 
   return { handleSelectImage, handleSelectImageByPath };
 }

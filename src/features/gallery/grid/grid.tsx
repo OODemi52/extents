@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
@@ -11,6 +11,7 @@ import { useImageStore } from "@/store/image-store";
 import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
 import { FilterMenuBar } from "@/features/filter/components/menu-bar/menu-bar";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
+import { useLayoutStore } from "@/store/layout-store";
 
 const THUMBNAIL_SIZE = 140;
 const GAP = 8;
@@ -18,10 +19,17 @@ const GAP = 8;
 export function ThumbnailGrid() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const lastWidthRef = useRef(0);
+  const isSidebarResizing = useLayoutStore((state) => state.isSidebarResizing);
+  const isSidebarResizingRef = useRef(isSidebarResizing);
 
   const { fileMetadataList, selectedIndex } = useImageStore();
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
+  const handleSelect = useCallback(
+    (path: string) => handleSelectImageByPath(path),
+    [handleSelectImageByPath],
+  );
   const prefetchThumbnails = usePrefetchThumbnails();
   const hasBaseImages = fileMetadataList.length > 0;
   const isFilterOpen = useFilterStore((state) => state.isOpen);
@@ -33,23 +41,56 @@ export function ThumbnailGrid() {
 
   useImageKeyboardNavigation(filteredFiles.length > 0);
 
+  const updateWidth = useCallback((width: number) => {
+    const resizeStep = isSidebarResizingRef.current ? 1 : 1;
+    const nextWidth =
+      resizeStep > 1
+        ? Math.round(width / resizeStep) * resizeStep
+        : Math.round(width);
+
+    if (Math.abs(nextWidth - lastWidthRef.current) < 1) return;
+
+    lastWidthRef.current = nextWidth;
+    setContainerWidth(nextWidth);
+  }, []);
+
+  useEffect(() => {
+    isSidebarResizingRef.current = isSidebarResizing;
+
+    if (!isSidebarResizing && containerRef.current) {
+      updateWidth(containerRef.current.getBoundingClientRect().width);
+    }
+  }, [isSidebarResizing, updateWidth]);
+
   useEffect(() => {
     const element = containerRef.current;
 
     if (!element) return;
+
+    let frame = 0;
+    let pendingWidth = 0;
 
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
 
       if (!entry) return;
 
-      setContainerWidth(entry.contentRect.width);
+      pendingWidth = entry.contentRect.width;
+      if (frame) return;
+
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        updateWidth(pendingWidth);
+      });
     });
 
     observer.observe(element);
 
     return () => {
       observer.disconnect();
+      if (frame) {
+        cancelAnimationFrame(frame);
+      }
     };
   }, []);
 
@@ -180,7 +221,7 @@ export function ThumbnailGrid() {
                           file={file}
                           index={startIndex + columnIndex}
                           isSelected={isSelected}
-                          onSelect={() => handleSelectImageByPath(file.path)}
+                          onSelect={handleSelect}
                         />
                       );
                     })}
