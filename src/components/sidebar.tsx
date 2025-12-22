@@ -29,18 +29,6 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
   return (
     <aside className="w-full h-full bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col pl-2 p-2 gap-y-1 overflow-scroll overflow-x-hidden">
       <div className="flex flex-row gap-3 py-2 px-4 flex-shrink-0">
-        <Input
-          isDisabled
-          placeholder="    Search Coming Soon..."
-          radius="sm"
-          startContent={
-            <MagnifyingGlassIcon
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"
-              size={16}
-              weight="bold"
-            />
-          }
-        />
         <Tooltip
           className="border border-zinc-500"
           closeDelay={0}
