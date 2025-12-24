@@ -8,6 +8,7 @@
     "fs:default",
     "dialog:default",
     "core:window:default",
+    "core:menu:default",
     "core:window:allow-start-dragging",
     "core:window:allow-toggle-maximize"
   ]
