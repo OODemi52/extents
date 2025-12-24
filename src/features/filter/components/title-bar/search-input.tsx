@@ -189,6 +189,7 @@ export function FilterSearchInput() {
           </Button>
         ) : null
       }
+      id="file-search"
       placeholder={currentFolder ? `Search ${currentFolder}` : "Search"}
       startContent={
         chips.length ? (
