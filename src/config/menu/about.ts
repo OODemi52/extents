@@ -9,6 +9,12 @@ import {
   showAll,
 } from "./standard";
 
+const about = await MenuItem.new({
+  id: "about",
+  text: "About",
+  enabled: false,
+});
+
 const settings = await MenuItem.new({
   id: "settings",
   text: "Settings...",
@@ -25,6 +31,7 @@ const updates = await MenuItem.new({
 export const aboutSubmenu = await Submenu.new({
   text: "Extents", // get from app name
   items: [
+    about,
     settings,
     updates,
     separator,
