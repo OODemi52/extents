@@ -1,15 +1,39 @@
 import { MenuItem, Submenu } from "@tauri-apps/api/menu";
 
+import {
+  hide,
+  hideOthers,
+  quit,
+  separator,
+  services,
+  showAll,
+} from "./standard";
+
+const settings = await MenuItem.new({
+  id: "settings",
+  text: "Settings...",
+  accelerator: "CmdOrCtrl+,",
+  enabled: false,
+});
+
+const updates = await MenuItem.new({
+  id: "update",
+  text: "Check for updates...",
+  enabled: false,
+});
+
 export const aboutMenu = await Submenu.new({
   text: "Extents", // get from app name
   items: [
-    await MenuItem.new({
-      id: "settings",
-      text: "Settings...",
-      accelerator: "CmdOrCtrl+,",
-      action: () => {
-        console.log("Settings Menu to be implemented");
-      },
-    }),
+    settings,
+    updates,
+    separator,
+    services,
+    separator,
+    hide,
+    hideOthers,
+    showAll,
+    separator,
+    quit,
   ],
 });
