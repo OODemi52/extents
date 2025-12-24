@@ -22,7 +22,7 @@ const updates = await MenuItem.new({
   enabled: false,
 });
 
-export const aboutMenu = await Submenu.new({
+export const aboutSubmenu = await Submenu.new({
   text: "Extents", // get from app name
   items: [
     settings,
