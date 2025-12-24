@@ -11,6 +11,8 @@ export async function createAppMenu() {
 
   await menu.setAsAppMenu();
 
+  // Make sure to go back and add that standard macos roles later
+
   return {
     menu,
     fileSubmenu,

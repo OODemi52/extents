@@ -4,11 +4,11 @@ export const aboutMenu = await Submenu.new({
   text: "Extents", // get from app name
   items: [
     await MenuItem.new({
-      id: "preferences",
-      text: "Preferences...",
+      id: "settings",
+      text: "Settings...",
       accelerator: "CmdOrCtrl+,",
       action: () => {
-        console.log("Preferences Menu to be implemented");
+        console.log("Settings Menu to be implemented");
       },
     }),
   ],
