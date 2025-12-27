@@ -8,8 +8,8 @@ const options = [
 ];
 
 export function EditedFilter() {
-  const setEdited = useFilterStore((s) => s.setEdited);
-  const edited = useFilterStore((s) => s.edited);
+  const setEdited = useFilterStore((state) => state.setEdited);
+  const edited = useFilterStore((state) => state.edited);
 
   const handleChange = (key: string | number | null) => {
     if (!key) {
