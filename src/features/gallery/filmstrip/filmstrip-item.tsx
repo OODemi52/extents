@@ -60,6 +60,7 @@ export function FilmstripItem({
           index={index}
           isSelected={isSelected}
           path={file.path}
+          rounded={false}
           onClick={handlePress}
         />
       </CardBody>
