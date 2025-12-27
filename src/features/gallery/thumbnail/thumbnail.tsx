@@ -1,3 +1,5 @@
+import type { PressEvent } from "@react-types/shared";
+
 import { Card } from "@heroui/card";
 import { Skeleton } from "@heroui/skeleton";
 import { ImageBrokenIcon } from "@phosphor-icons/react/dist/ssr";
@@ -9,7 +11,7 @@ interface ThumbnailProps {
   path: string;
   index: number;
   isSelected: boolean;
-  onClick: () => void;
+  onClick: (event: PressEvent) => void;
   disableAnimation?: boolean;
   showSelectionRing?: boolean;
 }
@@ -31,8 +33,6 @@ export function Thumbnail({
       className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-sm bg-transparent shadow-none ${
         isSelected && showSelectionRing ? "ring-2 ring-blue-500" : ""
       }`}
-      // Gonna go woth a square aspect for now until I decide tp come back and nit pick
-      // Keep in mind the gutter for the scroll bar
       disableAnimation={disableAnimation}
       radius="sm"
       onPress={onClick}

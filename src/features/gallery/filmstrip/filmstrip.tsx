@@ -30,6 +30,7 @@ export function Filmstrip() {
   const [itemSize, setItemSize] = useState(72);
   const lastSizeRef = useRef(itemSize);
   const { fileMetadataList, selectedIndex } = useImageStore();
+  const selectedPaths = useImageStore((state) => state.selectedPaths);
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
   const prefetchThumbnails = usePrefetchThumbnails();
@@ -162,9 +163,11 @@ export function Filmstrip() {
                 density={density}
                 file={file}
                 index={virtualItem.index}
-                isSelected={file.path === selectedPath}
+                isSelected={selectedPaths.has(file.path)}
                 size={itemSize}
-                onSelect={() => handleSelectImageByPath(file.path)}
+                onSelect={(selectionMode) =>
+                  handleSelectImageByPath(file.path, selectionMode)
+                }
               />
             </div>
           );

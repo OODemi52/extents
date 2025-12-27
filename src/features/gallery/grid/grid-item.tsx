@@ -1,3 +1,5 @@
+import type { PressEvent } from "@react-types/shared";
+
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/card";
 import { memo, useCallback, useState } from "react";
 
@@ -13,7 +15,7 @@ interface GridItemProps {
   file: ImageMetadata;
   index: number;
   isSelected: boolean;
-  onSelect: (path: string) => void;
+  onSelect: (selectionMode?: "single" | "multi") => void;
 }
 
 export const GridItem = memo(function GridItem({
@@ -27,14 +29,20 @@ export const GridItem = memo(function GridItem({
   );
   const [isHovering, setIsHovering] = useState(false);
   const flagState = useFlagStore((s) => s.flags[file.path] ?? "unflagged");
-  const handleSelect = useCallback(
-    () => onSelect(file.path),
-    [file.path, onSelect],
+  const handlePress = useCallback(
+    (event: PressEvent) => {
+      const selectionMode = event.metaKey || event.ctrlKey ? "multi" : "single";
+
+      onSelect(selectionMode);
+    },
+    [onSelect],
   );
 
   const lastDotIndex = file.fileName.lastIndexOf(".");
+
   const baseName =
     lastDotIndex > 0 ? file.fileName.slice(0, lastDotIndex) : file.fileName;
+
   const extension =
     lastDotIndex > 0 ? file.fileName.slice(lastDotIndex + 1) : "";
 
@@ -49,12 +57,12 @@ export const GridItem = memo(function GridItem({
       }`}
       title={file.fileName}
       onDoubleClick={() => {
-        handleSelect();
+        onSelect("single");
         setActiveLayout("editor");
       }}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
-      onPress={handleSelect}
+      onPress={handlePress}
     >
       <CardHeader className="z-10 flex justify-between px-2 py-1 text-[8px] font-bold">
         <div className="truncate">{baseName}</div>
@@ -72,7 +80,7 @@ export const GridItem = memo(function GridItem({
           isSelected={isSelected}
           path={file.path}
           showSelectionRing={false}
-          onClick={handleSelect}
+          onClick={handlePress}
         />
       </CardBody>
       <CardFooter

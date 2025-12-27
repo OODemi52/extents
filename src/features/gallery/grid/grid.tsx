@@ -23,26 +23,24 @@ export function ThumbnailGrid() {
   const isSidebarResizing = useLayoutStore((state) => state.isSidebarResizing);
   const isSidebarResizingRef = useRef(isSidebarResizing);
 
-  const { fileMetadataList, selectedIndex } = useImageStore();
+  const { fileMetadataList } = useImageStore();
+  const selectedPaths = useImageStore((state) => state.selectedPaths);
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
   const handleSelect = useCallback(
-    (path: string) => handleSelectImageByPath(path),
+    (path: string, selectionMode?: "single" | "multi") =>
+      handleSelectImageByPath(path, selectionMode),
     [handleSelectImageByPath],
   );
   const prefetchThumbnails = usePrefetchThumbnails();
   const hasBaseImages = fileMetadataList.length > 0;
   const isFilterOpen = useFilterStore((state) => state.isOpen);
 
-  const selectedPath =
-    selectedIndex !== null
-      ? (fileMetadataList[selectedIndex]?.path ?? null)
-      : null;
-
   useImageKeyboardNavigation(filteredFiles.length > 0);
 
   const updateWidth = useCallback((width: number) => {
     const resizeStep = isSidebarResizingRef.current ? 1 : 1;
+
     const nextWidth =
       resizeStep > 1
         ? Math.round(width / resizeStep) * resizeStep
@@ -51,6 +49,7 @@ export function ThumbnailGrid() {
     if (Math.abs(nextWidth - lastWidthRef.current) < 1) return;
 
     lastWidthRef.current = nextWidth;
+
     setContainerWidth(nextWidth);
   }, []);
 
@@ -123,6 +122,7 @@ export function ThumbnailGrid() {
     if (!filteredFiles.length) return;
 
     const visibleRows = virtualizer.getVirtualItems().map((item) => item.index);
+
     const visibleIndices = new Set<number>();
 
     visibleRows.forEach((rowIndex) => {
@@ -213,7 +213,7 @@ export function ThumbnailGrid() {
                     }}
                   >
                     {rowItems.map((file, columnIndex) => {
-                      const isSelected = file.path === selectedPath;
+                      const isSelected = selectedPaths.has(file.path);
 
                       return (
                         <GridItem
@@ -221,7 +221,7 @@ export function ThumbnailGrid() {
                           file={file}
                           index={startIndex + columnIndex}
                           isSelected={isSelected}
-                          onSelect={handleSelect}
+                          onSelect={(mode) => handleSelect(file.path, mode)}
                         />
                       );
                     })}

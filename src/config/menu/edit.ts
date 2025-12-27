@@ -2,6 +2,9 @@ import { MenuItem, Submenu } from "@tauri-apps/api/menu";
 
 import { separator } from "./standard";
 
+import { getFilteredPaths } from "@/features/filter/hooks/use-filtered-files";
+import { useImageStore } from "@/store/image-store";
+
 const undo = await MenuItem.new({
   id: "undo",
   text: "Undo [action]",
@@ -46,22 +49,31 @@ const paste = await MenuItem.new({
 const selectAll = await MenuItem.new({
   id: "select-all",
   text: "Select All",
-  enabled: false,
+  enabled: true,
   accelerator: "CmdOrCtrl + A",
+  action: () => {
+    useImageStore.getState().selectAll(getFilteredPaths());
+  },
 });
 
 const selectInverse = await MenuItem.new({
   id: "select-inverse",
   text: "Select Inverse",
-  enabled: false,
+  enabled: true,
   accelerator: "CmdOrCtrl + Shift + A",
+  action: () => {
+    useImageStore.getState().selectInverse(getFilteredPaths());
+  },
 });
 
 const deselectAll = await MenuItem.new({
   id: "deselect-all",
   text: "Deselect All",
-  enabled: false,
+  enabled: true,
   accelerator: "CmdOrCtrl + D",
+  action: () => {
+    useImageStore.getState().deselectAll();
+  },
 });
 
 const previous = await MenuItem.new({

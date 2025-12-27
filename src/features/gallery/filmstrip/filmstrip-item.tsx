@@ -1,3 +1,5 @@
+import type { PressEvent } from "@react-types/shared";
+
 import { Card, CardBody, CardFooter } from "@heroui/card";
 import { useState } from "react";
 
@@ -13,7 +15,7 @@ interface FilmstripItemProps {
   isSelected: boolean;
   size: number;
   density: "thumb" | "meta" | "rating" | "full";
-  onSelect: () => void;
+  onSelect: (selectionMode?: "single" | "multi") => void;
 }
 
 export function FilmstripItem({
@@ -28,6 +30,11 @@ export function FilmstripItem({
   const showMeta = density !== "thumb";
   const showRating = density === "rating" || density === "full";
   const showFlags = density === "full";
+  const handlePress = (event: PressEvent) => {
+    const selectionMode = event.metaKey || event.ctrlKey ? "multi" : "single";
+
+    onSelect(selectionMode);
+  };
 
   const lastDotIndex = file.fileName.lastIndexOf(".");
   const baseName =
@@ -44,7 +51,7 @@ export function FilmstripItem({
       style={{ width: size, height: size }}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
-      onPress={onSelect}
+      onPress={handlePress}
     >
       <CardBody className="h-full w-full p-0">
         <Thumbnail
@@ -53,7 +60,7 @@ export function FilmstripItem({
           index={index}
           isSelected={isSelected}
           path={file.path}
-          onClick={onSelect}
+          onClick={handlePress}
         />
       </CardBody>
 
