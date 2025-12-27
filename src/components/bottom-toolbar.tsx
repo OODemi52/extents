@@ -8,7 +8,10 @@ import {
   SparkleIcon,
   ImageSquareIcon,
   SquaresFourIcon,
+  ColumnsIcon,
 } from "@phosphor-icons/react/dist/ssr";
+import { Tab, Tabs } from "@heroui/tabs";
+import { Tooltip } from "@heroui/tooltip";
 
 import { ToolbarIconButton } from "./ui/buttons/toolbar-icon-button";
 
@@ -23,6 +26,7 @@ export function BottomToolbar() {
     togglePanel,
     setActiveLayout,
     setActiveEditTab,
+    sidebarWidth,
   } = useLayoutStore();
   const { fileMetadataList, selectedIndex } = useImageStore();
 
@@ -44,6 +48,11 @@ export function BottomToolbar() {
       }
     }
   };
+  const handleLayoutChange = (key: string | number) => {
+    if (key === "editor" || key === "thumbnails") {
+      setActiveLayout(key);
+    }
+  };
 
   return (
     <footer
@@ -55,24 +64,12 @@ export function BottomToolbar() {
         rounded-xl
       "
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center">
         <ToolbarIconButton
           icon={<SidebarSimpleIcon size={16} />}
           isActive={panels.sidebar}
           tooltip="File Browser"
           onPress={() => togglePanel("sidebar")}
-        />
-        <ToolbarIconButton
-          icon={<ImageSquareIcon size={16} />}
-          isActive={activeLayout === "editor"}
-          tooltip="Editor Layout"
-          onPress={() => setActiveLayout("editor")}
-        />
-        <ToolbarIconButton
-          icon={<SquaresFourIcon size={16} />}
-          isActive={activeLayout === "thumbnails"}
-          tooltip="Thumbnail Layout"
-          onPress={() => setActiveLayout("thumbnails")}
         />
         {fileMetadataList.length > 0 ? (
           <div className="ml-1">
@@ -81,6 +78,83 @@ export function BottomToolbar() {
         ) : (
           ""
         )}
+        <div
+          className="flex items-center"
+          style={panels.sidebar ? { marginLeft: sidebarWidth } : undefined}
+        >
+          <Tabs
+            aria-label="View selector"
+            classNames={{
+              tabList:
+                "rounded-md border border-zinc-700/60 bg-zinc-800/70 p-[1px]",
+              tab: "h-5 w-5 p-0 text-zinc-300 data-[selected=true]:text-blue-500 data-[disabled=true]:text-zinc-500",
+              cursor: "rounded-sm bg-blue-500/20",
+            }}
+            selectedKey={activeLayout}
+            size="sm"
+            variant="solid"
+            onSelectionChange={handleLayoutChange}
+          >
+            <Tab
+              key="thumbnails"
+              aria-label="Grid view"
+              title={
+                <Tooltip
+                  className="border border-zinc-500"
+                  closeDelay={0}
+                  content="Grid"
+                  delay={500}
+                  offset={8}
+                  radius="sm"
+                  size="sm"
+                >
+                  <div className="flex items-center justify-center">
+                    <SquaresFourIcon size={11} />
+                  </div>
+                </Tooltip>
+              }
+            />
+            <Tab
+              key="editor"
+              aria-label="Edit view"
+              title={
+                <Tooltip
+                  className="border border-zinc-500"
+                  closeDelay={0}
+                  content="Edit"
+                  delay={500}
+                  offset={8}
+                  radius="sm"
+                  size="sm"
+                >
+                  <div className="flex items-center justify-center">
+                    <ImageSquareIcon size={11} />
+                  </div>
+                </Tooltip>
+              }
+            />
+            <Tab
+              key="compare"
+              isDisabled
+              aria-label="Compare view"
+              title={
+                <Tooltip
+                  className="border border-zinc-500"
+                  closeDelay={0}
+                  content="Compare"
+                  delay={500}
+                  offset={8}
+                  radius="sm"
+                  size="sm"
+                >
+                  <div className="flex items-center justify-center [transform:scaleX(1.2)]">
+                    <ColumnsIcon size={11} />
+                  </div>
+                </Tooltip>
+              }
+            />
+          </Tabs>
+        </div>
       </div>
 
       <div className="text-zinc-500 tracking-tight">
@@ -105,9 +179,9 @@ export function BottomToolbar() {
         )}
       </div>
 
-      <div className="flex items-center">
+      <div className="flex items-center gap-2">
         {isEditorLayout ? (
-          <>
+          <div className="flex items-center">
             <ToolbarIconButton
               icon={<SparkleIcon size={16} />}
               isActive={activeEditTab === "ai" && panels.editPanel}
@@ -149,7 +223,7 @@ export function BottomToolbar() {
               tooltip="Info Panel"
               onPress={() => togglePanel("infoPanel")}
             />
-          </>
+          </div>
         ) : null}
       </div>
     </footer>

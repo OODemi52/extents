@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@heroui/button";
-import { Input } from "@heroui/input";
-import { FolderOpenIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { FolderOpenIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Tooltip } from "@heroui/tooltip";
 import { Tab, Tabs } from "@heroui/tabs";
@@ -18,7 +17,7 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    api.renderer.initRenderer().catch(console.error);
+    api.renderer.initRenderer();
   }, []);
 
   const handlePickFolder = async () => {
