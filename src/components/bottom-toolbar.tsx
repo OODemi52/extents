@@ -65,6 +65,7 @@ export function BottomToolbar() {
   return (
     <footer
       className="
+        relative
         h-8 px-2 mb-2
         text-[11px] text-zinc-400
         select-none
@@ -93,108 +94,80 @@ export function BottomToolbar() {
           )}
         </div>
 
-        <div className="grid min-w-0 grid-cols-[1fr_auto_1fr] items-center gap-2">
-          <div className="flex items-center justify-start">
-            <Tabs
-              aria-label="View selector"
-              classNames={{
-                tabList:
-                  "rounded-md bg-zinc-800/70 p-[1px] border border-zinc-700",
-                tab: "h-6 w-6 p-0 text-zinc-300 data-[selected=true]:text-blue-500 data-[disabled=true]:text-zinc-500",
-                cursor: "rounded-sm bg-blue-500/20",
-                tabContent: "group-data-[selected=true]:text-blue-500",
-              }}
-              selectedKey={activeLayout}
-              size="sm"
-              variant="solid"
-              onSelectionChange={handleLayoutChange}
-            >
-              <Tab
-                key="thumbnails"
-                aria-label="Grid view"
-                title={
-                  <Tooltip
-                    className="border border-zinc-500"
-                    closeDelay={0}
-                    content="Grid"
-                    delay={500}
-                    offset={8}
-                    radius="sm"
-                    size="sm"
-                  >
-                    <div className="flex items-center justify-center">
-                      <SquaresFourIcon size={16} />
-                    </div>
-                  </Tooltip>
-                }
-              />
-              <Tab
-                key="editor"
-                aria-label="Edit view"
-                title={
-                  <Tooltip
-                    className="border border-zinc-500"
-                    closeDelay={0}
-                    content="Edit"
-                    delay={500}
-                    offset={8}
-                    radius="sm"
-                    size="sm"
-                  >
-                    <div className="flex items-center justify-center">
-                      <ImageSquareIcon size={16} />
-                    </div>
-                  </Tooltip>
-                }
-              />
-              <Tab
-                key="compare"
-                isDisabled
-                aria-label="Compare view"
-                title={
-                  <Tooltip
-                    className="border border-zinc-500"
-                    closeDelay={0}
-                    content="Compare"
-                    delay={500}
-                    offset={8}
-                    radius="sm"
-                    size="sm"
-                  >
-                    <div className="flex items-center justify-center [transform:scaleX(1.2)]">
-                      <ColumnsIcon size={16} />
-                    </div>
-                  </Tooltip>
-                }
-              />
-            </Tabs>
-          </div>
-
-          <div className="min-w-0 justify-self-center text-zinc-500 tracking-tight">
-            {fileMetadataList.length > 0 ? (
-              <>
-                {selectedFile && (
-                  <>
-                    <span className="text-white/75">
-                      {selectedFile.fileName}
-                    </span>
-                    {selectedFile.width && selectedFile.height && (
-                      <>
-                        {" — "}
-                        {selectedFile.width}
-                        {" x "}
-                        {selectedFile.height}
-                      </>
-                    )}
-                  </>
-                )}
-              </>
-            ) : (
-              ""
-            )}
-          </div>
-
-          <div />
+        <div className="flex items-center">
+          <Tabs
+            aria-label="View selector"
+            classNames={{
+              tabList:
+                "rounded-md bg-zinc-800/70 p-[1px] border border-zinc-700",
+              tab: "h-6 w-6 p-0 text-zinc-300  data-[disabled=true]:text-zinc-500",
+              cursor: "rounded-sm bg-blue-500/20",
+              tabContent: "group-data-[selected=true]:text-blue-500",
+            }}
+            selectedKey={activeLayout}
+            size="sm"
+            variant="solid"
+            onSelectionChange={handleLayoutChange}
+          >
+            <Tab
+              key="thumbnails"
+              aria-label="Grid view"
+              title={
+                <Tooltip
+                  className="border border-zinc-500"
+                  closeDelay={0}
+                  content="Grid"
+                  delay={500}
+                  offset={8}
+                  radius="sm"
+                  size="sm"
+                >
+                  <div className="flex items-center justify-center">
+                    <SquaresFourIcon size={16} />
+                  </div>
+                </Tooltip>
+              }
+            />
+            <Tab
+              key="editor"
+              aria-label="Edit view"
+              title={
+                <Tooltip
+                  className="border border-zinc-500"
+                  closeDelay={0}
+                  content="Edit"
+                  delay={500}
+                  offset={8}
+                  radius="sm"
+                  size="sm"
+                >
+                  <div className="flex items-center justify-center">
+                    <ImageSquareIcon size={16} />
+                  </div>
+                </Tooltip>
+              }
+            />
+            <Tab
+              key="compare"
+              isDisabled
+              aria-label="Compare view"
+              title={
+                <Tooltip
+                  className="border border-zinc-500"
+                  closeDelay={0}
+                  content="Compare"
+                  delay={500}
+                  offset={8}
+                  radius="sm"
+                  size="sm"
+                >
+                  <div className="flex items-center justify-center [transform:scaleX(1.2)]">
+                    <ColumnsIcon size={16} />
+                  </div>
+                </Tooltip>
+              }
+            />
+          </Tabs>
         </div>
 
         <div className="flex items-center justify-end">
@@ -234,16 +207,36 @@ export function BottomToolbar() {
                 tooltip="Detail / Retouch"
                 onPress={() => toggleToTab("detail")}
               />
-
-              <ToolbarIconButton
-                icon={<InfoIcon size={16} />}
-                isActive={panels.infoPanel}
-                tooltip="Info Panel"
-                onPress={() => togglePanel("infoPanel")}
-              />
             </div>
           ) : null}
+          <ToolbarIconButton
+            icon={<InfoIcon size={16} />}
+            isActive={panels.infoPanel}
+            tooltip="Info Panel"
+            onPress={() => togglePanel("infoPanel")}
+          />
         </div>
+      </div>
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500 tracking-tight">
+        {fileMetadataList.length > 0 ? (
+          <>
+            {selectedFile && (
+              <>
+                <span className="text-white/75">{selectedFile.fileName}</span>
+                {selectedFile.width && selectedFile.height && (
+                  <>
+                    {" — "}
+                    {selectedFile.width}
+                    {" x "}
+                    {selectedFile.height}
+                  </>
+                )}
+              </>
+            )}
+          </>
+        ) : (
+          ""
+        )}
       </div>
     </footer>
   );
