@@ -13,7 +13,7 @@ import {
   useLayoutStore,
 } from "@/store/layout-store";
 
-export function EditorLayout() {
+export function DetailLayout() {
   const { panels, filmstripHeight, setFilmstripHeight } = useLayoutStore();
 
   return (

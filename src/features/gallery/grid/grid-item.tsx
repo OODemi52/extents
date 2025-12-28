@@ -58,7 +58,7 @@ export const GridItem = memo(function GridItem({
       title={file.fileName}
       onDoubleClick={() => {
         onSelect("single");
-        setActiveLayout("editor");
+        setActiveLayout("detail");
       }}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}

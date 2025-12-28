@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useRef } from "react";
 
 import { ThumbnailGridLayout } from "./layouts/thumbnai-grid-layout";
-import { EditorLayout } from "./layouts/editor-layout";
+import { DetailLayout } from "./layouts/detail-layout";
 import { Sidebar } from "./components/sidebar";
 import { BottomToolbar } from "./components/bottom-toolbar";
 import {
@@ -101,12 +101,12 @@ function App() {
                   </div>
                   <div
                     className={`absolute inset-0 ${
-                      activeLayout === "editor"
+                      activeLayout === "detail"
                         ? "opacity-100 pointer-events-auto"
                         : "opacity-0 pointer-events-none"
                     }`}
                   >
-                    <EditorLayout />
+                    <DetailLayout />
                   </div>
                 </div>
               </Allotment.Pane>

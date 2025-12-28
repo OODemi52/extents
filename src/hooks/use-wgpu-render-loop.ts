@@ -55,7 +55,7 @@ export function useWGPURenderLoop() {
       });
     };
 
-    if (activeLayout === "editor") {
+    if (activeLayout === "detail") {
       api.renderer.setRenderState("idle").catch((err) => {
         console.error("Failed to resume renderer:", err);
       });

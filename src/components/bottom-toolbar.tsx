@@ -35,7 +35,7 @@ export function BottomToolbar() {
 
   const selectedFile =
     selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
-  const isEditorLayout = activeLayout === "editor";
+  const isDetailLayout = activeLayout === "detail";
 
   const path = selectedFile?.path ?? "";
   const parts = path.split("/");
@@ -57,7 +57,7 @@ export function BottomToolbar() {
   };
 
   const handleLayoutChange = (key: string | number) => {
-    if (key === "editor" || key === "thumbnails") {
+    if (key === "detail" || key === "thumbnails") {
       setActiveLayout(key);
     }
   };
@@ -129,13 +129,13 @@ export function BottomToolbar() {
               }
             />
             <Tab
-              key="editor"
-              aria-label="Edit view"
+              key="detail"
+              aria-label="Detail view"
               title={
                 <Tooltip
                   className="border border-zinc-500"
                   closeDelay={0}
-                  content="Edit"
+                  content="Detail"
                   delay={500}
                   offset={8}
                   radius="sm"
@@ -171,7 +171,7 @@ export function BottomToolbar() {
         </div>
 
         <div className="flex items-center justify-end">
-          {isEditorLayout ? (
+          {isDetailLayout ? (
             <div className="flex items-center">
               <ToolbarIconButton
                 icon={<SparkleIcon size={16} />}

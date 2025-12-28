@@ -17,7 +17,7 @@ export const FILMSTRIP_MAX_HEIGHT = FILMSTRIP_MAX_ITEM_SIZE + FILMSTRIP_GAP * 2;
 
 export type PanelId = "sidebar" | "filmstrip" | "editPanel" | "infoPanel";
 
-export type LayoutId = "editor" | "thumbnails";
+export type LayoutId = "detail" | "thumbnails";
 
 export type EditPanelTab =
   | "basic"
@@ -26,6 +26,9 @@ export type EditPanelTab =
   | "ai"
   | "crop"
   | "info";
+
+const normalizeLayoutId = (value: unknown): LayoutId =>
+  value === "thumbnails" ? "thumbnails" : "detail";
 
 interface LayoutState {
   activeLayout: LayoutId;
@@ -53,7 +56,7 @@ const clamp = (value: number, min: number, max: number) =>
 export const useLayoutStore = create<LayoutState>()(
   persist(
     (set) => ({
-      activeLayout: "editor",
+      activeLayout: "detail",
       panels: {
         sidebar: true,
         filmstrip: true,
@@ -102,6 +105,16 @@ export const useLayoutStore = create<LayoutState>()(
     }),
     {
       name: "extents-layout",
+      version: 1,
+      migrate: (state) => {
+        if (!state) return state;
+        const persisted = state as LayoutState;
+
+        return {
+          ...persisted,
+          activeLayout: normalizeLayoutId(persisted.activeLayout),
+        };
+      },
       partialize: (state) => ({
         activeLayout: state.activeLayout,
         panels: state.panels,
