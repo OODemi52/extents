@@ -17,7 +17,7 @@ export const FILMSTRIP_MAX_HEIGHT = FILMSTRIP_MAX_ITEM_SIZE + FILMSTRIP_GAP * 2;
 
 export type PanelId = "sidebar" | "filmstrip" | "editPanel" | "infoPanel";
 
-export type LayoutId = "detail" | "thumbnails";
+export type LayoutId = "detail" | "thumbnails" | "compare";
 
 export type EditPanelTab =
   | "basic"
@@ -27,8 +27,13 @@ export type EditPanelTab =
   | "crop"
   | "info";
 
-const normalizeLayoutId = (value: unknown): LayoutId =>
-  value === "thumbnails" ? "thumbnails" : "detail";
+const normalizeLayoutId = (value: unknown): LayoutId => {
+  if (value === "thumbnails" || value === "compare") {
+    return value;
+  }
+
+  return "detail";
+};
 
 interface LayoutState {
   activeLayout: LayoutId;

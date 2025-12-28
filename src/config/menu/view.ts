@@ -386,14 +386,20 @@ const compareView = await CheckMenuItem.new({
   text: "Compare",
   enabled: false,
   accelerator: "Alt+C",
-  action: (id) => setExclusiveChecked(viewModeGroup, id),
+  action: (id) => {
+    useLayoutStore.getState().setActiveLayout("compare");
+    setExclusiveChecked(viewModeGroup, id);
+  },
 });
 
 const detailView = await CheckMenuItem.new({
   id: "view.detail",
   text: "Detail",
   accelerator: "D",
-  action: (id) => setExclusiveChecked(viewModeGroup, id),
+  action: (id) => {
+    useLayoutStore.getState().setActiveLayout("detail");
+    setExclusiveChecked(viewModeGroup, id);
+  },
 });
 
 const detailFullscreen = await CheckMenuItem.new({
