@@ -2,6 +2,8 @@ import { CheckMenuItem, MenuItem, Submenu } from "@tauri-apps/api/menu";
 
 import { separator } from "./standard";
 
+import { useLayoutStore } from "@/store/layout-store";
+
 const setExclusiveChecked = (items: CheckMenuItem[], activeId: string) => {
   items.forEach((item) => {
     void item.setChecked(item.id === activeId);
@@ -373,7 +375,10 @@ const gridView = await CheckMenuItem.new({
   id: "view.grid",
   text: "Grid",
   accelerator: "G",
-  action: (id) => setExclusiveChecked(viewModeGroup, id),
+  action: (id) => {
+    useLayoutStore.getState().setActiveLayout("thumbnails");
+    setExclusiveChecked(viewModeGroup, id);
+  },
 });
 
 const compareView = await CheckMenuItem.new({
