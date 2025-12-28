@@ -3,10 +3,11 @@ import { Menu } from "@tauri-apps/api/menu";
 import { aboutSubmenu } from "./about";
 import { editSubmenu } from "./edit";
 import { fileSubmenu } from "./file";
+import { viewSubmenu } from "./view";
 
 export async function createAppMenu() {
   const menu = await Menu.new({
-    items: [aboutSubmenu, fileSubmenu, editSubmenu],
+    items: [aboutSubmenu, fileSubmenu, editSubmenu, viewSubmenu],
   });
 
   await menu.setAsAppMenu();
@@ -15,5 +16,6 @@ export async function createAppMenu() {
     menu,
     fileSubmenu,
     editSubmenu,
+    viewSubmenu,
   };
 }
