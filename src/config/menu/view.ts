@@ -68,6 +68,7 @@ const edit = await CheckMenuItem.new({
     if (isEditableView && panels.editPanel) {
       togglePanel("editPanel");
       setExclusiveChecked(panelGroup, null);
+
       return;
     }
 
