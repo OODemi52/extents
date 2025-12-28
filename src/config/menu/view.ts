@@ -4,9 +4,12 @@ import { separator } from "./standard";
 
 import { useLayoutStore } from "@/store/layout-store";
 
-const setExclusiveChecked = (items: CheckMenuItem[], activeId: string) => {
+const setExclusiveChecked = (
+  items: CheckMenuItem[],
+  activeId?: string | null,
+) => {
   items.forEach((item) => {
-    void item.setChecked(item.id === activeId);
+    void item.setChecked(Boolean(activeId) && item.id === activeId);
   });
 };
 
@@ -37,6 +40,7 @@ const fileBrowser = await CheckMenuItem.new({
 });
 
 const panelGroup: CheckMenuItem[] = [];
+const viewModeGroup: CheckMenuItem[] = [];
 
 const presets = await CheckMenuItem.new({
   id: "view.presets",
@@ -50,7 +54,29 @@ const edit = await CheckMenuItem.new({
   id: "view.edit",
   text: "Edit",
   accelerator: "E",
-  action: (id) => setExclusiveChecked(panelGroup, id),
+  action: (id) => {
+    const { activeLayout, panels, setActiveLayout, togglePanel } =
+      useLayoutStore.getState();
+    const isEditableView =
+      activeLayout === "detail" || activeLayout === "compare";
+
+    if (!isEditableView) {
+      setActiveLayout("detail");
+      setExclusiveChecked(viewModeGroup, "view.detail");
+    }
+
+    if (isEditableView && panels.editPanel) {
+      togglePanel("editPanel");
+      setExclusiveChecked(panelGroup, null);
+      return;
+    }
+
+    if (!panels.editPanel) {
+      togglePanel("editPanel");
+    }
+
+    setExclusiveChecked(panelGroup, id);
+  },
 });
 
 const info = await CheckMenuItem.new({
@@ -368,8 +394,6 @@ const compareBeforeAfter = await MenuItem.new({
   text: "Compare Before and After",
   enabled: false,
 });
-
-const viewModeGroup: CheckMenuItem[] = [];
 
 const gridView = await CheckMenuItem.new({
   id: "view.grid",
