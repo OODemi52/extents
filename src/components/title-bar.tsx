@@ -4,6 +4,7 @@ import {
   FunnelIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { Button, ButtonGroup } from "@heroui/button";
+import { Spinner } from "@heroui/react";
 
 import { ToolbarIconButton } from "./ui/buttons/toolbar-icon-button";
 
@@ -19,7 +20,7 @@ interface TitleBarProps {
 export function TitleBar({ onPickFolder }: TitleBarProps) {
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const toggleFilter = useFilterStore((state) => state.toggleOpen);
-  const { currentFolderPath, fileMetadataList } = useImageStore();
+  const { currentFolderPath, fileMetadataList, isLoading } = useImageStore();
 
   const folderName = currentFolderPath
     ? (currentFolderPath.split(/[/\\]/).filter(Boolean).pop() ??
@@ -51,8 +52,18 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
             <span className="max-w-[160px] truncate text-xs font-semibold text-zinc-100 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
               {folderName}
             </span>
-            <span className="text-[10px] text-zinc-400 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
-              {photoCountLabel}
+            <span className="flex h-[18px] items-center">
+              {isLoading ? (
+                <Spinner
+                  className="origin-left scale-[0.7]"
+                  color="default"
+                  variant="dots"
+                />
+              ) : (
+                <span className="text-[10px] leading-none text-zinc-400 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
+                  {photoCountLabel}
+                </span>
+              )}
             </span>
           </span>
         </Button>
