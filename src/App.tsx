@@ -36,7 +36,7 @@ function App() {
     <div
       className={`flex h-screen flex-col ${activeLayout === "thumbnails" ? "bg-[#191919]" : ""}`}
     >
-      <TitleBar />
+      <TitleBar onPickFolder={openFolder} />
       <div className="flex-1 overflow-hidden">
         <div className="flex h-full flex-col">
           <div className="flex flex-1 overflow-hidden py-2">

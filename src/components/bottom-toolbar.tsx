@@ -48,11 +48,6 @@ export function BottomToolbar() {
   const deselectLabel = `Deselect ${selectionCount} file${selectionCount === 1 ? "" : "s"}`;
   const isDetailLayout = activeLayout === "detail";
 
-  const path = selectedFile?.path ?? "";
-  const parts = path.split("/");
-
-  const currentFolderName = parts[parts.length - 2];
-
   const sidebarColumnWidth = `${SIDEBAR_DEFAULT_WIDTH}px`;
   const editColumnWidth = `${EDIT_PANEL_DEFAULT_WIDTH}px`;
 
@@ -89,23 +84,13 @@ export function BottomToolbar() {
           gridTemplateColumns: `${sidebarColumnWidth} 1fr ${editColumnWidth}`,
         }}
       >
-        <div className="flex items-center gap-1 pr-2">
+        <div className="flex items-center gap-2 pr-2">
           <ToolbarIconButton
             icon={<SidebarSimpleIcon size={16} />}
             isActive={panels.sidebar}
             tooltip="File Browser"
             onPress={() => togglePanel("sidebar")}
           />
-          {fileMetadataList.length > 0 ? (
-            <div className="ml-1">
-              {currentFolderName} — {fileMetadataList.length} images
-            </div>
-          ) : (
-            ""
-          )}
-        </div>
-
-        <div className="flex items-center">
           <Tabs
             aria-label="View selector"
             classNames={{
@@ -180,6 +165,7 @@ export function BottomToolbar() {
             />
           </Tabs>
         </div>
+        <div />
 
         <div className="flex items-center justify-end">
           {isDetailLayout ? (
