@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { useImagePreview } from "../hooks/use-image-preview";
 import { useImageTransform } from "../hooks/use-image-transform";
@@ -43,12 +43,14 @@ export function InteractionViewport() {
     filteredFiles.length === 0 &&
     fileMetadataList.length > 0;
 
-  if (
-    filteredFiles.length > 0 &&
-    (!imagePath || !filteredFiles.some((file) => file.path === imagePath))
-  ) {
-    handleSelectImageByPath(filteredFiles[0].path);
-  }
+  useEffect(() => {
+    if (
+      filteredFiles.length > 0 &&
+      (!imagePath || !filteredFiles.some((file) => file.path === imagePath))
+    ) {
+      handleSelectImageByPath(filteredFiles[0].path);
+    }
+  }, [filteredFiles, imagePath, handleSelectImageByPath]);
 
   return (
     <div
