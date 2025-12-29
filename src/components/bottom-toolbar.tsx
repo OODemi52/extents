@@ -31,7 +31,8 @@ export function BottomToolbar() {
     setActiveLayout,
     setActiveEditTab,
   } = useLayoutStore();
-  const { fileMetadataList, selectedIndex, selectedPaths } = useImageStore();
+  const { fileMetadataList, selectedIndex, selectedPaths, deselectAll } =
+    useImageStore();
 
   const selectedFile =
     selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
@@ -40,6 +41,11 @@ export function BottomToolbar() {
     selectionCount === 1
       ? selectedPaths.values().next().value?.split("/").pop()
       : null;
+  const selectionLabel =
+    selectionCount > 1
+      ? `${selectionCount} files selected`
+      : (selectedFile?.fileName ?? fallbackSelectedName ?? "");
+  const deselectLabel = `Deselect ${selectionCount} file${selectionCount === 1 ? "" : "s"}`;
   const isDetailLayout = activeLayout === "detail";
 
   const path = selectedFile?.path ?? "";
@@ -223,22 +229,20 @@ export function BottomToolbar() {
         </div>
       </div>
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500 tracking-tight">
-        {fileMetadataList.length > 0 ? (
-          <>
-            {selectionCount > 1 ? (
-              <span className="text-white/75">
-                {selectionCount} files selected
-              </span>
-            ) : null}
-            {selectionCount === 1 ? (
-              <span className="text-white/75">
-                {selectedFile?.fileName ?? fallbackSelectedName ?? ""}
-              </span>
-            ) : null}
-          </>
-        ) : (
-          ""
-        )}
+        {fileMetadataList.length > 0 && selectionCount > 0 ? (
+          <button
+            className="group pointer-events-auto relative inline-flex items-center justify-center whitespace-nowrap"
+            type="button"
+            onClick={() => deselectAll()}
+          >
+            <span className="text-white/75 transition-none group-hover:opacity-0">
+              {selectionLabel}
+            </span>
+            <span className="absolute inset-0 flex items-center justify-center whitespace-nowrap text-red-400 opacity-0 transition-none group-hover:opacity-100">
+              {deselectLabel}
+            </span>
+          </button>
+        ) : null}
       </div>
     </footer>
   );
