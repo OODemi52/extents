@@ -12,6 +12,7 @@ import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
 import { FilterMenuBar } from "@/features/filter/components/menu-bar/menu-bar";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { useLayoutStore } from "@/store/layout-store";
+import { useGalleryPreferencesStore } from "@/features/gallery/stores/gallery-preferences-store";
 
 const THUMBNAIL_SIZE = 140;
 const GAP = 8;
@@ -35,6 +36,12 @@ export function ThumbnailGrid() {
   const prefetchThumbnails = usePrefetchThumbnails();
   const hasBaseImages = fileMetadataList.length > 0;
   const isFilterOpen = useFilterStore((state) => state.isOpen);
+  const showFileNameInGrid = useGalleryPreferencesStore(
+    (state) => state.showFileNameInGrid,
+  );
+  const showFileExtensionInGrid = useGalleryPreferencesStore(
+    (state) => state.showFileExtensionInGrid,
+  );
 
   useImageKeyboardNavigation(filteredFiles.length > 0);
 
@@ -221,6 +228,8 @@ export function ThumbnailGrid() {
                           file={file}
                           index={startIndex + columnIndex}
                           isSelected={isSelected}
+                          showFileExtensionInGrid={showFileExtensionInGrid}
+                          showFileNameInGrid={showFileNameInGrid}
                           onSelect={(mode) => handleSelect(file.path, mode)}
                         />
                       );

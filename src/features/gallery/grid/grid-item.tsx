@@ -15,6 +15,8 @@ interface GridItemProps {
   file: ImageMetadata;
   index: number;
   isSelected: boolean;
+  showFileNameInGrid: boolean;
+  showFileExtensionInGrid: boolean;
   onSelect: (selectionMode?: "single" | "multi") => void;
 }
 
@@ -22,6 +24,8 @@ export const GridItem = memo(function GridItem({
   file,
   index,
   isSelected,
+  showFileNameInGrid,
+  showFileExtensionInGrid,
   onSelect,
 }: GridItemProps) {
   const setActiveLayout = useLayoutStore(
@@ -45,6 +49,7 @@ export const GridItem = memo(function GridItem({
 
   const extension =
     lastDotIndex > 0 ? file.fileName.slice(lastDotIndex + 1) : "";
+  const showHeader = showFileNameInGrid || showFileExtensionInGrid;
 
   return (
     <Card
@@ -64,10 +69,20 @@ export const GridItem = memo(function GridItem({
       onMouseLeave={() => setIsHovering(false)}
       onPress={handlePress}
     >
-      <CardHeader className="z-10 flex justify-between px-2 py-1 text-[8px] font-bold">
-        <div className="truncate">{baseName}</div>
-        <div className="rounded-sm bg-zinc-900 px-1 uppercase">{extension}</div>
-      </CardHeader>
+      {showHeader ? (
+        <CardHeader className="z-10 flex justify-between px-2 py-1 text-[8px] font-bold">
+          {showFileNameInGrid ? (
+            <div className="truncate">{baseName}</div>
+          ) : (
+            <div />
+          )}
+          {showFileExtensionInGrid ? (
+            <div className="rounded-sm bg-zinc-900 px-1 uppercase">
+              {extension}
+            </div>
+          ) : null}
+        </CardHeader>
+      ) : null}
       <div
         className={`z-20 pointer-events-none absolute inset-0 rounded-md bg-black/60 transition-opacity duration-200 ${
           flagState === "rejected" ? "opacity-60" : "opacity-0"

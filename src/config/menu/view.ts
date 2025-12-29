@@ -3,6 +3,7 @@ import { CheckMenuItem, MenuItem, Submenu } from "@tauri-apps/api/menu";
 import { separator } from "./standard";
 
 import { useLayoutStore } from "@/store/layout-store";
+import { useGalleryPreferencesStore } from "@/features/gallery/stores/gallery-preferences-store";
 
 const setExclusiveChecked = (
   items: CheckMenuItem[],
@@ -118,14 +119,37 @@ const versions = await MenuItem.new({
   accelerator: "Shift+V",
 });
 
-const showFileNameInGrid = await CheckMenuItem.new({
+const showFileNameInGridItem = await CheckMenuItem.new({
   id: "view.showFileNameInGrid",
   text: "Show File Name in Grid",
+  checked: useGalleryPreferencesStore.getState().showFileNameInGrid,
+  action: () => {
+    const { showFileNameInGrid, setShowFileNameInGrid } =
+      useGalleryPreferencesStore.getState();
+    const nextValue = !showFileNameInGrid;
+
+    setShowFileNameInGrid(nextValue);
+    void showFileNameInGridItem.setChecked(nextValue);
+  },
 });
 
-const showFileExtensionInGrid = await CheckMenuItem.new({
+const showFileExtensionInGridItem = await CheckMenuItem.new({
   id: "view.showFileExtensionInGrid",
   text: "Show File Extension in Grid",
+  checked: useGalleryPreferencesStore.getState().showFileExtensionInGrid,
+  action: () => {
+    const { showFileExtensionInGrid, setShowFileExtensionInGrid } =
+      useGalleryPreferencesStore.getState();
+    const nextValue = !showFileExtensionInGrid;
+
+    setShowFileExtensionInGrid(nextValue);
+    void showFileExtensionInGridItem.setChecked(nextValue);
+  },
+});
+
+useGalleryPreferencesStore.subscribe((state) => {
+  void showFileNameInGridItem.setChecked(state.showFileNameInGrid);
+  void showFileExtensionInGridItem.setChecked(state.showFileExtensionInGrid);
 });
 
 const editToolsCropRotateGeometry = await MenuItem.new({
@@ -523,8 +547,8 @@ export const viewSubmenu = await Submenu.new({
     activity,
     versions,
     separator,
-    showFileNameInGrid,
-    showFileExtensionInGrid,
+    showFileNameInGridItem,
+    showFileExtensionInGridItem,
     separator,
     editToolsSubmenu,
     editPanelsSubmenu,
