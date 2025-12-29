@@ -31,10 +31,15 @@ export function BottomToolbar() {
     setActiveLayout,
     setActiveEditTab,
   } = useLayoutStore();
-  const { fileMetadataList, selectedIndex } = useImageStore();
+  const { fileMetadataList, selectedIndex, selectedPaths } = useImageStore();
 
   const selectedFile =
     selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
+  const selectionCount = selectedPaths.size;
+  const fallbackSelectedName =
+    selectionCount === 1
+      ? selectedPaths.values().next().value?.split("/").pop()
+      : null;
   const isDetailLayout = activeLayout === "detail";
 
   const path = selectedFile?.path ?? "";
@@ -220,19 +225,16 @@ export function BottomToolbar() {
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500 tracking-tight">
         {fileMetadataList.length > 0 ? (
           <>
-            {selectedFile && (
-              <>
-                <span className="text-white/75">{selectedFile.fileName}</span>
-                {selectedFile.width && selectedFile.height && (
-                  <>
-                    {" — "}
-                    {selectedFile.width}
-                    {" x "}
-                    {selectedFile.height}
-                  </>
-                )}
-              </>
-            )}
+            {selectionCount > 1 ? (
+              <span className="text-white/75">
+                {selectionCount} files selected
+              </span>
+            ) : null}
+            {selectionCount === 1 ? (
+              <span className="text-white/75">
+                {selectedFile?.fileName ?? fallbackSelectedName ?? ""}
+              </span>
+            ) : null}
           </>
         ) : (
           ""
