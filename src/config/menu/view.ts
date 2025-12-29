@@ -37,6 +37,12 @@ const fileBrowser = await CheckMenuItem.new({
   id: "view.fileBrowser",
   text: "Toggle File Browser",
   accelerator: "P",
+  action: () => {
+    const { panels, togglePanel } = useLayoutStore.getState();
+
+    togglePanel("sidebar");
+    void fileBrowser.setChecked(!panels.sidebar);
+  },
 });
 
 const panelGroup: CheckMenuItem[] = [];
