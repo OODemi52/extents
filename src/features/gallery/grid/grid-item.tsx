@@ -57,7 +57,7 @@ export const GridItem = memo(function GridItem({
       disableAnimation
       disableRipple
       isPressable
-      className={`group relative m-1 h-full w-full overflow-hidden rounded-md bg-zinc-700 p-0 ${
+      className={`group relative m-1 h-full w-full overflow-hidden rounded-md bg-zinc-800 p-0 ${
         isSelected ? "ring-2 ring-blue-500" : ""
       }`}
       title={file.fileName}
