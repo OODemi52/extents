@@ -221,10 +221,10 @@ export function BottomToolbar() {
             type="button"
             onClick={() => deselectAll()}
           >
-            <span className="text-white/75 transition-none group-hover:opacity-0">
+            <span className="text-white/75 transition-none group-hover:opacity-0 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
               {selectionLabel}
             </span>
-            <span className="absolute inset-0 flex items-center justify-center whitespace-nowrap text-red-400 opacity-0 transition-none group-hover:opacity-100">
+            <span className="absolute inset-0 flex items-center justify-center whitespace-nowrap text-red-400 opacity-0 transition-none group-hover:opacity-100 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
               {deselectLabel}
             </span>
           </button>

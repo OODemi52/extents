@@ -48,10 +48,12 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
           onPress={onPickFolder}
         >
           <span className="flex flex-col leading-tight text-left">
-            <span className="max-w-[160px] truncate text-xs font-semibold text-zinc-100">
+            <span className="max-w-[160px] truncate text-xs font-semibold text-zinc-100 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
               {folderName}
             </span>
-            <span className="text-[10px] text-zinc-400">{photoCountLabel}</span>
+            <span className="text-[10px] text-zinc-400 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
+              {photoCountLabel}
+            </span>
           </span>
         </Button>
       </div>

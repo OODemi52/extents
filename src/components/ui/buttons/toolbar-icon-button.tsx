@@ -34,7 +34,7 @@ export function ToolbarIconButton({
         disableRipple
         isIconOnly
         className={cn(
-          "transition-colors bg-transparent",
+          "transition-colors bg-transparent drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
           isActive ? "text-blue-500" : "hover:text-white",
           className,
         )}
