@@ -52,9 +52,38 @@ const viewModeGroup: CheckMenuItem[] = [];
 const presets = await CheckMenuItem.new({
   id: "view.presets",
   text: "Presets",
-  enabled: false,
   accelerator: "Shift+P",
-  action: (id) => setExclusiveChecked(panelGroup, id),
+  action: (id) => {
+    const {
+      activeLayout,
+      activeEditTab,
+      panels,
+      setActiveLayout,
+      setActiveEditTab,
+      togglePanel,
+    } = useLayoutStore.getState();
+    const isEditableView =
+      activeLayout === "detail" || activeLayout === "compare";
+
+    if (!isEditableView) {
+      setActiveLayout("detail");
+      setExclusiveChecked(viewModeGroup, "view.detail");
+    }
+
+    if (isEditableView && panels.editPanel && activeEditTab === "presets") {
+      togglePanel("editPanel");
+      setExclusiveChecked(panelGroup, null);
+
+      return;
+    }
+
+    setActiveEditTab("presets");
+    if (!panels.editPanel) {
+      togglePanel("editPanel");
+    }
+
+    setExclusiveChecked(panelGroup, id);
+  },
 });
 
 const edit = await CheckMenuItem.new({
