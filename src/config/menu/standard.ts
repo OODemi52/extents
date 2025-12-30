@@ -1,4 +1,14 @@
 import { PredefinedMenuItem } from "@tauri-apps/api/menu";
+import type { CheckMenuItem } from "@tauri-apps/api/menu";
+
+export const setExclusiveChecked = (
+  items: CheckMenuItem[],
+  activeId?: string | null,
+) => {
+  items.forEach((item) => {
+    void item.setChecked(activeId != null && item.id === activeId);
+  });
+};
 
 // All
 export const separator = await PredefinedMenuItem.new({

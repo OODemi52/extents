@@ -1,18 +1,9 @@
 import { CheckMenuItem, MenuItem, Submenu } from "@tauri-apps/api/menu";
 
-import { separator } from "./standard";
+import { separator, setExclusiveChecked } from "./standard";
 
 import { useLayoutStore } from "@/store/layout-store";
 import { useGalleryPreferencesStore } from "@/features/gallery/stores/gallery-preferences-store";
-
-const setExclusiveChecked = (
-  items: CheckMenuItem[],
-  activeId?: string | null,
-) => {
-  items.forEach((item) => {
-    void item.setChecked(Boolean(activeId) && item.id === activeId);
-  });
-};
 
 const previousView = await MenuItem.new({
   id: "view.previous",

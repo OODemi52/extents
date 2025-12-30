@@ -1,12 +1,6 @@
 import { CheckMenuItem, MenuItem, Submenu } from "@tauri-apps/api/menu";
 
-import { separator } from "./standard";
-
-const setExclusiveChecked = (items: CheckMenuItem[], activeId?: string) => {
-  items.forEach((item) => {
-    void item.setChecked(item.id === activeId);
-  });
-};
+import { separator, setExclusiveChecked } from "./standard";
 
 const ratingGroup: CheckMenuItem[] = [];
 const flagGroup: CheckMenuItem[] = [];
