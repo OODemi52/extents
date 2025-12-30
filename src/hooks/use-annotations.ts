@@ -7,11 +7,12 @@ import { getAnnotations } from "@/services/api/annotations";
 
 export function useAnnotations() {
   const files = useImageStore((selected) => selected.fileMetadataList);
+  const isLoading = useImageStore((selected) => selected.isLoading);
   const paths = useMemo(() => files.map((file) => file.path), [files]);
   const dependencyKey = useMemo(() => paths.join("|"), [paths]);
 
   useEffect(() => {
-    if (paths.length === 0) return;
+    if (paths.length === 0 || isLoading) return;
 
     let cancelled = false;
 
