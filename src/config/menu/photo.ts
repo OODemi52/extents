@@ -2,6 +2,7 @@ import { CheckMenuItem, MenuItem, Submenu } from "@tauri-apps/api/menu";
 
 import { separator, setExclusiveChecked } from "./standard";
 
+import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-store";
 import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
 import { useImageStore } from "@/store/image-store";
 
@@ -173,22 +174,55 @@ const flagUnflagged = await CheckMenuItem.new({
   id: "photo.flag.unflagged",
   text: "Unflagged",
   accelerator: "U",
-  checked: true,
-  action: (id) => setExclusiveChecked(flagGroup, id),
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useFlagStore
+      .getState()
+      .setFlags(
+        [...selectedPaths].map((path) => ({ path, value: "unflagged" })),
+      );
+  },
 });
 
 const flagPick = await CheckMenuItem.new({
   id: "photo.flag.pick",
   text: "Pick",
   accelerator: "Z",
-  action: (id) => setExclusiveChecked(flagGroup, id),
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useFlagStore
+      .getState()
+      .setFlags([...selectedPaths].map((path) => ({ path, value: "picked" })));
+  },
 });
 
 const flagReject = await CheckMenuItem.new({
   id: "photo.flag.reject",
   text: "Reject",
   accelerator: "X",
-  action: (id) => setExclusiveChecked(flagGroup, id),
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useFlagStore
+      .getState()
+      .setFlags(
+        [...selectedPaths].map((path) => ({ path, value: "rejected" })),
+      );
+  },
 });
 
 flagGroup.push(flagUnflagged, flagPick, flagReject);
@@ -198,6 +232,15 @@ const increaseFlagStatus = await MenuItem.new({
   text: "Increase Flag Status",
   accelerator: "CmdOrCtrl+Up",
   enabled: false,
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useFlagStore.getState().cycleFlagsStatus([...selectedPaths], "increase");
+  },
 });
 
 const decreaseFlagStatus = await MenuItem.new({
@@ -205,7 +248,59 @@ const decreaseFlagStatus = await MenuItem.new({
   text: "Decrease Flag Status",
   accelerator: "CmdOrCtrl+Down",
   enabled: false,
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useFlagStore.getState().cycleFlagsStatus([...selectedPaths], "decrease");
+  },
 });
+
+const updateFlagMenuState = () => {
+  const { selectedPaths } = useImageStore.getState();
+  const hasSelection = selectedPaths.size > 0;
+
+  flagGroup.forEach((item) => {
+    void item.setEnabled(hasSelection);
+  });
+
+  void increaseFlagStatus.setEnabled(hasSelection);
+  void decreaseFlagStatus.setEnabled(hasSelection);
+
+  if (!hasSelection) {
+    setExclusiveChecked(flagGroup, null);
+
+    return;
+  }
+
+  const { flags } = useFlagStore.getState();
+  const paths = [...selectedPaths];
+  const firstFlag = flags[paths[0]] ?? "unflagged";
+  const isUniform = paths.every(
+    (path) => (flags[path] ?? "unflagged") === firstFlag,
+  );
+
+  if (!isUniform) {
+    setExclusiveChecked(flagGroup, null);
+
+    return;
+  }
+
+  const flagIdMap: Record<string, string> = {
+    unflagged: "photo.flag.unflagged",
+    picked: "photo.flag.pick",
+    rejected: "photo.flag.reject",
+  };
+
+  setExclusiveChecked(flagGroup, flagIdMap[firstFlag] ?? null);
+};
+
+updateFlagMenuState();
+useImageStore.subscribe(updateFlagMenuState);
+useFlagStore.subscribe(updateFlagMenuState);
 
 const autoAdvance = await CheckMenuItem.new({
   id: "photo.autoAdvance",

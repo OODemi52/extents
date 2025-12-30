@@ -21,7 +21,10 @@ export type FlagState = {
   flags: Record<string, FlagValue>;
   setFlags: (entries: FlagEntry[]) => void;
   toggleFlag: (path: string, flag: FlagValue) => void;
-  cycleFlagStatus: (path: string, direction: "increase" | "decrease") => void;
+  cycleFlagsStatus: (
+    paths: string[],
+    direction: "increase" | "decrease",
+  ) => void;
   hydrateFlags: (entries: Record<string, FlagValue>) => void;
 };
 

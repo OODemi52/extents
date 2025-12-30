@@ -25,20 +25,27 @@ export const useFlagStore = create<FlagState>((set, get) => ({
     get().setFlags([{ path, value: next }]);
   },
 
-  cycleFlagStatus: (path, direction) => {
-    const order: FlagValue[] = ["rejected", "unflagged", "picked"];
-    const current = get().flags[path] ?? "unflagged";
-    const currentIndex = order.indexOf(current);
-    const step = direction === "increase" ? 1 : -1;
-
-    if (currentIndex === -1) {
+  cycleFlagsStatus: (paths, direction) => {
+    if (!paths.length) {
       return;
     }
 
-    const nextIndex = (currentIndex + step + order.length) % order.length;
-    const next = order[nextIndex];
+    const order: FlagValue[] = ["rejected", "unflagged", "picked"];
+    const step = direction === "increase" ? 1 : -1;
+    const { flags, setFlags } = get();
+    const entries = paths.map((path) => {
+      const current = flags[path] ?? "unflagged";
+      const index = order.indexOf(current);
+      const nextIndex =
+        index === -1 ? -1 : (index + step + order.length) % order.length;
 
-    get().setFlags([{ path, value: next }]);
+      return {
+        path,
+        value: index === -1 ? current : order[nextIndex],
+      };
+    });
+
+    setFlags(entries);
   },
 
   hydrateFlags: (entries) =>
