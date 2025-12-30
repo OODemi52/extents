@@ -1,25 +1,44 @@
 import { create } from "zustand";
 
-import { setFlag as setFlagApi } from "@/services/api/annotations";
-import { FlagState } from "@/types/file-annotations";
+import { setFlags as _setFlags } from "@/services/api/annotations";
+import { FlagState, FlagValue } from "@/types/file-annotations";
 
 export const useFlagStore = create<FlagState>((set, get) => ({
   flags: {},
-  setFlag: (path, state) => {
-    const next = state;
 
-    set((current) => ({
-      flags: { ...current.flags, [path]: next },
-    }));
+  setFlags: (entries) => {
+    if (!entries.length) {
+      return;
+    }
 
-    void setFlagApi(path, next).catch((err) => {
+    const previousFlags = entries.reduce<Record<string, FlagValue>>(
+      (accumulator, entry) => {
+        accumulator[entry.path] = get().flags[entry.path] ?? "unflagged";
+
+        return accumulator;
+      },
+      {},
+    );
+
+    set((current) => {
+      const nextFlags = { ...current.flags };
+
+      entries.forEach(({ path, flag }) => {
+        nextFlags[path] = flag;
+      });
+
+      return { flags: nextFlags };
+    });
+
+    void _setFlags(entries).catch((err) => {
       console.error("[flag] persist failed", err);
-      const prev = get().flags[path] ?? "unflagged";
-
-      set((current) => ({ flags: { ...current.flags, [path]: prev } }));
+      set((current) => ({
+        flags: { ...current.flags, ...previousFlags },
+      }));
     });
   },
-  setFlags: (entries) =>
+
+  hydrateFlags: (entries) =>
     set((current) => ({
       flags: { ...current.flags, ...entries },
     })),

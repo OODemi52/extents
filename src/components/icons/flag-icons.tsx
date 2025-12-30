@@ -1,7 +1,7 @@
 import { FlagIcon, CheckIcon, XIcon } from "@phosphor-icons/react/dist/ssr";
 
 type FlagVisualProps = {
-  state: "flagged" | "rejected" | "idle" | "unflagged";
+  state: "picked" | "rejected" | "idle" | "unflagged";
   hovered?: boolean;
   size?: number;
   overlaySize?: number;
@@ -11,7 +11,7 @@ const ACTIVE_COLORS: Record<
   Exclude<FlagVisualProps["state"], "idle">,
   string
 > = {
-  flagged: "#16a34a",
+  picked: "#16a34a",
   rejected: "#ef4444",
   unflagged: "#9ca3af",
 };
@@ -22,9 +22,9 @@ export function FlagApproveIcon({
   size = 20,
   overlaySize,
 }: FlagVisualProps) {
-  const isActive = state === "flagged";
+  const isActive = state === "picked";
   const fillColor = isActive
-    ? ACTIVE_COLORS.flagged
+    ? ACTIVE_COLORS.picked
     : hovered
       ? "#ffffff"
       : "currentColor";

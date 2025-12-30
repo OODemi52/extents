@@ -27,7 +27,7 @@ export function useAnnotations() {
           ratings[row.file_path] = row.rating;
         });
 
-        useFlagStore.getState().setFlags(flags);
+        useFlagStore.getState().hydrateFlags(flags);
         useRatingStore.getState().hydrateRatings(ratings);
       })
       .catch((err) => {

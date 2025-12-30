@@ -1,4 +1,4 @@
-import { FileAnnotation, RatingEntry } from "./file-annotations";
+import { FileAnnotation, FlagEntry, RatingEntry } from "./file-annotations";
 import { TreeNode } from "./file-system";
 
 export interface CommandArgs {
@@ -25,7 +25,7 @@ export interface CommandArgs {
   set_render_state: { stateStr: "active" | "idle" | "paused" };
   clear_renderer: null;
   set_ratings: { entries: RatingEntry[] };
-  set_flag: { path: string; flag: string };
+  set_flags: { entries: FlagEntry[] };
   get_annotations: { paths: string[] };
 }
 
@@ -46,6 +46,6 @@ export interface CommandReturn {
   set_render_state: void;
   clear_renderer: void;
   set_ratings: void;
-  set_flag: void;
+  set_flags: void;
   get_annotations: FileAnnotation[];
 }

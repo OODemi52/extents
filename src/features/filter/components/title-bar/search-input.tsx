@@ -36,7 +36,7 @@ function formatFlags(flags: FlagValue[]) {
 
   return flags
     .map((flag) => {
-      if (flag === "flagged") return "Flagged";
+      if (flag === "picked") return "Picked";
       if (flag === "rejected") return "Rejected";
 
       return "Unflagged";

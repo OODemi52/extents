@@ -18,7 +18,7 @@ export function FlagControls({
   size = "sm",
 }: FlagControlsProps) {
   const flag = useFlagStore((state) => state.flags[path] ?? "unflagged");
-  const setFlag = useFlagStore((state) => state.setFlag);
+  const setFlags = useFlagStore((state) => state.setFlags);
   const [hovered, setHovered] = useState<FlagValue | null>(null);
 
   return (
@@ -33,7 +33,9 @@ export function FlagControls({
         onMouseEnter={() => setHovered("rejected")}
         onMouseLeave={() => setHovered(null)}
         onPress={() =>
-          setFlag(path, flag === "rejected" ? "unflagged" : "rejected")
+          setFlags([
+            { path, flag: flag === "rejected" ? "unflagged" : "rejected" },
+          ])
         }
       >
         <FlagRejectIcon
@@ -49,19 +51,19 @@ export function FlagControls({
         isIconOnly
         className="!min-w-7 !w-7 !h-7 px-0 transition-opacity !hover:bg-transparent"
         size={size}
-        title={flag === "flagged" ? "Clear flag" : "Flag"}
+        title={flag === "picked" ? "Clear pick" : "Pick"}
         variant="light"
-        onMouseEnter={() => setHovered("flagged")}
+        onMouseEnter={() => setHovered("picked")}
         onMouseLeave={() => setHovered(null)}
         onPress={() =>
-          setFlag(path, flag === "flagged" ? "unflagged" : "flagged")
+          setFlags([{ path, flag: flag === "picked" ? "unflagged" : "picked" }])
         }
       >
         <FlagApproveIcon
-          hovered={hovered === "flagged"}
+          hovered={hovered === "picked"}
           overlaySize={5}
           size={20}
-          state={flag === "flagged" ? "flagged" : "idle"}
+          state={flag === "picked" ? "picked" : "idle"}
         />
       </Button>
     </ButtonGroup>

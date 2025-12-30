@@ -31,13 +31,13 @@ export function FlagFilter() {
             isIconOnly
             className="!min-w-7 !w-7 !h-7 px-0"
             variant="light"
-            onPress={() => toggleFlag("flagged")}
+            onPress={() => toggleFlag("picked")}
           >
             <FlagApproveIcon
               hovered={false}
               overlaySize={6}
               size={18}
-              state={activeFlags.includes("flagged") ? "flagged" : "idle"}
+              state={activeFlags.includes("picked") ? "picked" : "idle"}
             />
           </Button>
 

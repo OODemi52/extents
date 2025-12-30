@@ -1,9 +1,14 @@
 export type RatingValue = 0 | 1 | 2 | 3 | 4 | 5;
-export type FlagValue = "unflagged" | "flagged" | "rejected";
+export type FlagValue = "unflagged" | "picked" | "rejected";
 
 export type RatingEntry = {
   path: string;
   rating: RatingValue;
+};
+
+export type FlagEntry = {
+  path: string;
+  flag: FlagValue;
 };
 
 export type RatingState = {
@@ -15,8 +20,8 @@ export type RatingState = {
 
 export type FlagState = {
   flags: Record<string, FlagValue>;
-  setFlag: (path: string, state: FlagValue) => void;
-  setFlags: (entries: Record<string, FlagValue>) => void;
+  setFlags: (entries: FlagEntry[]) => void;
+  hydrateFlags: (entries: Record<string, FlagValue>) => void;
 };
 
 export type FileAnnotation = {
