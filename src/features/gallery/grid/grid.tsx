@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
@@ -43,7 +43,12 @@ export function ThumbnailGrid() {
     (state) => state.showFileExtensionInGrid,
   );
 
-  useImageKeyboardNavigation(filteredFiles.length > 0);
+  const filteredPaths = useMemo(
+    () => filteredFiles.map((file) => file.path),
+    [filteredFiles],
+  );
+
+  useImageKeyboardNavigation(filteredPaths, filteredPaths.length > 0);
 
   const updateWidth = useCallback((width: number) => {
     const resizeStep = isSidebarResizingRef.current ? 1 : 1;

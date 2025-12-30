@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 
+import { useImageLoader } from "@/hooks/use-image-loader";
 import { useImageStore } from "@/store/image-store";
 
 function shouldIgnoreTarget(target: EventTarget | null): boolean {
@@ -18,11 +19,10 @@ function shouldIgnoreTarget(target: EventTarget | null): boolean {
   );
 }
 
-export function useImageKeyboardNavigation(enabled = true) {
-  const selectRelative = useImageStore((state) => state.selectRelative);
-  const selectFirst = useImageStore((state) => state.selectFirst);
-  const selectLast = useImageStore((state) => state.selectLast);
-  const hasImages = useImageStore((state) => state.fileMetadataList.length > 0);
+export function useImageKeyboardNavigation(paths: string[], enabled = true) {
+  const { handleSelectImageByPath } = useImageLoader();
+  const { fileMetadataList, selectedIndex } = useImageStore();
+  const hasImages = paths.length > 0;
 
   useEffect(() => {
     if (!enabled || !hasImages) {
@@ -34,17 +34,53 @@ export function useImageKeyboardNavigation(enabled = true) {
         return;
       }
 
+      const currentPath =
+        selectedIndex !== null
+          ? (fileMetadataList[selectedIndex]?.path ?? null)
+          : null;
+
+      const currentIndex = currentPath ? paths.indexOf(currentPath) : -1;
+
+      const selectByIndex = (index: number) => {
+        const path = paths[index];
+
+        if (!path) {
+          return;
+        }
+
+        handleSelectImageByPath(path);
+      };
+
+      const selectRelative = (delta: number) => {
+        if (delta === 0 || paths.length === 0) {
+          return;
+        }
+
+        const baseIndex =
+          currentIndex !== -1 ? currentIndex : delta > 0 ? -1 : paths.length;
+        const nextIndex = Math.min(
+          Math.max(baseIndex + delta, 0),
+          paths.length - 1,
+        );
+
+        if (nextIndex === baseIndex) {
+          return;
+        }
+
+        selectByIndex(nextIndex);
+      };
+
       if (event.key === "ArrowLeft") {
         event.preventDefault();
         if (event.metaKey || event.ctrlKey) {
-          selectFirst();
+          selectByIndex(0);
         } else {
           selectRelative(-1);
         }
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
         if (event.metaKey || event.ctrlKey) {
-          selectLast();
+          selectByIndex(paths.length - 1);
         } else {
           selectRelative(1);
         }
@@ -56,5 +92,12 @@ export function useImageKeyboardNavigation(enabled = true) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [enabled, hasImages, selectRelative, selectFirst, selectLast]);
+  }, [
+    enabled,
+    hasImages,
+    paths,
+    fileMetadataList,
+    selectedIndex,
+    handleSelectImageByPath,
+  ]);
 }

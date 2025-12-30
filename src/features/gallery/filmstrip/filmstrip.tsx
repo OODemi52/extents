@@ -41,7 +41,12 @@ export function Filmstrip() {
       : null;
   const density = useMemo(() => densityForSize(itemSize), [itemSize]);
 
-  useImageKeyboardNavigation(filteredFiles.length > 0);
+  const filteredPaths = useMemo(
+    () => filteredFiles.map((file) => file.path),
+    [filteredFiles],
+  );
+
+  useImageKeyboardNavigation(filteredPaths, filteredPaths.length > 0);
 
   const virtualizer = useVirtualizer({
     horizontal: true,
