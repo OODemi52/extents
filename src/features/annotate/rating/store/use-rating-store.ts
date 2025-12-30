@@ -11,6 +11,15 @@ export const useRatingStore = create<RatingState>((set, get) => ({
       return;
     }
 
+    const previousRatings = entries.reduce<Record<string, RatingValue>>(
+      (accumulator, entry) => {
+        accumulator[entry.path] = get().ratings[entry.path] ?? 0;
+
+        return accumulator;
+      },
+      {},
+    );
+
     set((state) => {
       const nextRatings = { ...state.ratings };
 
@@ -21,12 +30,11 @@ export const useRatingStore = create<RatingState>((set, get) => ({
       return { ratings: nextRatings };
     });
 
-    if (!entries.length) {
-      return;
-    }
-
     void _setRatings(entries).catch((error) => {
       console.error("[rating] persist failed", error);
+      set((state) => ({
+        ratings: { ...state.ratings, ...previousRatings },
+      }));
     });
   },
 
