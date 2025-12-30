@@ -2,8 +2,22 @@ import { CheckMenuItem, MenuItem, Submenu } from "@tauri-apps/api/menu";
 
 import { separator, setExclusiveChecked } from "./standard";
 
+import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
+import { useImageStore } from "@/store/image-store";
+import { RatingValue } from "@/types/file-annotations";
+
 const ratingGroup: CheckMenuItem[] = [];
 const flagGroup: CheckMenuItem[] = [];
+
+const applyRatingToSelection = (value: RatingValue) => {
+  const { selectedPaths } = useImageStore.getState();
+
+  if (!selectedPaths.size) {
+    return;
+  }
+
+  useRatingStore.getState().applyRatingToPaths([...selectedPaths], value);
+};
 
 const ratingTitle = await MenuItem.new({
   id: "photo.section.rating",
@@ -15,43 +29,48 @@ const ratingZero = await CheckMenuItem.new({
   id: "photo.rating.0",
   text: "0 Stars",
   accelerator: "0",
-  checked: true,
-  action: (id) => setExclusiveChecked(ratingGroup, id),
+  enabled: false,
+  action: () => applyRatingToSelection(0),
 });
 
 const ratingOne = await CheckMenuItem.new({
   id: "photo.rating.1",
   text: "1 Star",
   accelerator: "1",
-  action: (id) => setExclusiveChecked(ratingGroup, id),
+  enabled: false,
+  action: () => applyRatingToSelection(1),
 });
 
 const ratingTwo = await CheckMenuItem.new({
   id: "photo.rating.2",
   text: "2 Stars",
   accelerator: "2",
-  action: (id) => setExclusiveChecked(ratingGroup, id),
+  enabled: false,
+  action: () => applyRatingToSelection(2),
 });
 
 const ratingThree = await CheckMenuItem.new({
   id: "photo.rating.3",
   text: "3 Stars",
   accelerator: "3",
-  action: (id) => setExclusiveChecked(ratingGroup, id),
+  enabled: false,
+  action: () => applyRatingToSelection(3),
 });
 
 const ratingFour = await CheckMenuItem.new({
   id: "photo.rating.4",
   text: "4 Stars",
   accelerator: "4",
-  action: (id) => setExclusiveChecked(ratingGroup, id),
+  enabled: false,
+  action: () => applyRatingToSelection(4),
 });
 
 const ratingFive = await CheckMenuItem.new({
   id: "photo.rating.5",
   text: "5 Stars",
   accelerator: "5",
-  action: (id) => setExclusiveChecked(ratingGroup, id),
+  enabled: false,
+  action: () => applyRatingToSelection(5),
 });
 
 ratingGroup.push(
@@ -62,6 +81,38 @@ ratingGroup.push(
   ratingFour,
   ratingFive,
 );
+
+const updateRatingMenuState = () => {
+  const { selectedPaths } = useImageStore.getState();
+  const hasSelection = selectedPaths.size > 0;
+
+  ratingGroup.forEach((item) => {
+    void item.setEnabled(hasSelection);
+  });
+
+  if (!hasSelection) {
+    setExclusiveChecked(ratingGroup, null);
+
+    return;
+  }
+
+  const { ratings } = useRatingStore.getState();
+  const paths = [...selectedPaths];
+  const firstRating = ratings[paths[0]] ?? 0;
+  const isUniform = paths.every((path) => (ratings[path] ?? 0) === firstRating);
+
+  if (!isUniform) {
+    setExclusiveChecked(ratingGroup, null);
+
+    return;
+  }
+
+  setExclusiveChecked(ratingGroup, `photo.rating.${firstRating}`);
+};
+
+updateRatingMenuState();
+useImageStore.subscribe(updateRatingMenuState);
+useRatingStore.subscribe(updateRatingMenuState);
 
 const flagTitle = await MenuItem.new({
   id: "photo.section.flag",

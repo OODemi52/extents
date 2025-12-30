@@ -4,7 +4,10 @@ export type FlagValue = "unflagged" | "flagged" | "rejected";
 export type RatingState = {
   ratings: Record<string, RatingValue>;
   setRating: (path: string, value: RatingValue) => void;
+  setRatingValue: (path: string, value: RatingValue) => void;
   setRatings: (entries: Record<string, RatingValue>) => void;
+  setRatingsValue: (entries: Record<string, RatingValue>) => void;
+  applyRatingToPaths: (paths: string[], value: RatingValue) => void;
 };
 
 export type FlagState = {
