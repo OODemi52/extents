@@ -82,7 +82,7 @@ pub fn run() {
             commands::renderer::set_render_state,
             // Annotation Commands
             commands::annotations::set_ratings,
-            commands::annotations::set_flag,
+            commands::annotations::set_flags,
             commands::annotations::get_annotations,
         ])
         // Running the application

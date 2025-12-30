@@ -16,6 +16,12 @@ pub struct RatingEntry {
     pub rating: i64,
 }
 
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct FlagEntry {
+    pub path: String,
+    pub flag: String,
+}
+
 pub fn init_metadata_table(connection: &Connection) -> Result<(), Box<dyn Error>> {
     connection.execute(
         "
@@ -87,7 +93,7 @@ pub fn set_flag_value(
     flag: &str,
 ) -> Result<(), Box<dyn Error>> {
     let flag_status_match = match flag {
-        "flagged" | "rejected" | "unflagged" => flag,
+        "picked" | "rejected" | "unflagged" => flag,
         _ => "unflagged",
     };
 
@@ -106,6 +112,45 @@ pub fn set_flag_value(
         "[metadata] persisted flag path={} flag={}",
         path, flag_status_match
     );
+
+    Ok(())
+}
+
+pub fn set_flag_values(
+    connection: &mut Connection,
+    entries: &[FlagEntry],
+) -> Result<(), Box<dyn Error>> {
+    if entries.is_empty() {
+        return Ok(());
+    }
+
+    let timestamp = now_ts();
+    let transaction = connection.transaction()?;
+
+    {
+        let mut statement = transaction.prepare(
+            "
+            INSERT INTO image_metadata (file_path, flag, updated_at)
+            VALUES (?1, ?2, ?3)
+            ON CONFLICT(file_path) DO UPDATE SET
+                flag=excluded.flag,
+                updated_at=excluded.updated_at;
+            ",
+        )?;
+
+        for entry in entries {
+            let flag_status_match = match entry.flag.as_str() {
+                "picked" | "rejected" | "unflagged" => entry.flag.as_str(),
+                _ => "unflagged",
+            };
+
+            statement.execute(params![entry.path, flag_status_match, timestamp])?;
+        }
+    }
+
+    transaction.commit()?;
+
+    info!("[metadata] persisted flags count={}", entries.len());
 
     Ok(())
 }
