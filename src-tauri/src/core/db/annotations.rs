@@ -11,16 +11,13 @@ pub struct ImageMetadataRow {
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
-pub struct RatingEntry {
+pub struct AnnotationEntry<T> {
     pub path: String,
-    pub rating: i64,
+    pub value: T,
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct FlagEntry {
-    pub path: String,
-    pub flag: String,
-}
+pub type RatingEntry = AnnotationEntry<i64>;
+pub type FlagEntry = AnnotationEntry<String>;
 
 pub fn init_metadata_table(connection: &Connection) -> Result<(), Box<dyn Error>> {
     connection.execute(
@@ -74,7 +71,7 @@ pub fn set_rating_values(
         )?;
 
         for entry in entries {
-            let rating_value = entry.rating.clamp(0, 5);
+            let rating_value = entry.value.clamp(0, 5);
 
             statement.execute(params![entry.path, rating_value, timestamp])?;
         }
@@ -90,10 +87,10 @@ pub fn set_rating_values(
 pub fn set_flag_value(
     connection: &Connection,
     path: &str,
-    flag: &str,
+    value: &str,
 ) -> Result<(), Box<dyn Error>> {
-    let flag_status_match = match flag {
-        "picked" | "rejected" | "unflagged" => flag,
+    let flag_status_match = match value {
+        "picked" | "rejected" | "unflagged" => value,
         _ => "unflagged",
     };
 
@@ -139,8 +136,8 @@ pub fn set_flag_values(
         )?;
 
         for entry in entries {
-            let flag_status_match = match entry.flag.as_str() {
-                "picked" | "rejected" | "unflagged" => entry.flag.as_str(),
+            let flag_status_match = match entry.value.as_str() {
+                "picked" | "rejected" | "unflagged" => entry.value.as_str(),
                 _ => "unflagged",
             };
 
