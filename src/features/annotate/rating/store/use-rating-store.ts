@@ -1,42 +1,28 @@
+import type {
+  RatingEntry,
+  RatingState,
+  RatingValue,
+} from "@/types/file-annotations";
+
 import { create } from "zustand";
 
+import { applyOptimisticAnnotationUpdate } from "@/features/annotate/utils/optimistic-annotations";
 import { setRatings as _setRatings } from "@/services/api/annotations";
-import { RatingState, RatingValue } from "@/types/file-annotations";
 
 export const useRatingStore = create<RatingState>((set, get) => ({
   ratings: {},
 
-  setRatings: (entries) => {
-    if (!entries.length) {
-      return;
-    }
-
-    const previousRatings = entries.reduce<Record<string, RatingValue>>(
-      (accumulator, entry) => {
-        accumulator[entry.path] = get().ratings[entry.path] ?? 0;
-
-        return accumulator;
-      },
-      {},
-    );
-
-    set((state) => {
-      const nextRatings = { ...state.ratings };
-
-      entries.forEach(({ path, rating }) => {
-        nextRatings[path] = rating;
-      });
-
-      return { ratings: nextRatings };
-    });
-
-    void _setRatings(entries).catch((error) => {
-      console.error("[rating] persist failed", error);
-      set((state) => ({
-        ratings: { ...state.ratings, ...previousRatings },
-      }));
-    });
-  },
+  setRatings: (entries) =>
+    applyOptimisticAnnotationUpdate<RatingEntry, RatingValue>({
+      annotations: entries,
+      getCurrentAnnotations: () => get().ratings,
+      setAnnotations: (next) => set({ ratings: next }),
+      getPath: (entry) => entry.path,
+      getValue: (entry) => entry.rating,
+      defaultValue: 0,
+      persistFn: _setRatings,
+      label: "rating",
+    }),
 
   toggleRating: (path, value) => {
     const current = get().ratings[path] ?? 0;
