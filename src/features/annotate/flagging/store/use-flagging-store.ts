@@ -18,6 +18,13 @@ export const useFlagStore = create<FlagState>((set, get) => ({
       label: "flag",
     }),
 
+  toggleFlag: (path, flag) => {
+    const current = get().flags[path] ?? "unflagged";
+    const next = current === flag ? "unflagged" : flag;
+
+    get().setFlags([{ path, value: next }]);
+  },
+
   hydrateFlags: (entries) =>
     set((current) => ({
       flags: { ...current.flags, ...entries },
