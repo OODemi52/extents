@@ -28,7 +28,7 @@ export function useAnnotations() {
         });
 
         useFlagStore.getState().setFlags(flags);
-        useRatingStore.getState().setRatings(ratings);
+        useRatingStore.getState().hydrateRatings(ratings);
       })
       .catch((err) => {
         console.error("[metadata] hydrate failed", err);
@@ -37,5 +37,5 @@ export function useAnnotations() {
     return () => {
       cancelled = true;
     };
-  }, [dependencyKey, paths]);
+  }, [dependencyKey, isLoading, paths]);
 }

@@ -1,13 +1,16 @@
 export type RatingValue = 0 | 1 | 2 | 3 | 4 | 5;
 export type FlagValue = "unflagged" | "flagged" | "rejected";
 
+export type RatingEntry = {
+  path: string;
+  rating: RatingValue;
+};
+
 export type RatingState = {
   ratings: Record<string, RatingValue>;
-  setRating: (path: string, value: RatingValue) => void;
-  setRatingValue: (path: string, value: RatingValue) => void;
-  setRatings: (entries: Record<string, RatingValue>) => void;
-  setRatingsValue: (entries: Record<string, RatingValue>) => void;
-  applyRatingToPaths: (paths: string[], value: RatingValue) => void;
+  setRatings: (entries: RatingEntry[]) => void;
+  toggleRating: (path: string, value: RatingValue) => void;
+  hydrateRatings: (entries: Record<string, RatingValue>) => void;
 };
 
 export type FlagState = {

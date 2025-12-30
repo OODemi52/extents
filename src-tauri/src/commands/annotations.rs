@@ -1,16 +1,14 @@
-use tauri::State;
-use tracing::info;
-
 use crate::core::db::annotations::{
-    get_annotation_values, set_flag_value, set_rating_value, ImageMetadataRow,
+    get_annotation_values, set_flag_value, set_rating_values, ImageMetadataRow, RatingEntry,
 };
 use crate::state::AppState;
+use tauri::State;
 
 #[tauri::command]
-pub fn set_rating(path: String, rating: i64, state: State<AppState>) -> Result<(), String> {
-    let connection = state.db.connection.lock().map_err(|e| e.to_string())?;
+pub fn set_ratings(entries: Vec<RatingEntry>, state: State<AppState>) -> Result<(), String> {
+    let mut connection = state.db.connection.lock().map_err(|e| e.to_string())?;
 
-    set_rating_value(&connection, &path, rating).map_err(|e| e.to_string())
+    set_rating_values(&mut *connection, &entries).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

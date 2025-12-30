@@ -81,7 +81,7 @@ pub fn run() {
             commands::renderer::clear_renderer,
             commands::renderer::set_render_state,
             // Annotation Commands
-            commands::annotations::set_rating,
+            commands::annotations::set_ratings,
             commands::annotations::set_flag,
             commands::annotations::get_annotations,
         ])

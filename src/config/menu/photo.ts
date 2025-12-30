@@ -4,20 +4,9 @@ import { separator, setExclusiveChecked } from "./standard";
 
 import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
 import { useImageStore } from "@/store/image-store";
-import { RatingValue } from "@/types/file-annotations";
 
 const ratingGroup: CheckMenuItem[] = [];
 const flagGroup: CheckMenuItem[] = [];
-
-const applyRatingToSelection = (value: RatingValue) => {
-  const { selectedPaths } = useImageStore.getState();
-
-  if (!selectedPaths.size) {
-    return;
-  }
-
-  useRatingStore.getState().applyRatingToPaths([...selectedPaths], value);
-};
 
 const ratingTitle = await MenuItem.new({
   id: "photo.section.rating",
@@ -30,7 +19,17 @@ const ratingZero = await CheckMenuItem.new({
   text: "0 Stars",
   accelerator: "0",
   enabled: false,
-  action: () => applyRatingToSelection(0),
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useRatingStore
+      .getState()
+      .setRatings([...selectedPaths].map((path) => ({ path, rating: 0 })));
+  },
 });
 
 const ratingOne = await CheckMenuItem.new({
@@ -38,7 +37,17 @@ const ratingOne = await CheckMenuItem.new({
   text: "1 Star",
   accelerator: "1",
   enabled: false,
-  action: () => applyRatingToSelection(1),
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useRatingStore
+      .getState()
+      .setRatings([...selectedPaths].map((path) => ({ path, rating: 1 })));
+  },
 });
 
 const ratingTwo = await CheckMenuItem.new({
@@ -46,7 +55,17 @@ const ratingTwo = await CheckMenuItem.new({
   text: "2 Stars",
   accelerator: "2",
   enabled: false,
-  action: () => applyRatingToSelection(2),
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useRatingStore
+      .getState()
+      .setRatings([...selectedPaths].map((path) => ({ path, rating: 2 })));
+  },
 });
 
 const ratingThree = await CheckMenuItem.new({
@@ -54,7 +73,17 @@ const ratingThree = await CheckMenuItem.new({
   text: "3 Stars",
   accelerator: "3",
   enabled: false,
-  action: () => applyRatingToSelection(3),
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useRatingStore
+      .getState()
+      .setRatings([...selectedPaths].map((path) => ({ path, rating: 3 })));
+  },
 });
 
 const ratingFour = await CheckMenuItem.new({
@@ -62,7 +91,17 @@ const ratingFour = await CheckMenuItem.new({
   text: "4 Stars",
   accelerator: "4",
   enabled: false,
-  action: () => applyRatingToSelection(4),
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useRatingStore
+      .getState()
+      .setRatings([...selectedPaths].map((path) => ({ path, rating: 4 })));
+  },
 });
 
 const ratingFive = await CheckMenuItem.new({
@@ -70,7 +109,17 @@ const ratingFive = await CheckMenuItem.new({
   text: "5 Stars",
   accelerator: "5",
   enabled: false,
-  action: () => applyRatingToSelection(5),
+  action: () => {
+    const { selectedPaths } = useImageStore.getState();
+
+    if (!selectedPaths.size) {
+      return;
+    }
+
+    useRatingStore
+      .getState()
+      .setRatings([...selectedPaths].map((path) => ({ path, rating: 5 })));
+  },
 });
 
 ratingGroup.push(

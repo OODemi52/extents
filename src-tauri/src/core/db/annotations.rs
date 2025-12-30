@@ -10,6 +10,12 @@ pub struct ImageMetadataRow {
     pub flag: String,
 }
 
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct RatingEntry {
+    pub path: String,
+    pub rating: i64,
+}
+
 pub fn init_metadata_table(connection: &Connection) -> Result<(), Box<dyn Error>> {
     connection.execute(
         "
@@ -38,28 +44,39 @@ fn now_ts() -> i64 {
         .as_secs() as i64
 }
 
-pub fn set_rating_value(
-    connection: &Connection,
-    path: &str,
-    rating: i64,
+pub fn set_rating_values(
+    connection: &mut Connection,
+    entries: &[RatingEntry],
 ) -> Result<(), Box<dyn Error>> {
-    let rating_value = rating.clamp(0, 5);
+    if entries.is_empty() {
+        return Ok(());
+    }
 
-    connection.execute(
-        "
-        INSERT INTO image_metadata (file_path, rating, updated_at)
-        VALUES (?1, ?2, ?3)
-        ON CONFLICT(file_path) DO UPDATE SET
-            rating=excluded.rating,
-            updated_at=excluded.updated_at;
-        ",
-        params![path, rating_value, now_ts()],
-    )?;
+    let timestamp = now_ts();
 
-    info!(
-        "[metadata] persisted rating path={} rating={}",
-        path, rating_value
-    );
+    let transaction = connection.transaction()?;
+
+    {
+        let mut statement = transaction.prepare(
+            "
+            INSERT INTO image_metadata (file_path, rating, updated_at)
+            VALUES (?1, ?2, ?3)
+            ON CONFLICT(file_path) DO UPDATE SET
+                rating=excluded.rating,
+                updated_at=excluded.updated_at;
+            ",
+        )?;
+
+        for entry in entries {
+            let rating_value = entry.rating.clamp(0, 5);
+
+            statement.execute(params![entry.path, rating_value, timestamp])?;
+        }
+    }
+
+    transaction.commit()?;
+
+    info!("[metadata] persisted ratings count={}", entries.len());
 
     Ok(())
 }

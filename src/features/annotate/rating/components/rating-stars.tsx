@@ -21,8 +21,8 @@ export function RatingStars({
   className,
   compact = false,
 }: RatingStarsProps) {
-  const rating = useRatingStore((s) => s.ratings[path] ?? 0);
-  const setRating = useRatingStore((s) => s.setRating);
+  const rating = useRatingStore((state) => state.ratings[path] ?? 0);
+  const toggleRating = useRatingStore((state) => state.toggleRating);
   const [hoveredStar, setHoveredStar] = useState<RatingValue | null>(null);
   const effectiveRating =
     hoveredStar !== null ? Math.max(rating, hoveredStar) : rating;
@@ -42,7 +42,7 @@ export function RatingStars({
           variant="light"
           onMouseEnter={() => setHoveredStar(value)}
           onMouseLeave={() => setHoveredStar(null)}
-          onPress={() => setRating(path, value)}
+          onPress={() => toggleRating(path, value)}
         >
           <StarIcon
             className="scale-x-[-1]"
