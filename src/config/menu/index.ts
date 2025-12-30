@@ -4,10 +4,11 @@ import { aboutSubmenu } from "./about";
 import { editSubmenu } from "./edit";
 import { fileSubmenu } from "./file";
 import { viewSubmenu } from "./view";
+import { windowSubmenu } from "./window";
 
 export async function createAppMenu() {
   const menu = await Menu.new({
-    items: [aboutSubmenu, fileSubmenu, editSubmenu, viewSubmenu],
+    items: [aboutSubmenu, fileSubmenu, editSubmenu, viewSubmenu, windowSubmenu],
   });
 
   await menu.setAsAppMenu();
@@ -17,5 +18,6 @@ export async function createAppMenu() {
     fileSubmenu,
     editSubmenu,
     viewSubmenu,
+    windowSubmenu,
   };
 }
