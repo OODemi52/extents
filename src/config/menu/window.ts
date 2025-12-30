@@ -1,28 +1,32 @@
 import { PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
 
-import { separator } from "./standard";
+import { createSeparator } from "./standard";
 
-const closeWindow = await PredefinedMenuItem.new({
-  item: "CloseWindow",
-  text: "Close Window",
-});
+export async function createWindowSubmenu() {
+  const separator = await createSeparator();
 
-const minimize = await PredefinedMenuItem.new({
-  item: "Minimize",
-  text: "Minimize",
-});
+  const closeWindow = await PredefinedMenuItem.new({
+    item: "CloseWindow",
+    text: "Close Window",
+  });
 
-const zoom = await PredefinedMenuItem.new({
-  item: "Maximize",
-  text: "Zoom",
-});
+  const minimize = await PredefinedMenuItem.new({
+    item: "Minimize",
+    text: "Minimize",
+  });
 
-const enterFullscreen = await PredefinedMenuItem.new({
-  item: "Fullscreen",
-  text: "Enter Full Screen",
-});
+  const zoom = await PredefinedMenuItem.new({
+    item: "Maximize",
+    text: "Zoom",
+  });
 
-export const windowSubmenu = await Submenu.new({
-  text: "Window",
-  items: [closeWindow, minimize, zoom, separator, enterFullscreen],
-});
+  const enterFullscreen = await PredefinedMenuItem.new({
+    item: "Fullscreen",
+    text: "Enter Full Screen",
+  });
+
+  return Submenu.new({
+    text: "Window",
+    items: [closeWindow, minimize, zoom, separator, enterFullscreen],
+  });
+}

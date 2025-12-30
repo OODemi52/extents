@@ -1,14 +1,32 @@
 import { Menu } from "@tauri-apps/api/menu";
 
-import { aboutSubmenu } from "./about";
-import { editSubmenu } from "./edit";
-import { fileSubmenu } from "./file";
-import { photoSubmenu } from "./photo";
-import { viewSubmenu } from "./view";
-import { windowSubmenu } from "./window";
-import { helpSubmenu } from "./help";
+import { createAboutSubmenu } from "./about";
+import { createEditSubmenu } from "./edit";
+import { createFileSubmenu } from "./file";
+import { createPhotoSubmenu } from "./photo";
+import { createViewSubmenu } from "./view";
+import { createWindowSubmenu } from "./window";
+import { createHelpSubmenu } from "./help";
 
 export async function createAppMenu() {
+  const [
+    aboutSubmenu,
+    fileSubmenu,
+    editSubmenu,
+    photoSubmenu,
+    viewSubmenu,
+    windowSubmenu,
+    helpSubmenu,
+  ] = await Promise.all([
+    createAboutSubmenu(),
+    createFileSubmenu(),
+    createEditSubmenu(),
+    createPhotoSubmenu(),
+    createViewSubmenu(),
+    createWindowSubmenu(),
+    createHelpSubmenu(),
+  ]);
+
   const menu = await Menu.new({
     items: [
       aboutSubmenu,
