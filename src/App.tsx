@@ -16,8 +16,10 @@ import {
 } from "./store/layout-store";
 import { TitleBar } from "./components/title-bar";
 import { useFolderScanner } from "./hooks/use-folder-scanner";
+import { useAnnotations } from "./hooks/use-annotations";
 
 function App() {
+  useAnnotations();
   const {
     activeLayout,
     panels,
