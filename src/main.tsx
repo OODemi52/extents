@@ -6,6 +6,17 @@ import App from "./App.tsx";
 import { Provider } from "./provider.tsx";
 import "@/styles/globals.css";
 
+const themeKey = "heroui-theme";
+
+try {
+  localStorage.setItem(themeKey, "dark");
+} catch {
+  // Ignore storage failures; theme class still applies.
+}
+
+document.documentElement.classList.remove("light");
+document.documentElement.classList.add("dark");
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
