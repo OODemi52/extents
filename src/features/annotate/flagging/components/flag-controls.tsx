@@ -34,7 +34,7 @@ export function FlagControls({
         onMouseLeave={() => setHovered(null)}
         onPress={() =>
           setFlags([
-            { path, flag: flag === "rejected" ? "unflagged" : "rejected" },
+            { path, value: flag === "rejected" ? "unflagged" : "rejected" },
           ])
         }
       >
@@ -56,7 +56,9 @@ export function FlagControls({
         onMouseEnter={() => setHovered("picked")}
         onMouseLeave={() => setHovered(null)}
         onPress={() =>
-          setFlags([{ path, flag: flag === "picked" ? "unflagged" : "picked" }])
+          setFlags([
+            { path, value: flag === "picked" ? "unflagged" : "picked" },
+          ])
         }
       >
         <FlagApproveIcon

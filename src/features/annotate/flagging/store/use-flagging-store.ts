@@ -1,4 +1,4 @@
-import type { FlagEntry, FlagState, FlagValue } from "@/types/file-annotations";
+import type { FlagState, FlagValue } from "@/types/file-annotations";
 
 import { create } from "zustand";
 
@@ -9,12 +9,10 @@ export const useFlagStore = create<FlagState>((set, get) => ({
   flags: {},
 
   setFlags: (entries) =>
-    applyOptimisticAnnotationUpdate<FlagEntry, FlagValue>({
+    applyOptimisticAnnotationUpdate<FlagValue>({
       annotations: entries,
-      getCurrentAnnotations: () => get().flags,
+      getCurrentAnnotationsState: () => get().flags,
       setAnnotations: (next) => set({ flags: next }),
-      getPath: (entry) => entry.path,
-      getValue: (entry) => entry.flag,
       defaultValue: "unflagged",
       persistFn: _setFlags,
       label: "flag",

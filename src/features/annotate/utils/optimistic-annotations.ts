@@ -1,43 +1,41 @@
-type OptimisticAnnotationUpdateOptions<TEntry, TValue> = {
-  annotations: TEntry[];
-  getCurrentAnnotations: () => Record<string, TValue>;
+import type { AnnotationEntry } from "@/types/file-annotations";
+
+type OptimisticAnnotationUpdateOptions<TValue> = {
+  annotations: AnnotationEntry<TValue>[];
+  getCurrentAnnotationsState: () => Record<string, TValue>;
   setAnnotations: (next: Record<string, TValue>) => void;
-  getPath: (annotation: TEntry) => string;
-  getValue: (annotation: TEntry) => TValue;
   defaultValue: TValue;
-  persistFn: (annotations: TEntry[]) => Promise<unknown>;
+  persistFn: (annotations: AnnotationEntry<TValue>[]) => Promise<unknown>;
   label: string;
 };
 
-export function applyOptimisticAnnotationUpdate<TEntry, TValue>({
+export function applyOptimisticAnnotationUpdate<TValue>({
   annotations,
-  getCurrentAnnotations,
+  getCurrentAnnotationsState,
   setAnnotations,
-  getPath,
-  getValue,
   defaultValue,
   persistFn,
   label,
-}: OptimisticAnnotationUpdateOptions<TEntry, TValue>) {
+}: OptimisticAnnotationUpdateOptions<TValue>) {
   if (!annotations.length) {
     return;
   }
 
   const previous = annotations.reduce<Record<string, TValue>>(
     (accumulator, annotation) => {
-      const path = getPath(annotation);
+      const path = annotation.path;
 
-      accumulator[path] = getCurrentAnnotations()[path] ?? defaultValue;
+      accumulator[path] = getCurrentAnnotationsState()[path] ?? defaultValue;
 
       return accumulator;
     },
     {},
   );
 
-  const nextMap = { ...getCurrentAnnotations() };
+  const nextMap = { ...getCurrentAnnotationsState() };
 
   annotations.forEach((annotation) => {
-    nextMap[getPath(annotation)] = getValue(annotation);
+    nextMap[annotation.path] = annotation.value;
   });
 
   setAnnotations(nextMap);
@@ -45,6 +43,6 @@ export function applyOptimisticAnnotationUpdate<TEntry, TValue>({
   void persistFn(annotations).catch((error) => {
     console.error(`[${label}] persist failed`, error);
 
-    setAnnotations({ ...getCurrentAnnotations(), ...previous });
+    setAnnotations({ ...getCurrentAnnotationsState(), ...previous });
   });
 }

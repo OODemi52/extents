@@ -1,8 +1,4 @@
-import type {
-  RatingEntry,
-  RatingState,
-  RatingValue,
-} from "@/types/file-annotations";
+import type { RatingState, RatingValue } from "@/types/file-annotations";
 
 import { create } from "zustand";
 
@@ -13,12 +9,10 @@ export const useRatingStore = create<RatingState>((set, get) => ({
   ratings: {},
 
   setRatings: (entries) =>
-    applyOptimisticAnnotationUpdate<RatingEntry, RatingValue>({
+    applyOptimisticAnnotationUpdate<RatingValue>({
       annotations: entries,
-      getCurrentAnnotations: () => get().ratings,
+      getCurrentAnnotationsState: () => get().ratings,
       setAnnotations: (next) => set({ ratings: next }),
-      getPath: (entry) => entry.path,
-      getValue: (entry) => entry.rating,
       defaultValue: 0,
       persistFn: _setRatings,
       label: "rating",
@@ -28,7 +22,7 @@ export const useRatingStore = create<RatingState>((set, get) => ({
     const current = get().ratings[path] ?? 0;
     const next: RatingValue = current === value ? 0 : value;
 
-    get().setRatings([{ path, rating: next }]);
+    get().setRatings([{ path, value: next }]);
   },
 
   hydrateRatings: (entries) =>

@@ -1,15 +1,14 @@
 export type RatingValue = 0 | 1 | 2 | 3 | 4 | 5;
 export type FlagValue = "unflagged" | "picked" | "rejected";
 
-export type RatingEntry = {
+export type AnnotationEntry<TValue> = {
   path: string;
-  rating: RatingValue;
+  value: TValue;
 };
 
-export type FlagEntry = {
-  path: string;
-  flag: FlagValue;
-};
+export type RatingEntry = AnnotationEntry<RatingValue>;
+
+export type FlagEntry = AnnotationEntry<FlagValue>;
 
 export type RatingState = {
   ratings: Record<string, RatingValue>;
