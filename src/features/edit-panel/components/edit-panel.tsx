@@ -2,7 +2,6 @@ import { Button } from "@heroui/button";
 import { Card } from "@heroui/card";
 import { RocketLaunchIcon, ExportIcon } from "@phosphor-icons/react";
 
-import { ThemeSwitch } from "@/components/theme-switch";
 import { BasicAdjustmentsPanel } from "@/features/edit-panel/basic-adjustments/components/basic-adjustments-panel";
 import { GeometryPanel } from "@/features/edit-panel/geometry/components/geometry-panel";
 import { RetouchPanel } from "@/features/edit-panel/retouch/components/retouch-panel";
@@ -39,8 +38,6 @@ export function EditPanel() {
       <Card className="w-full h-32 mb-2 bg-zinc-800 text-center flex-shrink-0">
         Histogram Place Holder
       </Card>
-
-      <ThemeSwitch />
 
       <div className="flex-1 overflow-y-auto rounded-xl bg-transparent min-h-0">
         {renderActiveTab()}
