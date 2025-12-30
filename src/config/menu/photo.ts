@@ -28,7 +28,7 @@ const ratingZero = await CheckMenuItem.new({
 
     useRatingStore
       .getState()
-      .setRatings([...selectedPaths].map((path) => ({ path, rating: 0 })));
+      .setRatings([...selectedPaths].map((path) => ({ path, value: 0 })));
   },
 });
 
@@ -46,7 +46,7 @@ const ratingOne = await CheckMenuItem.new({
 
     useRatingStore
       .getState()
-      .setRatings([...selectedPaths].map((path) => ({ path, rating: 1 })));
+      .setRatings([...selectedPaths].map((path) => ({ path, value: 1 })));
   },
 });
 
@@ -64,7 +64,7 @@ const ratingTwo = await CheckMenuItem.new({
 
     useRatingStore
       .getState()
-      .setRatings([...selectedPaths].map((path) => ({ path, rating: 2 })));
+      .setRatings([...selectedPaths].map((path) => ({ path, value: 2 })));
   },
 });
 
@@ -82,7 +82,7 @@ const ratingThree = await CheckMenuItem.new({
 
     useRatingStore
       .getState()
-      .setRatings([...selectedPaths].map((path) => ({ path, rating: 3 })));
+      .setRatings([...selectedPaths].map((path) => ({ path, value: 3 })));
   },
 });
 
@@ -100,7 +100,7 @@ const ratingFour = await CheckMenuItem.new({
 
     useRatingStore
       .getState()
-      .setRatings([...selectedPaths].map((path) => ({ path, rating: 4 })));
+      .setRatings([...selectedPaths].map((path) => ({ path, value: 4 })));
   },
 });
 
@@ -118,7 +118,7 @@ const ratingFive = await CheckMenuItem.new({
 
     useRatingStore
       .getState()
-      .setRatings([...selectedPaths].map((path) => ({ path, rating: 5 })));
+      .setRatings([...selectedPaths].map((path) => ({ path, value: 5 })));
   },
 });
 
