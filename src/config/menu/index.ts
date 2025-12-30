@@ -3,6 +3,7 @@ import { Menu } from "@tauri-apps/api/menu";
 import { aboutSubmenu } from "./about";
 import { editSubmenu } from "./edit";
 import { fileSubmenu } from "./file";
+import { photoSubmenu } from "./photo";
 import { viewSubmenu } from "./view";
 import { windowSubmenu } from "./window";
 import { helpSubmenu } from "./help";
@@ -13,6 +14,7 @@ export async function createAppMenu() {
       aboutSubmenu,
       fileSubmenu,
       editSubmenu,
+      photoSubmenu,
       viewSubmenu,
       windowSubmenu,
       helpSubmenu,
@@ -25,6 +27,7 @@ export async function createAppMenu() {
     menu,
     fileSubmenu,
     editSubmenu,
+    photoSubmenu,
     viewSubmenu,
     windowSubmenu,
     helpSubmenu,
