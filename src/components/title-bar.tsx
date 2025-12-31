@@ -11,6 +11,7 @@ import { ToolbarIconButton } from "./ui/buttons/toolbar-icon-button";
 import { FilterSearchInput } from "@/features/filter/components/title-bar/search-input";
 import { SortSelect } from "@/features/filter/components/title-bar/sort-select";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
+import { useWindowFullscreen } from "@/hooks/use-window-fullscreen";
 import { useImageStore } from "@/store/image-store";
 
 interface TitleBarProps {
@@ -33,6 +34,7 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
   const isMac =
     typeof navigator !== "undefined" && /Mac/i.test(navigator.userAgent);
   const trafficLightsClass = isMac ? "w-[72px]" : "w-2";
+  const isFullscreen = useWindowFullscreen();
 
   return (
     <div
@@ -40,7 +42,9 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
       className="w-full flex items-center justify-between py-1 px-2"
     >
       <div className="flex items-center gap-2 min-w-0">
-        <div className={`${trafficLightsClass} shrink-0`} />
+        {isMac && !isFullscreen && (
+          <div className={`${trafficLightsClass} shrink-0`} />
+        )}
         <Button
           disableRipple
           className="h-auto min-h-0 px-2 py-1 text-left bg-transparent hover:bg-white/5"
