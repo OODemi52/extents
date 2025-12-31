@@ -232,7 +232,15 @@ fn rgba_to_rgb(image: &RgbaImage) -> RgbImage {
     let mut rgb = RgbImage::new(width, height);
 
     for (x, y, pixel) in image.enumerate_pixels() {
-        rgb.put_pixel(x, y, image::Rgb([pixel[0], pixel[1], pixel[2]]));
+        let alpha_value = pixel[3] as u16;
+
+        let invert_alpha = 255u16 - alpha_value;
+
+        let r = ((pixel[0] as u16 * alpha_value + 255u16 * invert_alpha) / 255u16) as u8;
+        let g = ((pixel[1] as u16 * alpha_value + 255u16 * invert_alpha) / 255u16) as u8;
+        let b = ((pixel[2] as u16 * alpha_value + 255u16 * invert_alpha) / 255u16) as u8;
+
+        rgb.put_pixel(x, y, image::Rgb([r, g, b]));
     }
 
     rgb
