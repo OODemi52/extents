@@ -13,6 +13,7 @@ struct VertexOutput {
 struct Transform {
   scale: vec2<f32>,
   offset: vec2<f32>,
+  display_checkerboard: vec2<f32>,
 };
 
 @group(0) @binding(2)
@@ -56,6 +57,10 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
   let is_dark_tile = ((checkboard.x + checkboard.y) % 2u) == 0u;
 
   let tile_checker = select(light_tile, dark_tile, is_dark_tile);
+
+  if (uTransform.display_checkerboard.x < 0.5) {
+    return vec4<f32>(texture_sample.rgb, 1.0);
+  }
 
   let rgb_values = tile_checker * (1.0 - texture_sample.a) + texture_sample.rgb * texture_sample.a;
 

@@ -27,6 +27,7 @@ pub struct Renderer<'a> {
     pending_scale: f32,
     pending_offset_x: f32,
     pending_offset_y: f32,
+    checkerboard_enabled: f32,
     vertex_scale_x: f32,
     vertex_scale_y: f32,
     fit_scale: f32,
@@ -77,6 +78,7 @@ impl<'a> Renderer<'a> {
             pending_scale: 1.0,
             pending_offset_x: 0.0,
             pending_offset_y: 0.0,
+            checkerboard_enabled: 0.0,
             vertex_scale_x: 1.0,
             vertex_scale_y: 1.0,
             fit_scale: 1.0,
@@ -202,6 +204,7 @@ impl<'a> Renderer<'a> {
         self.pending_scale = 1.0;
         self.pending_offset_x = 0.0;
         self.pending_offset_y = 0.0;
+        self.checkerboard_enabled = 0.0;
         self.fit_scale = 1.0;
         self.vertex_scale_x = 1.0;
         self.vertex_scale_y = 1.0;
@@ -216,6 +219,18 @@ impl<'a> Renderer<'a> {
         self.pending_offset_x = offset_x;
 
         self.pending_offset_y = offset_y;
+
+        self.apply_transform();
+    }
+
+    pub fn display_checkboard(&mut self, enabled: bool) {
+        let value = if enabled { 1.0 } else { 0.0 };
+
+        if (self.checkerboard_enabled - value).abs() < f32::EPSILON {
+            return;
+        }
+
+        self.checkerboard_enabled = value;
 
         self.apply_transform();
     }
@@ -354,8 +369,13 @@ impl<'a> Renderer<'a> {
 
         let offset_y = ndc_center_y + self.pending_offset_y * viewport_fraction_y;
 
-        self.transform_buffer
-            .update(&self.context.queue, combined_scale, offset_x, offset_y);
+        self.transform_buffer.update(
+            &self.context.queue,
+            combined_scale,
+            offset_x,
+            offset_y,
+            self.checkerboard_enabled,
+        );
     }
 
     fn compute_fit_scale(&self, viewport: &Viewport) -> f32 {

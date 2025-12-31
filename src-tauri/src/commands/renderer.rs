@@ -102,6 +102,9 @@ pub fn load_image(
 
                 if let Some(renderer) = renderer_lock.as_mut() {
                     if renderer.is_request_active(request_id) {
+                        let has_alpha = rgba.chunks_exact(4).any(|pixel| pixel[3] < 255);
+
+                        renderer.display_checkboard(has_alpha);
                         renderer.update_texture(&rgba, width, height);
 
                         renderer.render();
@@ -153,6 +156,10 @@ fn load_texture_from_path(
     let (width, height) = rgba.dimensions();
 
     let raw = rgba.into_raw();
+
+    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
+
+    renderer.display_checkboard(has_alpha);
 
     renderer.update_texture(&raw, width, height);
 

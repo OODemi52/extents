@@ -6,6 +6,7 @@ use wgpu::util::DeviceExt;
 pub struct TransformUniforms {
     pub scale: [f32; 2],
     pub offset: [f32; 2],
+    pub display_checkboard: [f32; 2],
 }
 
 impl Default for TransformUniforms {
@@ -13,6 +14,7 @@ impl Default for TransformUniforms {
         Self {
             scale: [1.0, 1.0],
             offset: [0.0, 0.0],
+            display_checkboard: [0.0, 0.0],
         }
     }
 }
@@ -35,10 +37,19 @@ impl TransformBuffer {
         Self { uniforms, buffer }
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, scale: f32, offset_x: f32, offset_y: f32) {
+    pub fn update(
+        &mut self,
+        queue: &wgpu::Queue,
+        scale: f32,
+        offset_x: f32,
+        offset_y: f32,
+        checkerboard_enabled: f32,
+    ) {
         self.uniforms.scale = [scale, scale];
 
         self.uniforms.offset = [offset_x, offset_y];
+
+        self.uniforms.display_checkboard = [checkerboard_enabled, 0.0];
 
         queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[self.uniforms]));
     }
