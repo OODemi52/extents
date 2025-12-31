@@ -47,7 +47,7 @@ export function FilmstripItem({
       disableAnimation
       disableRipple
       isPressable
-      className="group relative h-full w-full bg-transparent p-0 shadow-none"
+      className="group relative h-full w-full bg-transparent p-0 shadow-none rounded-none"
       style={{ width: size, height: size }}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
