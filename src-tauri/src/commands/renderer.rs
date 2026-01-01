@@ -1,5 +1,7 @@
+use crate::core::image::decode_image;
 use crate::renderer::{RenderState, Renderer};
 use crate::state::AppState;
+use anyhow::Result;
 use log::{error, info, warn};
 use std::time::Instant;
 use tauri::async_runtime;
@@ -83,18 +85,7 @@ pub fn load_image(
     let renderer_for_task = renderer_handle.clone();
 
     let join_handle = async_runtime::spawn(async move {
-        let decode_result = async_runtime::spawn_blocking(move || {
-            image::open(&full_path).map(|img| {
-                let width = img.width();
-
-                let height = img.height();
-
-                let rgba = img.into_rgba8().into_raw();
-
-                (rgba, width, height)
-            })
-        })
-        .await;
+        let decode_result = async_runtime::spawn_blocking(move || decode_image(&full_path)).await;
 
         match decode_result {
             Ok(Ok((rgba, width, height))) => {
@@ -145,17 +136,8 @@ pub fn load_image(
     }
 }
 
-fn load_texture_from_path(
-    renderer: &mut Renderer,
-    path: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let image = image::open(path)?;
-
-    let rgba = image.into_rgba8();
-
-    let (width, height) = rgba.dimensions();
-
-    let raw = rgba.into_raw();
+fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
+    let (raw, width, height) = decode_image(path)?;
 
     let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
 

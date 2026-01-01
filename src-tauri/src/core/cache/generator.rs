@@ -1,3 +1,4 @@
+use crate::core::image::{decode_image, is_supported_raw_extension};
 use exif::{In, Reader, Tag};
 use fast_image_resize::ResizeAlg;
 use image::{self, codecs::jpeg::JpegEncoder, ImageReader, RgbImage, RgbaImage};
@@ -71,12 +72,12 @@ fn load_source_image(
     let image = if allow_embedded {
         match decode_embedded_preview(mapped_bytes).transpose()? {
             Some(image) => image,
-            None => decode_full_image(mapped_bytes)?,
+            None => decode_full_image(original_path, mapped_bytes)?,
         }
     } else {
         match try_large_embedded_preview(mapped_bytes, MINIMUM_EMBEDDED_PREVIEW_SIZE).transpose()? {
             Some(image) => image,
-            None => decode_full_image(mapped_bytes)?,
+            None => decode_full_image(original_path, mapped_bytes)?,
         }
     };
 
@@ -147,7 +148,14 @@ fn extract_jpeg_preview(exif: &exif::Exif) -> Option<Vec<u8>> {
 // Leter, I want to create a decode crate that will interface with different packages
 // This will allow to pick and choose the dependecies to enhance image decoding
 // And will also provide a simple anc common sense interface, so we can swap decoding engines
-fn decode_full_image(data: &[u8]) -> Result<RgbaImage, anyhow::Error> {
+fn decode_full_image(original_path: &str, data: &[u8]) -> Result<RgbaImage, anyhow::Error> {
+    if is_supported_raw_extension(original_path) {
+        let (rgba, width, height) = decode_image(original_path)?;
+
+        return RgbaImage::from_raw(width, height, rgba)
+            .ok_or_else(|| anyhow::anyhow!("Failed to build raw image from decoded buffer"));
+    }
+
     let cursor = Cursor::new(data);
 
     let reader = ImageReader::new(cursor).with_guessed_format()?;

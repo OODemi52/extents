@@ -14,7 +14,7 @@ pub fn decode_image(path: &str) -> Result<(Vec<u8>, u32, u32)> {
 fn decode_raster(path: &str) -> Result<(Vec<u8>, u32, u32)> {
     let image = image::open(path).with_context(|| format!("Failed to decode image: {}", path))?;
 
-    let rgba = image.into_rgb8();
+    let rgba = image.into_rgba8();
 
     let (width, height) = rgba.dimensions();
 
@@ -44,7 +44,7 @@ fn decode_raw(path: &str) -> Result<(Vec<u8>, u32, u32)> {
     Ok((rgba.into_raw(), width, height))
 }
 
-fn is_supported_raw_extension(path: &str) -> bool {
+pub fn is_supported_raw_extension(path: &str) -> bool {
     let ext = Path::new(path).extension().and_then(|value| value.to_str());
 
     let Some(ext) = ext else {
