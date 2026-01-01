@@ -8,6 +8,8 @@ use image::{self, ImageReader, RgbaImage};
 use memmap2::MmapOptions;
 use rawler::imgop::develop::RawDevelop;
 
+use crate::core::image::orientation::{apply_orientation, resolve_file_orientation};
+
 #[derive(Clone, Copy, Debug)]
 pub enum EmbeddedPreviewPolicy {
     None,
@@ -28,11 +30,17 @@ pub fn is_supported_raw_extension(path: &str) -> bool {
 }
 
 pub fn decode_full_image(path: &str) -> Result<(Vec<u8>, u32, u32)> {
-    let image = if is_supported_raw_extension(path) {
+    let is_raw = is_supported_raw_extension(path);
+
+    let mut image = if is_raw {
         decode_raw_file(path)?
     } else {
         decode_raster_file(path)?
     };
+
+    if let Some(orientation) = resolve_file_orientation(path, is_raw) {
+        image = apply_orientation(image, orientation);
+    }
 
     let (width, height) = image.dimensions();
 
@@ -44,11 +52,19 @@ pub fn decode_derived_image(
     embedded_preview: EmbeddedPreviewPolicy,
 ) -> Result<RgbaImage> {
     if matches!(embedded_preview, EmbeddedPreviewPolicy::None) {
-        return if is_supported_raw_extension(path) {
-            decode_raw_file(path)
+        let is_raw = is_supported_raw_extension(path);
+
+        let mut image = if is_raw {
+            decode_raw_file(path)?
         } else {
-            decode_raster_file(path)
+            decode_raster_file(path)?
         };
+
+        if let Some(orientation) = resolve_file_orientation(path, is_raw) {
+            image = apply_orientation(image, orientation);
+        }
+
+        return Ok(image);
     }
 
     let file = File::open(path)?;
@@ -62,25 +78,27 @@ pub fn decode_derived_image_buffer(
     bytes: &[u8],
     embedded_preview: EmbeddedPreviewPolicy,
 ) -> Result<RgbaImage> {
-    match embedded_preview {
-        EmbeddedPreviewPolicy::Any => {
-            if let Some(image) = decode_embedded_preview(bytes, None).transpose()? {
-                return Ok(image);
-            }
-        }
-        EmbeddedPreviewPolicy::MinSize(min_size) => {
-            if let Some(image) = decode_embedded_preview(bytes, Some(min_size)).transpose()? {
-                return Ok(image);
-            }
-        }
-        EmbeddedPreviewPolicy::None => {}
+    let is_raw = is_supported_raw_extension(path);
+
+    let embedded_result = match embedded_preview {
+        EmbeddedPreviewPolicy::Any => decode_embedded_preview(bytes, None),
+        EmbeddedPreviewPolicy::MinSize(min_size) => decode_embedded_preview(bytes, Some(min_size)),
+        EmbeddedPreviewPolicy::None => None,
+    };
+
+    let mut image = if let Some(image_result) = embedded_result {
+        image_result?
+    } else if is_raw {
+        decode_raw_file(path)?
+    } else {
+        decode_raster_buffer(bytes)?
+    };
+
+    if let Some(orientation) = resolve_file_orientation(path, is_raw) {
+        image = apply_orientation(image, orientation);
     }
 
-    if is_supported_raw_extension(path) {
-        decode_raw_file(path)
-    } else {
-        decode_raster_buffer(bytes)
-    }
+    Ok(image)
 }
 
 fn decode_raster_file(path: &str) -> Result<RgbaImage> {
@@ -124,14 +142,14 @@ fn decode_embedded_preview(bytes: &[u8], minimum_size: Option<u32>) -> Option<Re
     }?;
 
     let embedded_image = match image::load_from_memory(&preview_bytes) {
-        Ok(embedded_image) => embedded_image,
+        Ok(embedded_image) => embedded_image.to_rgba8(),
         Err(_) => return None,
     };
 
     let minimum_size = minimum_size.unwrap_or(0);
 
     if embedded_image.width() >= minimum_size || embedded_image.height() >= minimum_size {
-        Some(Ok(embedded_image.to_rgba8()))
+        Some(Ok(embedded_image))
     } else {
         None
     }
