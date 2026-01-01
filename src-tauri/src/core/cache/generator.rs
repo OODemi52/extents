@@ -1,10 +1,7 @@
-use crate::core::image::{decode_image, is_supported_raw_extension};
-use exif::{In, Reader, Tag};
+use crate::core::image::{decode_derived_image, EmbeddedPreviewPolicy};
 use fast_image_resize::ResizeAlg;
-use image::{self, codecs::jpeg::JpegEncoder, ImageReader, RgbImage, RgbaImage};
-use memmap2::MmapOptions;
+use image::{self, codecs::jpeg::JpegEncoder, RgbImage, RgbaImage};
 use std::fs::File;
-use std::io::Cursor;
 use std::path::Path;
 
 // Need to work on optimizations for this
@@ -41,7 +38,13 @@ fn generate_scaled_image(
     allow_embedded: bool,
     jpeg_quality: u8,
 ) -> Result<(), anyhow::Error> {
-    let mut source_image = load_source_image(original_path, allow_embedded)?;
+    let embedded_preview = if allow_embedded {
+        EmbeddedPreviewPolicy::Any
+    } else {
+        EmbeddedPreviewPolicy::MinSize(MINIMUM_EMBEDDED_PREVIEW_SIZE)
+    };
+
+    let mut source_image = decode_derived_image(original_path, embedded_preview)?;
 
     let (image_width, image_height) = source_image.dimensions();
 
@@ -57,112 +60,6 @@ fn generate_scaled_image(
     save_as_jpeg(cache_path, &result_image, jpeg_quality)?;
 
     Ok(())
-}
-
-fn load_source_image(
-    original_path: &str,
-    allow_embedded: bool,
-) -> Result<RgbaImage, anyhow::Error> {
-    let file = File::open(original_path)?;
-
-    let mmap = unsafe { MmapOptions::new().map(&file)? };
-
-    let mapped_bytes: &[u8] = &mmap;
-
-    let image = if allow_embedded {
-        match decode_embedded_preview(mapped_bytes).transpose()? {
-            Some(image) => image,
-            None => decode_full_image(original_path, mapped_bytes)?,
-        }
-    } else {
-        match try_large_embedded_preview(mapped_bytes, MINIMUM_EMBEDDED_PREVIEW_SIZE).transpose()? {
-            Some(image) => image,
-            None => decode_full_image(original_path, mapped_bytes)?,
-        }
-    };
-
-    Ok(image)
-}
-
-fn try_large_embedded_preview(
-    mapped_bytes: &[u8],
-    minimum_size: u32,
-) -> Option<Result<RgbaImage, anyhow::Error>> {
-    let mut cursor = Cursor::new(mapped_bytes);
-
-    let preview_bytes = match Reader::new().read_from_container(&mut cursor) {
-        Ok(exif) => extract_jpeg_preview(&exif),
-        Err(_) => None,
-    }?;
-
-    let embedded_image = match image::load_from_memory(&preview_bytes) {
-        Ok(embedded_image) => embedded_image,
-        Err(_) => return None,
-    };
-
-    if embedded_image.width() >= minimum_size || embedded_image.height() >= minimum_size {
-        Some(Ok(embedded_image.to_rgba8()))
-    } else {
-        None
-    }
-}
-
-fn decode_embedded_preview(data: &[u8]) -> Option<Result<RgbaImage, anyhow::Error>> {
-    let mut cursor = Cursor::new(data);
-
-    let preview_bytes = match Reader::new().read_from_container(&mut cursor) {
-        Ok(exif) => extract_jpeg_preview(&exif),
-        Err(_) => None,
-    }?;
-
-    Some(
-        image::load_from_memory(&preview_bytes)
-            .map(|dynamic_image| dynamic_image.to_rgba8())
-            .map_err(anyhow::Error::from),
-    )
-}
-
-fn extract_jpeg_preview(exif: &exif::Exif) -> Option<Vec<u8>> {
-    for image_file_directory in [In::PRIMARY, In::THUMBNAIL] {
-        if let (Some(offset_field), Some(length_field)) = (
-            exif.get_field(Tag::JPEGInterchangeFormat, image_file_directory),
-            exif.get_field(Tag::JPEGInterchangeFormatLength, image_file_directory),
-        ) {
-            let offset = offset_field.value.get_uint(0)? as usize;
-
-            let length = length_field.value.get_uint(0)? as usize;
-
-            let buffer = exif.buf();
-
-            if offset + length <= buffer.len() {
-                return Some(buffer[offset..offset + length].to_vec());
-            }
-        }
-    }
-
-    None
-}
-
-// Currently this decode_full_image method handles decoding a range of files at a reasonable speed
-// I want to improve tho, in speed and in codecs supported.
-// Leter, I want to create a decode crate that will interface with different packages
-// This will allow to pick and choose the dependecies to enhance image decoding
-// And will also provide a simple anc common sense interface, so we can swap decoding engines
-fn decode_full_image(original_path: &str, data: &[u8]) -> Result<RgbaImage, anyhow::Error> {
-    if is_supported_raw_extension(original_path) {
-        let (rgba, width, height) = decode_image(original_path)?;
-
-        return RgbaImage::from_raw(width, height, rgba)
-            .ok_or_else(|| anyhow::anyhow!("Failed to build raw image from decoded buffer"));
-    }
-
-    let cursor = Cursor::new(data);
-
-    let reader = ImageReader::new(cursor).with_guessed_format()?;
-
-    let image = reader.decode()?.to_rgba8();
-
-    Ok(image)
 }
 
 fn compute_fit_dimensions(image_width: u32, image_height: u32, max_long_edge: u32) -> (u32, u32) {

@@ -1,4 +1,4 @@
-use crate::core::image::decode_image;
+use crate::core::image::decode_full_image;
 use crate::renderer::{RenderState, Renderer};
 use crate::state::AppState;
 use anyhow::Result;
@@ -85,7 +85,8 @@ pub fn load_image(
     let renderer_for_task = renderer_handle.clone();
 
     let join_handle = async_runtime::spawn(async move {
-        let decode_result = async_runtime::spawn_blocking(move || decode_image(&full_path)).await;
+        let decode_result =
+            async_runtime::spawn_blocking(move || decode_full_image(&full_path)).await;
 
         match decode_result {
             Ok(Ok((rgba, width, height))) => {
@@ -137,7 +138,7 @@ pub fn load_image(
 }
 
 fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
-    let (raw, width, height) = decode_image(path)?;
+    let (raw, width, height) = decode_full_image(path)?;
 
     let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
 
