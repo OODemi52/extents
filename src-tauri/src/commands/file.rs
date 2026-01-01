@@ -17,8 +17,18 @@ pub struct ImageMetadata {
 
 fn is_valid_file(path: &PathBuf) -> bool {
     if let Some(ext) = path.extension() {
+        // At the moment, the supported file types are completely based on what types of files
+        // the dnglabs/rawler supports for decoding. Later, I will most likely add custom support
+        // for files that are not included here
+        //
+        // ***Note: Rawler supports .raw files, but to avoid false positives, they are not included
+        // as a valid file type. Will add once I am able to implement better checks to avoid
+        // false file type positives.
         match ext.to_string_lossy().to_ascii_lowercase().as_str() {
-            "jpg" | "jpeg" | "png" | "gif" | "bmp" | "tiff" | "webp" => true,
+            "jpg" | "jpeg" | "png" | "gif" | "bmp" | "tif" | "tiff" | "webp" | "3fr" | "ari"
+            | "arw" | "cr2" | "cr3" | "crm" | "crw" | "dcr" | "dcs" | "dng" | "erf" | "fff"
+            | "iiq" | "kdc" | "mef" | "mos" | "mrw" | "nef" | "nrw" | "orf" | "ori" | "pef"
+            | "qtk" | "raf" | "rw2" | "rwl" | "srw" | "x3f" => true,
             _ => false,
         }
     } else {
