@@ -16,6 +16,12 @@ pub struct ImageMetadata {
 }
 
 fn is_valid_file(path: &PathBuf) -> bool {
+    let file_name = path.file_name().and_then(|name| name.to_str());
+
+    if file_name.is_some_and(|name| name.starts_with('.')) {
+        return false;
+    }
+
     if let Some(ext) = path.extension() {
         // At the moment, the supported file types are completely based on what types of files
         // the dnglabs/rawler supports for decoding. Later, I will most likely add custom support
