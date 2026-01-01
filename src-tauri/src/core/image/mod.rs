@@ -1,4 +1,5 @@
 pub mod decode;
+pub mod orientation;
 pub mod preview;
 pub mod thumbnail;
 
