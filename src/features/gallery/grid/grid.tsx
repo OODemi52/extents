@@ -16,6 +16,7 @@ import { useGalleryPreferencesStore } from "@/features/gallery/stores/gallery-pr
 
 const THUMBNAIL_SIZE = 140;
 const GAP = 8;
+const PREFETCH_ROW_BUFFER = 6;
 
 export function ThumbnailGrid() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -135,6 +136,13 @@ export function ThumbnailGrid() {
 
     const visibleRows = virtualizer.getVirtualItems().map((item) => item.index);
 
+    if (!visibleRows.length) return;
+
+    const minRow = Math.min(...visibleRows);
+    const maxRow = Math.max(...visibleRows);
+    const startRow = Math.max(0, minRow - PREFETCH_ROW_BUFFER);
+    const endRow = Math.min(rowCount - 1, maxRow + PREFETCH_ROW_BUFFER);
+
     const visibleIndices = new Set<number>();
 
     visibleRows.forEach((rowIndex) => {
@@ -149,10 +157,25 @@ export function ThumbnailGrid() {
       }
     });
 
-    const offScreenPaths = filteredFiles
-      .map((file, idx) => ({ file, idx }))
-      .filter(({ idx }) => !visibleIndices.has(idx))
-      .map(({ file }) => file.path);
+    const offScreenPaths: string[] = [];
+
+    for (let rowIndex = startRow; rowIndex <= endRow; rowIndex += 1) {
+      const start = rowIndex * columns;
+
+      for (let colIndex = 0; colIndex < columns; colIndex += 1) {
+        const index = start + colIndex;
+
+        if (index >= filteredFiles.length) {
+          break;
+        }
+
+        if (visibleIndices.has(index)) {
+          continue;
+        }
+
+        offScreenPaths.push(filteredFiles[index].path);
+      }
+    }
 
     if (!offScreenPaths.length) return;
 
@@ -161,7 +184,7 @@ export function ThumbnailGrid() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [filteredFiles, virtualizer, columns, prefetchThumbnails]);
+  }, [filteredFiles, virtualizer, columns, rowCount, prefetchThumbnails]);
 
   const showEmptyState = filteredFiles.length === 0;
 

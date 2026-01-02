@@ -16,6 +16,7 @@ import {
 import { useImageStore } from "@/store/image-store";
 
 type Density = "thumb" | "meta" | "rating" | "full";
+const PREFETCH_ITEM_BUFFER = 30;
 
 function densityForSize(size: number): Density {
   if (size < 72) return "thumb";
@@ -109,22 +110,40 @@ export function Filmstrip() {
   useEffect(() => {
     if (filteredFiles.length === 0) return;
 
-    const visibleIndices = new Set(
-      virtualizer.getVirtualItems().map((item) => item.index),
+    const visibleItems = virtualizer.getVirtualItems();
+
+    if (!visibleItems.length) return;
+
+    const visibleIndices = new Set(visibleItems.map((item) => item.index));
+    const minIndex = Math.min(...visibleIndices);
+    const maxIndex = Math.max(...visibleIndices);
+    const startIndex = Math.max(0, minIndex - PREFETCH_ITEM_BUFFER);
+    const endIndex = Math.min(
+      filteredFiles.length - 1,
+      maxIndex + PREFETCH_ITEM_BUFFER,
     );
 
-    const offScreenPaths = filteredFiles
-      .map((file, index) => ({ file, index }))
-      .filter(({ index }) => !visibleIndices.has(index))
-      .map(({ file }) => file.path);
+    const offScreenPaths: string[] = [];
 
-    if (offScreenPaths.length > 0) {
-      const timer = setTimeout(() => {
-        prefetchThumbnails(offScreenPaths);
-      }, 500);
+    for (let index = startIndex; index <= endIndex; index += 1) {
+      if (visibleIndices.has(index)) {
+        continue;
+      }
 
-      return () => clearTimeout(timer);
+      const file = filteredFiles[index];
+
+      if (file) {
+        offScreenPaths.push(file.path);
+      }
     }
+
+    if (!offScreenPaths.length) return;
+
+    const timer = setTimeout(() => {
+      prefetchThumbnails(offScreenPaths);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [filteredFiles, virtualizer, prefetchThumbnails]);
 
   useEffect(() => {
