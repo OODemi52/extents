@@ -2,6 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchThumbnail } from "../thumbnail/fetch-thumbnail";
 
+import { api } from "@/services/api";
+
 export function useThumbnailQuery(imagePath: string) {
   const query = useQuery({
     queryKey: ["thumbnail", imagePath],
@@ -31,17 +33,13 @@ export function useClearThumbnailCache() {
 }
 
 export function usePrefetchThumbnails() {
-  const queryClient = useQueryClient();
-
   return (imagePaths: string | string[]) => {
     const paths = Array.isArray(imagePaths) ? imagePaths : [imagePaths];
 
-    paths.forEach((path) => {
-      queryClient.prefetchQuery({
-        queryKey: ["thumbnail", path],
-        queryFn: () => fetchThumbnail(path),
-        staleTime: Infinity,
-      });
+    if (!paths.length) return;
+
+    api.thumbnails.prefetch(paths).catch((error) => {
+      console.error("[usePrefetchThumbnails] batch prefetch failed:", error);
     });
   };
 }
