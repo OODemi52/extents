@@ -11,23 +11,29 @@ export function useInteractionHandlers(
   scale: number,
   offsetX: number,
   offsetY: number,
+  hasImage: boolean,
 ) {
   const setScale = useImageTransformStore((state) => state.setScale);
 
   const setOffset = useImageTransformStore((state) => state.setOffset);
-
-  const idleTimeoutRef = useRef<number | null>(null);
-
   const isDraggingRef = useRef(false);
+  const isHoveringRef = useRef(false);
 
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
 
-  const bumpRenderActivity = useCallback(() => {
-    if (idleTimeoutRef.current !== null) {
-      clearTimeout(idleTimeoutRef.current);
-    }
-  }, []);
+  const setCursor = useCallback(
+    (cursor: string) => {
+      const viewer = viewportRef.current;
 
+      if (!viewer) return;
+      viewer.style.cursor = hasImage ? cursor : "";
+    },
+    [viewportRef, hasImage],
+  );
+
+  const setGlobalCursor = useCallback((isActive: boolean) => {
+    document.body.classList.toggle("cursor-grabbing", isActive);
+  }, []);
   const handleWheel = useCallback(
     (wheelEvent: WheelEvent) => {
       if (
@@ -38,7 +44,6 @@ export function useInteractionHandlers(
       }
 
       wheelEvent.preventDefault();
-      bumpRenderActivity();
 
       const viewer = viewportRef.current;
 
@@ -81,15 +86,7 @@ export function useInteractionHandlers(
         });
       }
     },
-    [
-      scale,
-      offsetX,
-      offsetY,
-      setScale,
-      setOffset,
-      bumpRenderActivity,
-      viewportRef,
-    ],
+    [scale, offsetX, offsetY, setScale, setOffset, viewportRef],
   );
 
   const handlePointerDown = useCallback(
@@ -101,6 +98,8 @@ export function useInteractionHandlers(
         return;
       }
 
+      if (!hasImage) return;
+
       if (pointerDownEvent.button !== 0) return;
 
       const viewer = viewportRef.current;
@@ -109,9 +108,9 @@ export function useInteractionHandlers(
 
       pointerDownEvent.preventDefault();
 
-      bumpRenderActivity();
-
       isDraggingRef.current = true;
+      setGlobalCursor(true);
+      setCursor("grabbing");
 
       lastPointerRef.current = {
         x: pointerDownEvent.clientX,
@@ -125,7 +124,7 @@ export function useInteractionHandlers(
         console.warn("[useInteractionHandlers] setPointerCapture failed:", err);
       }
     },
-    [bumpRenderActivity, viewportRef],
+    [viewportRef, setCursor, setGlobalCursor, hasImage],
   );
 
   const handlePointerMove = useCallback(
@@ -136,6 +135,8 @@ export function useInteractionHandlers(
       ) {
         return;
       }
+
+      if (!hasImage) return;
 
       if (!isDraggingRef.current || !viewportRef.current) return;
 
@@ -177,10 +178,8 @@ export function useInteractionHandlers(
 
         y: currentY - (deltaY * PAN_SPEED) / height,
       });
-
-      bumpRenderActivity();
     },
-    [setOffset, bumpRenderActivity, viewportRef],
+    [setOffset, viewportRef, hasImage],
   );
 
   const handlePointerUp = useCallback(
@@ -195,6 +194,13 @@ export function useInteractionHandlers(
       if (!isDraggingRef.current) return;
 
       isDraggingRef.current = false;
+      setGlobalCursor(false);
+
+      if (isHoveringRef.current) {
+        setCursor("grab");
+      } else {
+        setCursor("");
+      }
 
       lastPointerRef.current = null;
 
@@ -206,11 +212,21 @@ export function useInteractionHandlers(
           err,
         );
       }
-
-      bumpRenderActivity();
     },
-    [bumpRenderActivity, viewportRef],
+    [viewportRef, setCursor, setGlobalCursor],
   );
+
+  const handlePointerEnter = useCallback(() => {
+    isHoveringRef.current = true;
+    if (isDraggingRef.current) return;
+    setCursor("grab");
+  }, [setCursor]);
+
+  const handlePointerLeave = useCallback(() => {
+    isHoveringRef.current = false;
+    if (isDraggingRef.current) return;
+    setCursor("");
+  }, [setCursor]);
 
   useEffect(() => {
     const viewer = viewportRef.current;
@@ -221,20 +237,32 @@ export function useInteractionHandlers(
     viewer.addEventListener("pointerdown", handlePointerDown);
     viewer.addEventListener("pointermove", handlePointerMove);
     viewer.addEventListener("pointerup", handlePointerUp);
-    viewer.addEventListener("pointerleave", handlePointerUp);
     viewer.addEventListener("pointercancel", handlePointerUp);
+    viewer.addEventListener("pointerenter", handlePointerEnter);
+    viewer.addEventListener("pointerleave", handlePointerLeave);
 
     return () => {
       viewer.removeEventListener("wheel", handleWheel);
       viewer.removeEventListener("pointerdown", handlePointerDown);
       viewer.removeEventListener("pointermove", handlePointerMove);
       viewer.removeEventListener("pointerup", handlePointerUp);
-      viewer.removeEventListener("pointerleave", handlePointerUp);
       viewer.removeEventListener("pointercancel", handlePointerUp);
-
-      if (idleTimeoutRef.current !== null) {
-        clearTimeout(idleTimeoutRef.current);
-      }
+      viewer.removeEventListener("pointerenter", handlePointerEnter);
+      viewer.removeEventListener("pointerleave", handlePointerLeave);
     };
-  }, [handleWheel, handlePointerDown, handlePointerMove, handlePointerUp]);
+  }, [
+    handleWheel,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerEnter,
+    handlePointerLeave,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      viewportRef.current?.style.removeProperty("cursor");
+      document.body.classList.remove("cursor-grabbing");
+    };
+  }, [viewportRef]);
 }

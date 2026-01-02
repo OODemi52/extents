@@ -34,7 +34,13 @@ export function InteractionViewport() {
 
   useViewportSync(viewportRef, preview, imagePath, scale, offsetX, offsetY);
 
-  useInteractionHandlers(viewportRef, scale, offsetX, offsetY);
+  useInteractionHandlers(
+    viewportRef,
+    scale,
+    offsetX,
+    offsetY,
+    Boolean(imagePath),
+  );
 
   const showEmptyState = !imagePath && !isLoading && !isPreviewLoading;
   const showFilteredEmpty =

@@ -8,6 +8,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+body.cursor-grabbing,
+body.cursor-grabbing * {
+  cursor: grabbing !important;
+}
+
 html,
 body,
 .bg-background {
