@@ -1,11 +1,14 @@
 use std::path::PathBuf;
 
+use image::ImageReader;
 use log::{error, info};
 use serde::Serialize;
 use tauri::Manager;
 
 use crate::core::cache::manager::{CacheManager, CacheType};
-use crate::core::image::{get_or_create_preview, get_or_create_thumbnail, PreviewInfo};
+use crate::core::image::{
+    compute_histogram, get_or_create_preview, get_or_create_thumbnail, Histogram, PreviewInfo,
+};
 
 #[tauri::command]
 pub async fn get_thumbnail(path: String, app_handle: tauri::AppHandle) -> Result<String, String> {
@@ -40,6 +43,23 @@ pub async fn prepare_preview(
         width,
         height,
     })
+}
+
+#[tauri::command]
+pub async fn get_histogram(
+    path: String,
+    app_handle: tauri::AppHandle,
+) -> Result<Histogram, String> {
+    let cache_manager = app_handle.state::<CacheManager>();
+    let PreviewInfo { path: cached, .. } = get_or_create_preview(&cache_manager, &path).await?;
+
+    let image = ImageReader::open(&cached)
+        .map_err(|error| format!("Failed to open preview: {}", error))?
+        .decode()
+        .map_err(|error| format!("Failed to decode preview: {}", error))?
+        .to_rgba8();
+
+    Ok(compute_histogram(&image))
 }
 
 #[tauri::command]

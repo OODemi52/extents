@@ -70,6 +70,7 @@ pub fn run() {
             commands::image::get_thumbnail,
             commands::image::prepare_preview,
             commands::image::prefetch_thumbnails,
+            commands::image::get_histogram,
             // WGPU Renderer Commands
             commands::renderer::init_renderer,
             commands::renderer::load_image,
