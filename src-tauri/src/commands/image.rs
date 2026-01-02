@@ -70,21 +70,47 @@ pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> 
 
     let base_cache_path = cache_manager.base_cache_path.clone();
     let thumbnail_pool = cache_manager.thumbnail_pool();
+    let inflight_thumbnail_generation_map = cache_manager.inflight_thumbnail_generation_map();
 
     let cache_subdirectory = base_cache_path.join(CacheType::Thumbnail.sub_directory());
 
     std::thread::spawn(move || {
         thumbnail_pool.install(|| {
             use rayon::prelude::*;
+            use tokio::sync::watch;
 
             paths.par_iter().for_each(|path| {
                 match get_cache_path_direct(path, &cache_subdirectory) {
                     Ok(cache_path) => {
                         if !cache_path.exists() {
+                            let inflight_sender = {
+                                let mut map = match inflight_thumbnail_generation_map.lock() {
+                                    Ok(guard) => guard,
+                                    Err(_) => {
+                                        error!("Failed to lock inflight thumbnail map");
+                                        return;
+                                    }
+                                };
+
+                                if map.contains_key(&cache_path) {
+                                    return;
+                                }
+
+                                let (sender, _receiver) = watch::channel(false);
+                                map.insert(cache_path.clone(), sender.clone());
+                                sender
+                            };
+
                             if let Err(error) =
                                 crate::core::cache::generator::generate_thumbnail(path, &cache_path)
                             {
                                 error!("Prefetch failed for {}: {}", path, error);
+                            }
+
+                            let _ = inflight_sender.send(true);
+
+                            if let Ok(mut map) = inflight_thumbnail_generation_map.lock() {
+                                map.remove(&cache_path);
                             }
                         }
                     }

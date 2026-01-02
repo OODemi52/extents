@@ -1,10 +1,12 @@
 use rayon::ThreadPool;
 use rayon::ThreadPoolBuilder;
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use tauri::Manager;
+use tokio::sync::watch;
 
 #[derive(Clone, Copy)]
 pub enum CacheType {
@@ -26,6 +28,7 @@ pub struct CacheManager {
     thumbnail_pool: Arc<ThreadPool>,
     preview_pool: Arc<ThreadPool>,
     metadata_pool: Arc<ThreadPool>,
+    inflight_thumbnail_generation_map: Arc<Mutex<HashMap<PathBuf, watch::Sender<bool>>>>,
 }
 
 impl CacheManager {
@@ -76,6 +79,7 @@ impl CacheManager {
             thumbnail_pool: Arc::new(thumbnail_pool),
             preview_pool: Arc::new(preview_pool),
             metadata_pool: Arc::new(metadata_pool),
+            inflight_thumbnail_generation_map: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -130,5 +134,11 @@ impl CacheManager {
 
     pub fn metadata_pool(&self) -> Arc<ThreadPool> {
         Arc::clone(&self.metadata_pool)
+    }
+
+    pub fn inflight_thumbnail_generation_map(
+        &self,
+    ) -> Arc<Mutex<HashMap<PathBuf, watch::Sender<bool>>>> {
+        Arc::clone(&self.inflight_thumbnail_generation_map)
     }
 }
