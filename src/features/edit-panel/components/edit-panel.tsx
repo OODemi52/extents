@@ -7,6 +7,7 @@ import { GeometryPanel } from "@/features/edit-panel/geometry/components/geometr
 import { RetouchPanel } from "@/features/edit-panel/retouch/components/retouch-panel";
 import { AiPanel } from "@/features/edit-panel/ai/components/ai-panel";
 import { PresetsPanel } from "@/features/edit-panel/presets/components/presets-panel";
+import { Histogram } from "@/features/histogram/components/histogram";
 import { useLayoutStore } from "@/store/layout-store";
 
 export function EditPanel() {
@@ -35,8 +36,8 @@ export function EditPanel() {
 
   return (
     <aside className="h-full bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col p-2">
-      <Card className="w-full h-32 mb-2 bg-zinc-800 text-center flex-shrink-0">
-        Histogram Place Holder
+      <Card className="w-full h-32 mb-2 bg-zinc-800 flex-shrink-0 p-2">
+        <Histogram />
       </Card>
 
       <div className="flex-1 overflow-y-auto rounded-xl bg-transparent min-h-0">

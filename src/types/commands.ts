@@ -1,5 +1,6 @@
 import { FileAnnotation, FlagEntry, RatingEntry } from "./file-annotations";
 import { ImageExifEntry } from "./exif";
+import { HistogramData } from "./histogram";
 import { TreeNode } from "./file-system";
 
 export interface CommandArgs {
@@ -8,6 +9,7 @@ export interface CommandArgs {
   get_thumbnail: { path: string };
   prefetch_thumbnails: { paths: string[] };
   prepare_preview: { path: string };
+  get_histogram: { path: string };
   start_folder_scan: { folderPath: string };
   init_renderer: null;
   resize_surface: { width: number; height: number };
@@ -37,6 +39,7 @@ export interface CommandReturn {
   get_thumbnail: string;
   prefetch_thumbnails: void;
   prepare_preview: { path: string; width: number; height: number };
+  get_histogram: HistogramData;
   start_folder_scan: void;
   init_renderer: void;
   resize_surface: void;
