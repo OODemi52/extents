@@ -31,41 +31,41 @@ export function DetailLayout() {
           >
             <Allotment.Pane minSize={MAIN_MIN_WIDTH}>
               <div className="h-full">
-                {panels.filmstrip ? (
-                  <Allotment
-                    vertical
-                    proportionalLayout={false}
-                    separator={false}
-                    onDragEnd={(sizes) => {
-                      if (sizes[1] !== undefined) {
-                        setFilmstripHeight(sizes[1]);
-                      }
-                    }}
+                <Allotment
+                  vertical
+                  proportionalLayout={false}
+                  separator={false}
+                  onDragEnd={(sizes) => {
+                    if (sizes[1] !== undefined) {
+                      setFilmstripHeight(sizes[1]);
+                    }
+                  }}
+                >
+                  <Allotment.Pane minSize={240}>
+                    <InteractionViewport />
+                  </Allotment.Pane>
+                  <Allotment.Pane
+                    maxSize={FILMSTRIP_MAX_HEIGHT}
+                    minSize={FILMSTRIP_MIN_HEIGHT}
+                    preferredSize={filmstripHeight || FILMSTRIP_DEFAULT_HEIGHT}
                   >
-                    <Allotment.Pane minSize={240}>
-                      <InteractionViewport />
-                    </Allotment.Pane>
-                    <Allotment.Pane
-                      maxSize={FILMSTRIP_MAX_HEIGHT}
-                      minSize={FILMSTRIP_MIN_HEIGHT}
-                      preferredSize={
-                        filmstripHeight || FILMSTRIP_DEFAULT_HEIGHT
+                    <motion.div
+                      animate={{
+                        y: panels.filmstrip ? 0 : 12,
+                        opacity: panels.filmstrip ? 1 : 0,
+                      }}
+                      className={
+                        panels.filmstrip
+                          ? "h-full"
+                          : "h-full pointer-events-none"
                       }
+                      initial={false}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
                     >
-                      <motion.div
-                        animate={{ y: 0, opacity: 1 }}
-                        className="h-full"
-                        exit={{ y: 40, opacity: 0 }}
-                        initial={{ y: 40, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                      >
-                        <Filmstrip />
-                      </motion.div>
-                    </Allotment.Pane>
-                  </Allotment>
-                ) : (
-                  <InteractionViewport />
-                )}
+                      <Filmstrip />
+                    </motion.div>
+                  </Allotment.Pane>
+                </Allotment>
               </div>
             </Allotment.Pane>
 

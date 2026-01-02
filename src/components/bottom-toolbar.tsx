@@ -1,6 +1,7 @@
 import {
   SidebarSimpleIcon,
   InfoIcon,
+  FilmStripIcon,
   SlidersIcon,
   CropIcon,
   EraserIcon,
@@ -94,6 +95,14 @@ export function BottomToolbar() {
             tooltip="File Browser"
             onPress={() => togglePanel("sidebar")}
           />
+          {isDetailLayout && selectionCount > 0 ? (
+            <ToolbarIconButton
+              icon={<FilmStripIcon size={16} />}
+              isActive={panels.filmstrip}
+              tooltip="Filmstrip"
+              onPress={() => togglePanel("filmstrip")}
+            />
+          ) : null}
           <Tabs
             aria-label="View selector"
             classNames={{
