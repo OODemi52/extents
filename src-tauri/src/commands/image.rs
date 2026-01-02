@@ -69,28 +69,31 @@ pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> 
     let cache_manager = app_handle.state::<CacheManager>();
 
     let base_cache_path = cache_manager.base_cache_path.clone();
+    let thumbnail_pool = cache_manager.thumbnail_pool();
 
     let cache_subdirectory = base_cache_path.join(CacheType::Thumbnail.sub_directory());
 
     std::thread::spawn(move || {
-        use rayon::prelude::*;
+        thumbnail_pool.install(|| {
+            use rayon::prelude::*;
 
-        paths.par_iter().for_each(
-            |path| match get_cache_path_direct(path, &cache_subdirectory) {
-                Ok(cache_path) => {
-                    if !cache_path.exists() {
-                        if let Err(error) =
-                            crate::core::cache::generator::generate_thumbnail(path, &cache_path)
-                        {
-                            error!("Prefetch failed for {}: {}", path, error);
+            paths.par_iter().for_each(|path| {
+                match get_cache_path_direct(path, &cache_subdirectory) {
+                    Ok(cache_path) => {
+                        if !cache_path.exists() {
+                            if let Err(error) =
+                                crate::core::cache::generator::generate_thumbnail(path, &cache_path)
+                            {
+                                error!("Prefetch failed for {}: {}", path, error);
+                            }
                         }
                     }
+                    Err(error) => {
+                        error!("Failed to get cache path for {}: {}", path, error);
+                    }
                 }
-                Err(error) => {
-                    error!("Failed to get cache path for {}: {}", path, error);
-                }
-            },
-        );
+            });
+        });
 
         info!("Prefetch complete");
     });
