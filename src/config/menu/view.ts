@@ -542,8 +542,15 @@ export async function createViewSubmenu() {
   const filmstrip = await CheckMenuItem.new({
     id: "view.filmstrip",
     text: "Filmstrip",
-    enabled: false,
+    checked: useLayoutStore.getState().panels.filmstrip,
     accelerator: "Slash",
+    action: () => {
+      const { panels, togglePanel } = useLayoutStore.getState();
+      const nextValue = !panels.filmstrip;
+
+      togglePanel("filmstrip");
+      void filmstrip.setChecked(nextValue);
+    },
   });
 
   const zoomIn = await MenuItem.new({
