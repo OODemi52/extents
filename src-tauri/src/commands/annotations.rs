@@ -1,5 +1,5 @@
 use crate::core::db::annotations::{
-    get_annotation_values, set_flag_values, set_rating_values, FlagEntry, ImageMetadataRow,
+    get_annotation_values, set_flag_values, set_rating_values, FlagEntry, ImageAnnotationEntry,
     RatingEntry,
 };
 use crate::state::AppState;
@@ -23,7 +23,7 @@ pub fn set_flags(entries: Vec<FlagEntry>, state: State<AppState>) -> Result<(), 
 pub fn get_annotations(
     paths: Vec<String>,
     state: State<AppState>,
-) -> Result<Vec<ImageMetadataRow>, String> {
+) -> Result<Vec<ImageAnnotationEntry>, String> {
     let connection = state.db.connection.lock().map_err(|e| e.to_string())?;
 
     get_annotation_values(&connection, &paths).map_err(|e| e.to_string())

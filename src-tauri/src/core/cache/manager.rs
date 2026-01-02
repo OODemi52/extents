@@ -25,6 +25,7 @@ pub struct CacheManager {
     pub base_cache_path: PathBuf,
     thumbnail_pool: Arc<ThreadPool>,
     preview_pool: Arc<ThreadPool>,
+    metadata_pool: Arc<ThreadPool>,
 }
 
 impl CacheManager {
@@ -34,13 +35,15 @@ impl CacheManager {
             .app_cache_dir()
             .expect("App cache directory not found");
 
-        let pool_size = std::thread::available_parallelism()
+        let generated_image_pool_size = std::thread::available_parallelism()
             .map(|nonzero_value| (nonzero_value.get() * 3 / 4).max(2).min(8))
             .unwrap_or(4);
 
+        let metadata_pool_size = (generated_image_pool_size / 2).max(1).min(2);
+
         let thumbnail_pool = ThreadPoolBuilder::new()
             .thread_name(|index| format!("thumbnail-{}", index))
-            .num_threads(pool_size)
+            .num_threads(generated_image_pool_size)
             .build()
             .unwrap_or_else(|_| {
                 ThreadPoolBuilder::new()
@@ -50,7 +53,17 @@ impl CacheManager {
 
         let preview_pool = ThreadPoolBuilder::new()
             .thread_name(|index| format!("preview-{}", index))
-            .num_threads(pool_size)
+            .num_threads(generated_image_pool_size)
+            .build()
+            .unwrap_or_else(|_| {
+                ThreadPoolBuilder::new()
+                    .build()
+                    .expect("Failed to build thread pool")
+            });
+
+        let metadata_pool = ThreadPoolBuilder::new()
+            .thread_name(|index| format!("metadata-{}", index))
+            .num_threads(metadata_pool_size)
             .build()
             .unwrap_or_else(|_| {
                 ThreadPoolBuilder::new()
@@ -62,6 +75,7 @@ impl CacheManager {
             base_cache_path,
             thumbnail_pool: Arc::new(thumbnail_pool),
             preview_pool: Arc::new(preview_pool),
+            metadata_pool: Arc::new(metadata_pool),
         }
     }
 
@@ -112,5 +126,9 @@ impl CacheManager {
 
     pub fn preview_pool(&self) -> Arc<ThreadPool> {
         Arc::clone(&self.preview_pool)
+    }
+
+    pub fn metadata_pool(&self) -> Arc<ThreadPool> {
+        Arc::clone(&self.metadata_pool)
     }
 }

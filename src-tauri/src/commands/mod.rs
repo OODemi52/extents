@@ -1,4 +1,5 @@
 pub mod annotations;
+pub mod exif;
 pub mod file;
 pub mod image;
 pub mod logging;

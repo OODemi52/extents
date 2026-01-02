@@ -84,6 +84,8 @@ pub fn run() {
             commands::annotations::set_ratings,
             commands::annotations::set_flags,
             commands::annotations::get_annotations,
+            // Exif Commands
+            commands::exif::get_exif_metadata,
         ])
         // Running the application
         .run(tauri::generate_context!())

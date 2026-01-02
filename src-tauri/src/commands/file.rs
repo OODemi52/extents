@@ -1,8 +1,12 @@
 use anyhow::anyhow;
 use base64::{engine::general_purpose, Engine as _};
-use image::{self, imageops, GenericImageView};
 use std::path::PathBuf;
 use tauri::Emitter;
+use tauri::Manager;
+
+use crate::core::cache::manager::CacheManager;
+use crate::core::db::exif::refresh_exif_entries;
+use crate::state::AppState;
 
 #[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -60,6 +64,7 @@ pub fn start_folder_scan(folder_path: String, app_handle: tauri::AppHandle) -> R
     tauri::async_runtime::spawn(async move {
         let result = tauri::async_runtime::spawn_blocking(move || -> Result<(), anyhow::Error> {
             let mut batch: Vec<ImageMetadata> = Vec::with_capacity(SCAN_BATCH_SIZE);
+            let mut exif_paths: Vec<String> = Vec::new();
             let entries = std::fs::read_dir(&scan_path)
                 .map_err(|e| anyhow!("Failed to read directory {}: {}", scan_path.display(), e))?;
             let mut processed = 0usize;
@@ -91,6 +96,7 @@ pub fn start_folder_scan(folder_path: String, app_handle: tauri::AppHandle) -> R
                     file_size,
                     file_name,
                 });
+                exif_paths.push(path.to_string_lossy().to_string());
                 processed += 1;
 
                 if batch.len() >= SCAN_BATCH_SIZE {
@@ -114,6 +120,20 @@ pub fn start_folder_scan(folder_path: String, app_handle: tauri::AppHandle) -> R
                 folder_path,
                 processed
             );
+
+            if !exif_paths.is_empty() {
+                let app_state = app_handle.state::<AppState>();
+                let cache_manager = app_handle.state::<CacheManager>();
+                let db = app_state.db.clone();
+
+                let metadata_pool = cache_manager.metadata_pool();
+
+                metadata_pool.spawn(move || {
+                    if let Err(error) = refresh_exif_entries(&db, &exif_paths) {
+                        log::warn!("[exif] prefetch failed: {}", error);
+                    }
+                });
+            }
 
             Ok(())
         })
