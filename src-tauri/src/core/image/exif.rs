@@ -4,7 +4,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use exif::{In, Reader, Tag, Value};
-use rawler::decoders::RawDecodeParams;
+use rawler::decoders::{Decoder, RawDecodeParams};
 use rawler::formats::tiff::{Rational, SRational};
 use rawler::rawsource::RawSource;
 
@@ -94,9 +94,14 @@ fn extract_raw_exif_metadata(path: &str) -> Result<ExifMetadata> {
         exif.gps_alt = gps_altitude_to_decimal(gps.gps_altitude_ref, gps.gps_altitude.as_ref());
     }
 
-    if let Some((width, height)) = read_dimensions_from_exif_path(path) {
-        exif.width = Some(width);
-        exif.height = Some(height);
+    if exif.width.is_none() || exif.height.is_none() {
+        if let Some((width, height)) = read_raw_dimensions(&raw_file, decoder.as_ref()) {
+            exif.width = Some(width);
+            exif.height = Some(height);
+        } else if let Some((width, height)) = read_dimensions_from_exif_path(path) {
+            exif.width = Some(width);
+            exif.height = Some(height);
+        }
     }
 
     Ok(exif)
@@ -171,6 +176,14 @@ fn read_dimensions_from_exif_path(path: &str) -> Option<(u32, u32)> {
         Ok(dimensions) => Some((dimensions.width as u32, dimensions.height as u32)),
         Err(_) => None,
     }
+}
+
+fn read_raw_dimensions(rawfile: &RawSource, decoder: &dyn Decoder) -> Option<(u32, u32)> {
+    let raw_image = decoder
+        .raw_image(rawfile, &RawDecodeParams::default(), true)
+        .ok()?;
+
+    Some((raw_image.width as u32, raw_image.height as u32))
 }
 
 fn read_exif_string(exif: &exif::Exif, tag: Tag) -> Option<String> {
