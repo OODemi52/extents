@@ -71,6 +71,10 @@ export async function createViewSubmenu() {
         return;
       }
 
+      if (panels.infoPanel) {
+        togglePanel("infoPanel");
+      }
+
       setActiveEditTab("presets");
       if (!panels.editPanel) {
         togglePanel("editPanel");
@@ -102,6 +106,10 @@ export async function createViewSubmenu() {
         return;
       }
 
+      if (panels.infoPanel) {
+        togglePanel("infoPanel");
+      }
+
       if (!panels.editPanel) {
         togglePanel("editPanel");
       }
@@ -114,7 +122,13 @@ export async function createViewSubmenu() {
     id: "view.info",
     text: "Info",
     accelerator: "I",
-    action: (id) => setExclusiveChecked(panelGroup, id),
+    action: (id) => {
+      const { panels, togglePanel } = useLayoutStore.getState();
+      const willOpen = !panels.infoPanel;
+
+      togglePanel("infoPanel");
+      setExclusiveChecked(panelGroup, willOpen ? id : null);
+    },
   });
 
   const keywords = await CheckMenuItem.new({
