@@ -71,6 +71,7 @@ pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> 
     let base_cache_path = cache_manager.base_cache_path.clone();
     let thumbnail_pool = cache_manager.thumbnail_pool();
     let inflight_thumbnail_generation_map = cache_manager.inflight_thumbnail_generation_map();
+    let raw_prefetch_limiter = cache_manager.raw_prefetch_limiter();
 
     let cache_subdirectory = base_cache_path.join(CacheType::Thumbnail.sub_directory());
 
@@ -80,6 +81,7 @@ pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> 
             use tokio::sync::watch;
 
             paths.par_iter().for_each(|path| {
+                let raw_prefetch_limiter = raw_prefetch_limiter.clone();
                 match get_cache_path_direct(path, &cache_subdirectory) {
                     Ok(cache_path) => {
                         if !cache_path.exists() {
@@ -102,7 +104,11 @@ pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> 
                             };
 
                             if let Err(error) =
-                                crate::core::cache::generator::generate_thumbnail(path, &cache_path)
+                                crate::core::cache::generator::generate_thumbnail_prefetch(
+                                    path,
+                                    &cache_path,
+                                    raw_prefetch_limiter,
+                                )
                             {
                                 error!("Prefetch failed for {}: {}", path, error);
                             }

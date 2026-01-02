@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use tauri::Manager;
-use tokio::sync::watch;
+use tokio::sync::{watch, Semaphore};
 
 #[derive(Clone, Copy)]
 pub enum CacheType {
@@ -29,6 +29,7 @@ pub struct CacheManager {
     preview_pool: Arc<ThreadPool>,
     metadata_pool: Arc<ThreadPool>,
     inflight_thumbnail_generation_map: Arc<Mutex<HashMap<PathBuf, watch::Sender<bool>>>>,
+    raw_prefetch_limiter: Arc<Semaphore>,
 }
 
 impl CacheManager {
@@ -80,6 +81,11 @@ impl CacheManager {
             preview_pool: Arc::new(preview_pool),
             metadata_pool: Arc::new(metadata_pool),
             inflight_thumbnail_generation_map: Arc::new(Mutex::new(HashMap::new())),
+            raw_prefetch_limiter: Arc::new(Semaphore::new(
+                std::thread::available_parallelism()
+                    .map(|count| (count.get() / 4).max(1).min(2))
+                    .unwrap_or(1),
+            )),
         }
     }
 
@@ -140,5 +146,9 @@ impl CacheManager {
         &self,
     ) -> Arc<Mutex<HashMap<PathBuf, watch::Sender<bool>>>> {
         Arc::clone(&self.inflight_thumbnail_generation_map)
+    }
+
+    pub fn raw_prefetch_limiter(&self) -> Arc<Semaphore> {
+        Arc::clone(&self.raw_prefetch_limiter)
     }
 }

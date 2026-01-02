@@ -6,8 +6,8 @@ pub mod preview;
 pub mod thumbnail;
 
 pub use decode::{
-    decode_derived_image, decode_derived_image_buffer, decode_full_image,
-    is_supported_raw_extension, EmbeddedPreviewPolicy,
+    decode_derived_image, decode_derived_image_buffer, decode_derived_image_prefetch,
+    decode_full_image, is_supported_raw_extension, EmbeddedPreviewPolicy,
 };
 pub use exif::{extract_exif_metadata, ExifMetadata};
 pub use histogram::{compute_histogram, Histogram};

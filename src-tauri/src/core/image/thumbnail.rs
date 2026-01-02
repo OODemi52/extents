@@ -31,25 +31,7 @@ pub async fn get_or_create_thumbnail(
 
     let inflight = cache_manager.inflight_thumbnail_generation_map();
 
-    let (inflight_sender, mut inflight_receiver, should_generate) = {
-        let mut map = inflight
-            .lock()
-            .map_err(|_| "Thumbnail inflight lock error")?;
-
-        if let Some(existing) = map.get(&cache_path) {
-            (existing.clone(), existing.subscribe(), false)
-        } else {
-            let (sender, receiver) = watch::channel(false);
-            map.insert(cache_path.clone(), sender.clone());
-            (sender, receiver, true)
-        }
-    };
-
-    if !should_generate {
-        if !*inflight_receiver.borrow() {
-            let _ = inflight_receiver.changed().await;
-        }
-
+    let inflight_sender = loop {
         if cache_path.exists() {
             let (width, height) = image_dimensions(&cache_path)
                 .map_err(|error| format!("Thumbnail dimensions error: {error}"))?;
@@ -61,8 +43,28 @@ pub async fn get_or_create_thumbnail(
             });
         }
 
-        return Err("Thumbnail generation failed".to_string());
-    }
+        let (inflight_sender, mut inflight_receiver, should_generate) = {
+            let mut map = inflight
+                .lock()
+                .map_err(|_| "Thumbnail inflight lock error")?;
+
+            if let Some(existing) = map.get(&cache_path) {
+                (existing.clone(), existing.subscribe(), false)
+            } else {
+                let (sender, receiver) = watch::channel(false);
+                map.insert(cache_path.clone(), sender.clone());
+                (sender, receiver, true)
+            }
+        };
+
+        if should_generate {
+            break inflight_sender;
+        }
+
+        if !*inflight_receiver.borrow() {
+            let _ = inflight_receiver.changed().await;
+        }
+    };
 
     let pool = cache_manager.thumbnail_pool();
 
