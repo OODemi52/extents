@@ -59,6 +59,9 @@ export function BottomToolbar() {
       if (!panels.editPanel) {
         togglePanel("editPanel");
       }
+      if (panels.infoPanel) {
+        togglePanel("infoPanel");
+      }
     }
   };
 

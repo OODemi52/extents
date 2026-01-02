@@ -17,9 +17,11 @@ import {
 import { TitleBar } from "./components/title-bar";
 import { useFolderScanner } from "./hooks/use-folder-scanner";
 import { useAnnotations } from "./hooks/use-annotations";
+import { useExifMetadata } from "./hooks/use-exif-metadata";
 
 function App() {
   useAnnotations();
+  useExifMetadata();
   const {
     activeLayout,
     panels,

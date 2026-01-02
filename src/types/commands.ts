@@ -1,4 +1,5 @@
 import { FileAnnotation, FlagEntry, RatingEntry } from "./file-annotations";
+import { ImageExifEntry } from "./exif";
 import { TreeNode } from "./file-system";
 
 export interface CommandArgs {
@@ -27,6 +28,7 @@ export interface CommandArgs {
   set_ratings: { entries: RatingEntry[] };
   set_flags: { entries: FlagEntry[] };
   get_annotations: { paths: string[] };
+  get_exif_metadata: { paths: string[] };
 }
 
 export interface CommandReturn {
@@ -48,4 +50,5 @@ export interface CommandReturn {
   set_ratings: void;
   set_flags: void;
   get_annotations: FileAnnotation[];
+  get_exif_metadata: ImageExifEntry[];
 }
