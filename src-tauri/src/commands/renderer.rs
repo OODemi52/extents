@@ -152,6 +152,40 @@ fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
 }
 
 #[tauri::command]
+pub async fn swap_requested_texture(
+    path: String,
+    request_id: u64,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let renderer_handle = state.renderer.clone();
+
+    let decode_result =
+        async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
+
+    match decode_result {
+        Ok(Ok((raw, width, height))) => {
+            let mut renderer_lock = renderer_handle.lock().unwrap();
+            if let Some(renderer) = renderer_lock.as_mut() {
+                if renderer.is_request_active(request_id) {
+                    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
+
+                    renderer.display_checkboard(has_alpha);
+                    renderer.update_texture(&raw, width, height);
+                    renderer.render();
+                }
+            }
+
+            Ok(())
+        }
+        Ok(Err(err)) => Err(err.to_string()),
+        Err(join_err) => Err(format!(
+            "Proxy texture decode task panicked: {:?}",
+            join_err
+        )),
+    }
+}
+
+#[tauri::command]
 pub fn update_viewport(x: f32, y: f32, width: f32, height: f32, state: State<AppState>) {
     let mut renderer_lock = state.renderer.lock().unwrap();
 
