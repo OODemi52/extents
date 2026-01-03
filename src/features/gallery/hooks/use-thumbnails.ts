@@ -1,8 +1,10 @@
+import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchThumbnail } from "../thumbnail/fetch-thumbnail";
 
 import { api } from "@/services/api";
+import { useImageStore } from "@/store/image-store";
 
 export function useThumbnailQuery(imagePath: string) {
   const query = useQuery({
@@ -33,12 +35,31 @@ export function useClearThumbnailCache() {
 }
 
 export function usePrefetchThumbnails() {
+  const prefetchedPathsRef = useRef<Set<string>>(new Set());
+  const currentFolderPath = useImageStore((state) => state.currentFolderPath);
+
+  useEffect(() => {
+    prefetchedPathsRef.current.clear();
+  }, [currentFolderPath]);
+
   return (imagePaths: string | string[]) => {
     const paths = Array.isArray(imagePaths) ? imagePaths : [imagePaths];
 
     if (!paths.length) return;
 
-    api.thumbnails.prefetch(paths).catch((error) => {
+    const prefetchedPaths = prefetchedPathsRef.current;
+    const nextPaths = paths.filter((path) => {
+      if (prefetchedPaths.has(path)) {
+        return false;
+      }
+
+      prefetchedPaths.add(path);
+      return true;
+    });
+
+    if (!nextPaths.length) return;
+
+    api.thumbnails.prefetch(nextPaths).catch((error) => {
       console.error("[usePrefetchThumbnails] batch prefetch failed:", error);
     });
   };
