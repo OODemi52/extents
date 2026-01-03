@@ -47,7 +47,7 @@ pub fn load_image(
     viewport_width: u32,
     viewport_height: u32,
     state: State<AppState>,
-) {
+) -> Result<u64, String> {
     info!("[CMD] Loading image from path: {}", path);
 
     let renderer_handle = state.renderer.clone();
@@ -77,7 +77,7 @@ pub fn load_image(
 
             request_id
         } else {
-            return;
+            return Err("Renderer not initialized".to_string());
         }
     };
 
@@ -135,6 +135,8 @@ pub fn load_image(
     if let Some(renderer) = renderer_lock.as_mut() {
         renderer.attach_load_handle(request_id, join_handle);
     }
+
+    Ok(request_id)
 }
 
 fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
