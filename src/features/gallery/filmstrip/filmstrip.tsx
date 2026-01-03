@@ -1,6 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useEffect, useMemo, useState } from "react";
 
+import { useBackgroundThumbnailPrefetch } from "../hooks/use-background-thumbnail-prefetch";
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
 import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
 
@@ -30,7 +31,8 @@ export function Filmstrip() {
   const filmstripRef = useRef<HTMLDivElement>(null);
   const [itemSize, setItemSize] = useState(72);
   const lastSizeRef = useRef(itemSize);
-  const { fileMetadataList, selectedIndex } = useImageStore();
+  const { fileMetadataList, selectedIndex, currentFolderPath } =
+    useImageStore();
   const selectedPaths = useImageStore((state) => state.selectedPaths);
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
@@ -48,6 +50,7 @@ export function Filmstrip() {
   );
 
   useImageKeyboardNavigation(filteredPaths, filteredPaths.length > 0);
+  useBackgroundThumbnailPrefetch(filteredPaths, filmstripRef, true);
 
   const virtualizer = useVirtualizer({
     horizontal: true,
@@ -154,6 +157,15 @@ export function Filmstrip() {
       virtualizer.scrollToIndex(index, { align: "center" });
     }
   }, [selectedPath, filteredFiles, virtualizer]);
+
+  useEffect(() => {
+    const element = filmstripRef.current;
+
+    if (!element) return;
+
+    element.scrollLeft = 0;
+    virtualizer.scrollToOffset(0);
+  }, [currentFolderPath, virtualizer]);
 
   return (
     <div

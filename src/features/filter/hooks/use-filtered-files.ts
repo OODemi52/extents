@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useFilterStore } from "../stores/filter-store";
 
@@ -215,7 +215,7 @@ export function useFilteredPaths() {
 }
 
 export function useFilteredImages() {
-  const { fileMetadataList, selectedIndex } = useImageStore();
+  const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
   const { handleSelectImageByPath } = useImageLoader();
   const ratings = useRatingStore((state) => state.ratings);
   const flags = useFlagStore((state) => state.flags);
@@ -258,10 +258,12 @@ export function useFilteredImages() {
       sort,
     ],
   );
+  const autoSelectedPathRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!filtered.length) {
       void clearRenderer();
+      autoSelectedPathRef.current = null;
 
       return;
     }
@@ -271,13 +273,39 @@ export function useFilteredImages() {
         ? (fileMetadataList[selectedIndex]?.path ?? null)
         : null;
 
+    if (
+      currentPath &&
+      autoSelectedPathRef.current &&
+      currentPath !== autoSelectedPathRef.current
+    ) {
+      autoSelectedPathRef.current = null;
+    }
+
     const hasSelected =
       currentPath && filtered.some((file) => file.path === currentPath);
 
     if (!hasSelected) {
       handleSelectImageByPath(filtered[0].path);
+      autoSelectedPathRef.current = filtered[0].path;
+
+      return;
     }
-  }, [filtered, selectedIndex, fileMetadataList, handleSelectImageByPath]);
+
+    if (!isLoading && autoSelectedPathRef.current === currentPath) {
+      const firstPath = filtered[0].path;
+
+      if (currentPath !== firstPath) {
+        handleSelectImageByPath(firstPath);
+        autoSelectedPathRef.current = firstPath;
+      }
+    }
+  }, [
+    filtered,
+    selectedIndex,
+    fileMetadataList,
+    handleSelectImageByPath,
+    isLoading,
+  ]);
 
   return filtered;
 }

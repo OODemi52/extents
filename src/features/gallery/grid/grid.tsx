@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
+import { useBackgroundThumbnailPrefetch } from "../hooks/use-background-thumbnail-prefetch";
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
 
 import { GridItem } from "./grid-item";
@@ -50,6 +51,7 @@ export function ThumbnailGrid() {
   );
 
   useImageKeyboardNavigation(filteredPaths, filteredPaths.length > 0);
+  useBackgroundThumbnailPrefetch(filteredPaths, containerRef, hasBaseImages);
 
   const updateWidth = useCallback((width: number) => {
     const resizeStep = isSidebarResizingRef.current ? 1 : 1;
