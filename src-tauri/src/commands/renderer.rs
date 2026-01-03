@@ -3,6 +3,7 @@ use crate::renderer::{RenderState, Renderer};
 use crate::state::AppState;
 use anyhow::Result;
 use log::{error, info, warn};
+use std::sync::Arc;
 use std::time::Instant;
 use tauri::async_runtime;
 use tauri::{State, WebviewWindow};
@@ -46,6 +47,7 @@ pub fn load_image(
     viewport_y: u32,
     viewport_width: u32,
     viewport_height: u32,
+    defer_full_image_load: Option<bool>,
     state: State<AppState>,
 ) -> Result<u64, String> {
     info!("[CMD] Loading image from path: {}", path);
@@ -81,12 +83,62 @@ pub fn load_image(
         }
     };
 
-    let full_path = path.clone();
+    if !defer_full_image_load.unwrap_or(false) {
+        spawn_full_image_load(path, request_id, renderer_handle.clone());
+    }
+
+    Ok(request_id)
+}
+
+#[tauri::command]
+pub fn start_full_image_load(
+    path: String,
+    request_id: u64,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let renderer_handle = state.renderer.clone();
+
+    let should_start = {
+        let renderer_lock = renderer_handle.lock().unwrap();
+        let renderer = match renderer_lock.as_ref() {
+            Some(renderer) => renderer,
+            None => return Err("Renderer not initialized".to_string()),
+        };
+
+        renderer.is_request_active(request_id)
+    };
+
+    if !should_start {
+        return Ok(());
+    }
+
+    spawn_full_image_load(path, request_id, renderer_handle);
+
+    Ok(())
+}
+
+fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
+    let (raw, width, height) = decode_full_image(path)?;
+
+    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
+
+    renderer.display_checkboard(has_alpha);
+
+    renderer.update_texture(&raw, width, height);
+
+    Ok(())
+}
+
+fn spawn_full_image_load(
+    path: String,
+    request_id: u64,
+    renderer_handle: Arc<std::sync::Mutex<Option<Renderer<'static>>>>,
+) {
     let renderer_for_task = renderer_handle.clone();
 
     let join_handle = async_runtime::spawn(async move {
         let decode_result =
-            async_runtime::spawn_blocking(move || decode_full_image(&full_path)).await;
+            async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
 
         match decode_result {
             Ok(Ok((rgba, width, height))) => {
@@ -135,20 +187,6 @@ pub fn load_image(
     if let Some(renderer) = renderer_lock.as_mut() {
         renderer.attach_load_handle(request_id, join_handle);
     }
-
-    Ok(request_id)
-}
-
-fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
-    let (raw, width, height) = decode_full_image(path)?;
-
-    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
-
-    renderer.display_checkboard(has_alpha);
-
-    renderer.update_texture(&raw, width, height);
-
-    Ok(())
 }
 
 #[tauri::command]
