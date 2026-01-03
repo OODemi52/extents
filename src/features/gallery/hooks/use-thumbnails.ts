@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchThumbnail } from "../thumbnail/fetch-thumbnail";
@@ -6,12 +6,20 @@ import { fetchThumbnail } from "../thumbnail/fetch-thumbnail";
 import { api } from "@/services/api";
 import { useImageStore } from "@/store/image-store";
 
+const THUMBNAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+const PREFETCH_FLUSH_DELAY_MS = 50;
+
+let activeFolderPath: string | null = null;
+const prefetchedPaths = new Set<string>();
+const pendingPrefetchPaths = new Set<string>();
+let prefetchTimer: number | null = null;
+
 export function useThumbnailQuery(imagePath: string) {
   const query = useQuery({
     queryKey: ["thumbnail", imagePath],
     queryFn: () => fetchThumbnail(imagePath),
     staleTime: Infinity,
-    gcTime: Infinity,
+    gcTime: THUMBNAIL_CACHE_TTL_MS,
     refetchOnWindowFocus: false,
   });
 
@@ -35,11 +43,18 @@ export function useClearThumbnailCache() {
 }
 
 export function usePrefetchThumbnails() {
-  const prefetchedPathsRef = useRef<Set<string>>(new Set());
   const currentFolderPath = useImageStore((state) => state.currentFolderPath);
 
   useEffect(() => {
-    prefetchedPathsRef.current.clear();
+    if (activeFolderPath !== currentFolderPath) {
+      activeFolderPath = currentFolderPath;
+      prefetchedPaths.clear();
+      pendingPrefetchPaths.clear();
+      if (prefetchTimer !== null) {
+        clearTimeout(prefetchTimer);
+        prefetchTimer = null;
+      }
+    }
   }, [currentFolderPath]);
 
   return (imagePaths: string | string[]) => {
@@ -47,7 +62,6 @@ export function usePrefetchThumbnails() {
 
     if (!paths.length) return;
 
-    const prefetchedPaths = prefetchedPathsRef.current;
     const nextPaths = paths.filter((path) => {
       if (prefetchedPaths.has(path)) {
         return false;
@@ -60,8 +74,22 @@ export function usePrefetchThumbnails() {
 
     if (!nextPaths.length) return;
 
-    api.thumbnails.prefetch(nextPaths).catch((error) => {
-      console.error("[usePrefetchThumbnails] batch prefetch failed:", error);
-    });
+    nextPaths.forEach((path) => pendingPrefetchPaths.add(path));
+
+    if (prefetchTimer !== null) return;
+
+    prefetchTimer = window.setTimeout(() => {
+      prefetchTimer = null;
+
+      if (!pendingPrefetchPaths.size) return;
+
+      const pendingPaths = Array.from(pendingPrefetchPaths);
+
+      pendingPrefetchPaths.clear();
+
+      api.thumbnails.prefetch(pendingPaths).catch((error) => {
+        console.error("[usePrefetchThumbnails] batch prefetch failed:", error);
+      });
+    }, PREFETCH_FLUSH_DELAY_MS);
   };
 }

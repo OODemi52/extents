@@ -5,7 +5,6 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { useImageStore } from "@/store/image-store";
 import { ImageMetadata } from "@/types/image";
 import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
-import { useClearThumbnailCache } from "@/features/gallery/hooks/use-thumbnails";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { api } from "@/services/api";
 
@@ -19,19 +18,53 @@ export function useFolderScanner() {
     setIsLoading,
   } = useImageStore();
 
-  const clearThumbnailCache = useClearThumbnailCache();
-
   const scanListenersRef = useRef<{
     batch?: UnlistenFn;
     complete?: UnlistenFn;
     error?: UnlistenFn;
   }>({});
+  const pendingBatchRef = useRef<ImageMetadata[]>([]);
+  const flushFrameRef = useRef<number | null>(null);
+
+  const scheduleBatchFlush = useCallback(() => {
+    if (flushFrameRef.current !== null) return;
+
+    flushFrameRef.current = window.requestAnimationFrame(() => {
+      flushFrameRef.current = null;
+
+      if (!pendingBatchRef.current.length) return;
+
+      const payload = pendingBatchRef.current;
+
+      pendingBatchRef.current = [];
+      appendFileMetadataList(payload);
+    });
+  }, [appendFileMetadataList]);
+
+  const flushPendingBatch = useCallback(() => {
+    if (flushFrameRef.current !== null) {
+      cancelAnimationFrame(flushFrameRef.current);
+      flushFrameRef.current = null;
+    }
+
+    if (!pendingBatchRef.current.length) return;
+
+    const payload = pendingBatchRef.current;
+
+    pendingBatchRef.current = [];
+    appendFileMetadataList(payload);
+  }, [appendFileMetadataList]);
 
   const cleanupScanListeners = useCallback(() => {
     scanListenersRef.current.batch?.();
     scanListenersRef.current.complete?.();
     scanListenersRef.current.error?.();
     scanListenersRef.current = {};
+    if (flushFrameRef.current !== null) {
+      cancelAnimationFrame(flushFrameRef.current);
+      flushFrameRef.current = null;
+    }
+    pendingBatchRef.current = [];
   }, []);
 
   const lastOpenedFolderRef = useRef<string | null>(null);
@@ -63,7 +96,6 @@ export function useFolderScanner() {
       }
 
       cleanupScanListeners();
-      clearThumbnailCache();
 
       setFileMetadataList([]);
       setSelectedIndex(null);
@@ -73,12 +105,13 @@ export function useFolderScanner() {
       const batchListener = await listen<ImageMetadata[]>(
         "folder-scan-batch",
         ({ payload }) => {
-          appendFileMetadataList(payload);
+          pendingBatchRef.current.push(...payload);
+          scheduleBatchFlush();
         },
       );
 
       const completeListener = await listen("folder-scan-complete", () => {
-        console.log("Folder scan complete");
+        flushPendingBatch();
         setIsLoading(false);
         cleanupScanListeners();
       });
@@ -87,6 +120,7 @@ export function useFolderScanner() {
         "folder-scan-error",
         ({ payload }) => {
           console.error("Folder scan failed:", payload);
+          flushPendingBatch();
           setIsLoading(false);
           cleanupScanListeners();
         },
@@ -108,8 +142,9 @@ export function useFolderScanner() {
     },
     [
       appendFileMetadataList,
-      clearThumbnailCache,
       cleanupScanListeners,
+      flushPendingBatch,
+      scheduleBatchFlush,
       setCurrentFolderPath,
       setCurrentImageData,
       setFileMetadataList,
