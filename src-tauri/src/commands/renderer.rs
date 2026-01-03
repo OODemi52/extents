@@ -135,6 +135,7 @@ fn spawn_full_image_load(
     renderer_handle: Arc<std::sync::Mutex<Option<Renderer<'static>>>>,
 ) {
     let renderer_for_task = renderer_handle.clone();
+    let cloned_path_for_logging = path.clone();
 
     let join_handle = async_runtime::spawn(async move {
         let decode_result =
@@ -160,7 +161,7 @@ fn spawn_full_image_load(
             Ok(Err(err)) => {
                 error!(
                     "[CMD] Failed to decode full image {}: {}",
-                    path,
+                    cloned_path_for_logging,
                     err.to_string()
                 );
 
@@ -172,7 +173,7 @@ fn spawn_full_image_load(
             Err(join_err) => {
                 error!(
                     "[CMD] Image decode task panicked for {}: {:?}",
-                    path, join_err
+                    cloned_path_for_logging, join_err
                 );
 
                 let mut renderer_lock = renderer_for_task.lock().unwrap();

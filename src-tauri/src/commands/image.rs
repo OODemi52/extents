@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use image::ImageReader;
-use log::{error, info};
+use log::error;
 use serde::Serialize;
 use tauri::Manager;
 
