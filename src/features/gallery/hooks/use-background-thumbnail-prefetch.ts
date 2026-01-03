@@ -2,8 +2,8 @@ import { useEffect, useRef, type RefObject } from "react";
 
 import { usePrefetchThumbnails } from "./use-thumbnails";
 
-const PREFETCH_DRIP_BATCH = 60;
-const PREFETCH_DRIP_INTERVAL_MS = 1000;
+const PREFETCH_DRIP_BATCH = 25;
+const PREFETCH_DRIP_INTERVAL_MS = 1500;
 const PREFETCH_DRIP_IDLE_MS = 400;
 
 export function useBackgroundThumbnailPrefetch(
