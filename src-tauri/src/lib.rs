@@ -74,6 +74,7 @@ pub fn run() {
             // WGPU Renderer Commands
             commands::renderer::init_renderer,
             commands::renderer::load_image,
+            commands::renderer::swap_requested_texture,
             commands::renderer::update_viewport,
             commands::renderer::update_transform,
             commands::renderer::resize_surface,

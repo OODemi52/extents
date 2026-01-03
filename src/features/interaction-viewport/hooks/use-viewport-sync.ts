@@ -1,6 +1,6 @@
 import type { PreviewInfo } from "@/services/api/image";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 import { api } from "@/services/api";
 
@@ -9,12 +9,16 @@ const VIEWPORT_DEBOUNCE_MS = 100;
 export function useViewportSync(
   viewportRef: React.RefObject<HTMLDivElement>,
   preview: PreviewInfo | undefined,
+  thumbnailPath: string | null,
   imagePath: string | null,
   scale: number,
   offsetX: number,
   offsetY: number,
 ) {
   const lastLoadKeyRef = useRef<string | null>(null);
+  const lastSwapPathRef = useRef<string | null>(null);
+  const activeImagePathRef = useRef<string | null>(null);
+  const [requestId, setRequestId] = useState<number | null>(null);
   const viewportTimeoutRef = useRef<number | null>(null);
   const transformTimeoutRef = useRef<number | null>(null);
   const lastTransformRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
@@ -50,18 +54,31 @@ export function useViewportSync(
   }, [viewportRef]);
 
   useEffect(() => {
-    if (!preview || !viewportRef.current || !imagePath) return;
+    if (!viewportRef.current || !imagePath) {
+      lastLoadKeyRef.current = null;
+      lastSwapPathRef.current = null;
+      activeImagePathRef.current = null;
+      setRequestId(null);
 
-    const loadKey = `${imagePath}|${preview.path}`;
+      return;
+    }
 
-    if (lastLoadKeyRef.current === loadKey) return;
+    if (lastLoadKeyRef.current === imagePath) return;
 
-    lastLoadKeyRef.current = loadKey;
+    lastLoadKeyRef.current = imagePath;
+    lastSwapPathRef.current = null;
+    activeImagePathRef.current = imagePath;
+    setRequestId(null);
 
     const clientViewportDimensions =
       viewportRef.current.getBoundingClientRect();
 
     const devicePixelRatio = window.devicePixelRatio;
+    const proxyPath = thumbnailPath ?? preview?.path ?? null;
+
+    if (proxyPath) {
+      lastSwapPathRef.current = proxyPath;
+    }
 
     let rafId: number | null = null;
 
@@ -69,13 +86,18 @@ export function useViewportSync(
       api.renderer
         .loadImage({
           path: imagePath,
-          previewPath: preview.path,
+          previewPath: proxyPath,
           viewportX: clientViewportDimensions.x * devicePixelRatio,
           viewportY: clientViewportDimensions.y * devicePixelRatio,
           viewportWidth: clientViewportDimensions.width * devicePixelRatio,
           viewportHeight: clientViewportDimensions.height * devicePixelRatio,
         })
-        .then(() => {
+        .then((nextRequestId) => {
+          if (activeImagePathRef.current !== imagePath) {
+            return;
+          }
+
+          setRequestId(nextRequestId);
           updateViewport();
         })
         .catch((error) =>
@@ -88,45 +110,27 @@ export function useViewportSync(
         cancelAnimationFrame(rafId);
       }
     };
-  }, [imagePath, preview?.path, viewportRef, updateViewport]);
+  }, [imagePath, preview?.path, thumbnailPath, viewportRef, updateViewport]);
 
-  // Was tryign to use this previously to manage scaling the image when adjusting the window
-  // but honestly it seems kinda fine without it. Obviously needs some tuning, but i think its
-  // fine for now.
+  useEffect(() => {
+    if (!requestId) return;
 
-  // Realized cause of the thrashing. Initial load currently has the image aspect squished.
-  // When resizing the window, gpu corrects the aspect, but this function fires on observer changed
-  // of th viewport, then tries to update and resquishes the image
-  // To clarify the client does not direct affect the image, it is just passing the wrong dimensions
+    const proxyPath = preview?.path ?? thumbnailPath;
 
-  // useEffect(() => {
-  //   if (!viewportRef.current) return;
+    if (!proxyPath) return;
+    if (lastSwapPathRef.current === proxyPath) return;
 
-  //   const resizeObserver = new ResizeObserver(() => {
-  //     updateViewport();
-  //   });
+    lastSwapPathRef.current = proxyPath;
 
-  //   resizeObserver.observe(viewportRef.current);
-
-  //   const handleScroll = () => {
-  //     updateViewport();
-  //   };
-
-  //   window.addEventListener("scroll", handleScroll, true);
-
-  //   // Initial update
-  //   updateViewport();
-
-  //   return () => {
-  //     resizeObserver.disconnect();
-
-  //     window.removeEventListener("scroll", handleScroll, true);
-
-  //     if (viewportTimeoutRef.current !== null) {
-  //       clearTimeout(viewportTimeoutRef.current);
-  //     }
-  //   };
-  // }, [updateViewport]);
+    api.renderer
+      .swapRequestedTexture({ path: proxyPath, requestId })
+      .catch((error) =>
+        console.error(
+          "[useViewportSync] swap_requested_texture failed:",
+          error,
+        ),
+      );
+  }, [preview?.path, requestId, thumbnailPath]);
 
   useEffect(() => {
     if (!viewportRef.current) return;

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { useImagePreview } from "../hooks/use-image-preview";
+import { useViewportThumbnail } from "../hooks/use-viewport-thumbnail";
 import { useImageTransform } from "../hooks/use-image-transform";
 import { useViewportSync } from "../hooks/use-viewport-sync";
 import { useInteractionHandlers } from "../hooks/use-interaction-handlers";
@@ -30,9 +31,19 @@ export function InteractionViewport() {
     error: previewError,
   } = useImagePreview(imagePath);
 
+  const { thumbnailPath } = useViewportThumbnail(imagePath);
+
   const { scale, offsetX, offsetY } = useImageTransform(imagePath);
 
-  useViewportSync(viewportRef, preview, imagePath, scale, offsetX, offsetY);
+  useViewportSync(
+    viewportRef,
+    preview,
+    thumbnailPath,
+    imagePath,
+    scale,
+    offsetX,
+    offsetY,
+  );
 
   useInteractionHandlers(
     viewportRef,

@@ -1,6 +1,7 @@
+import type { HistogramData } from "@/types/histogram";
+
 import { invokeTauri } from "./_client";
 
-import type { HistogramData } from "@/types/histogram";
 import { CommandReturn } from "@/types/commands";
 
 export type PreviewInfo = CommandReturn["prepare_preview"];

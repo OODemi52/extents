@@ -21,6 +21,7 @@ export interface CommandArgs {
     viewportWidth: number;
     viewportHeight: number;
   };
+  swap_requested_texture: { path: string; requestId: number };
   update_viewport: { x: number; y: number; width: number; height: number };
   update_transform: { scale: number; offsetX: number; offsetY: number };
   render_frame: null;
@@ -43,7 +44,8 @@ export interface CommandReturn {
   start_folder_scan: void;
   init_renderer: void;
   resize_surface: void;
-  load_image: void;
+  load_image: number;
+  swap_requested_texture: void;
   update_viewport: void;
   update_transform: void;
   render_frame: void;
