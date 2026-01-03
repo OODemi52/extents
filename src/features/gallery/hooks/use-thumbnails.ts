@@ -54,6 +54,7 @@ export function usePrefetchThumbnails() {
       }
 
       prefetchedPaths.add(path);
+
       return true;
     });
 
