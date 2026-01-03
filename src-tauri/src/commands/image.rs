@@ -64,8 +64,6 @@ pub async fn get_histogram(
 
 #[tauri::command]
 pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> Result<(), String> {
-    info!("Prefetching {} thumbnails", paths.len());
-
     let cache_manager = app_handle.state::<CacheManager>();
 
     let base_cache_path = cache_manager.base_cache_path.clone();
@@ -127,7 +125,6 @@ pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> 
             });
         });
 
-        info!("Prefetch complete");
     });
 
     Ok(())
