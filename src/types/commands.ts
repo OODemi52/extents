@@ -20,7 +20,9 @@ export interface CommandArgs {
     viewportY: number;
     viewportWidth: number;
     viewportHeight: number;
+    deferFull?: boolean | null;
   };
+  start_full_image_load: { path: string; requestId: number };
   swap_requested_texture: { path: string; requestId: number };
   update_viewport: { x: number; y: number; width: number; height: number };
   update_transform: { scale: number; offsetX: number; offsetY: number };
@@ -45,6 +47,7 @@ export interface CommandReturn {
   init_renderer: void;
   resize_surface: void;
   load_image: number;
+  start_full_image_load: void;
   swap_requested_texture: void;
   update_viewport: void;
   update_transform: void;

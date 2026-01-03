@@ -5,6 +5,8 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { api } from "@/services/api";
 
 const VIEWPORT_DEBOUNCE_MS = 100;
+const SCRUB_THRESHOLD_MS = 120;
+const FULL_DECODE_DEBOUNCE_MS = 180;
 
 export function useViewportSync(
   viewportRef: React.RefObject<HTMLDivElement>,
@@ -19,6 +21,9 @@ export function useViewportSync(
   const lastSwapPathRef = useRef<string | null>(null);
   const activeImagePathRef = useRef<string | null>(null);
   const [requestId, setRequestId] = useState<number | null>(null);
+  const fullDecodeTimerRef = useRef<number | null>(null);
+  const lastSelectionTimeRef = useRef<number | null>(null);
+  const isScrubbingRef = useRef(false);
   const viewportTimeoutRef = useRef<number | null>(null);
   const transformTimeoutRef = useRef<number | null>(null);
   const lastTransformRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
@@ -60,6 +65,11 @@ export function useViewportSync(
       activeImagePathRef.current = null;
       setRequestId(null);
 
+      if (fullDecodeTimerRef.current !== null) {
+        clearTimeout(fullDecodeTimerRef.current);
+        fullDecodeTimerRef.current = null;
+      }
+
       return;
     }
 
@@ -70,6 +80,20 @@ export function useViewportSync(
     activeImagePathRef.current = imagePath;
     setRequestId(null);
 
+    if (fullDecodeTimerRef.current !== null) {
+      clearTimeout(fullDecodeTimerRef.current);
+      fullDecodeTimerRef.current = null;
+    }
+
+    const now = Date.now();
+    const lastSelectionTime = lastSelectionTimeRef.current;
+    const isScrubbing =
+      lastSelectionTime !== null &&
+      now - lastSelectionTime < SCRUB_THRESHOLD_MS;
+
+    lastSelectionTimeRef.current = now;
+    isScrubbingRef.current = isScrubbing;
+
     const clientViewportDimensions =
       viewportRef.current.getBoundingClientRect();
 
@@ -79,6 +103,8 @@ export function useViewportSync(
     if (proxyPath) {
       lastSwapPathRef.current = proxyPath;
     }
+
+    const shouldDeferFull = Boolean(proxyPath) && isScrubbing;
 
     let rafId: number | null = null;
 
@@ -91,6 +117,7 @@ export function useViewportSync(
           viewportY: clientViewportDimensions.y * devicePixelRatio,
           viewportWidth: clientViewportDimensions.width * devicePixelRatio,
           viewportHeight: clientViewportDimensions.height * devicePixelRatio,
+          deferFull: shouldDeferFull,
         })
         .then((nextRequestId) => {
           if (activeImagePathRef.current !== imagePath) {
@@ -99,6 +126,32 @@ export function useViewportSync(
 
           setRequestId(nextRequestId);
           updateViewport();
+
+          if (shouldDeferFull) {
+            if (fullDecodeTimerRef.current !== null) {
+              clearTimeout(fullDecodeTimerRef.current);
+            }
+
+            fullDecodeTimerRef.current = window.setTimeout(() => {
+              fullDecodeTimerRef.current = null;
+
+              if (activeImagePathRef.current !== imagePath) {
+                return;
+              }
+
+              api.renderer
+                .startFullImageLoad({
+                  path: imagePath,
+                  requestId: nextRequestId,
+                })
+                .catch((error) =>
+                  console.error(
+                    "[useViewportSync] start_full_image_load failed:",
+                    error,
+                  ),
+                );
+            }, FULL_DECODE_DEBOUNCE_MS);
+          }
         })
         .catch((error) =>
           console.error("[useViewportSync] load_image failed:", error),
@@ -108,6 +161,11 @@ export function useViewportSync(
     return () => {
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
+      }
+
+      if (fullDecodeTimerRef.current !== null) {
+        clearTimeout(fullDecodeTimerRef.current);
+        fullDecodeTimerRef.current = null;
       }
     };
   }, [imagePath, preview?.path, thumbnailPath, viewportRef, updateViewport]);
