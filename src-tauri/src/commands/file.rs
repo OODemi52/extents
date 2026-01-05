@@ -11,7 +11,7 @@ use crate::state::AppState;
 
 #[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct ImageMetadata {
+pub struct FileMetadata {
     path: String,
     thumbnail_path: Option<String>,
     width: Option<u32>,
@@ -64,7 +64,7 @@ pub fn start_folder_scan(folder_path: String, app_handle: tauri::AppHandle) -> R
 
     tauri::async_runtime::spawn(async move {
         let result = tauri::async_runtime::spawn_blocking(move || -> Result<(), anyhow::Error> {
-            let mut valid_files: Vec<ImageMetadata> = Vec::new();
+            let mut valid_files: Vec<FileMetadata> = Vec::new();
             let mut exif_paths: Vec<String> = Vec::new();
 
             let all_files: Vec<_> = std::fs::read_dir(&scan_path)
@@ -93,7 +93,7 @@ pub fn start_folder_scan(folder_path: String, app_handle: tauri::AppHandle) -> R
 
                 let file_size = file.metadata().map(|m| m.len()).unwrap_or(0);
 
-                valid_files.push(ImageMetadata {
+                valid_files.push(FileMetadata {
                     path: path.to_string_lossy().to_string(),
                     thumbnail_path: None,
                     width: None,
@@ -160,7 +160,7 @@ pub fn start_folder_scan(folder_path: String, app_handle: tauri::AppHandle) -> R
 }
 
 #[tauri::command]
-pub async fn get_file_metadata(folder_path: String) -> Vec<ImageMetadata> {
+pub async fn get_file_metadata(folder_path: String) -> Vec<FileMetadata> {
     let paths = std::fs::read_dir(folder_path).unwrap(); // Unwrap might panic, discouraged from using it. Either use pattern matching or unrwap_or/unwrap_or_else
 
     let mut files = vec![];
@@ -180,7 +180,7 @@ pub async fn get_file_metadata(folder_path: String) -> Vec<ImageMetadata> {
                 Err(_) => continue,
             };
 
-            files.push(ImageMetadata {
+            files.push(FileMetadata {
                 path: path.to_string_lossy().to_string(),
                 thumbnail_path: None,
                 width: None,

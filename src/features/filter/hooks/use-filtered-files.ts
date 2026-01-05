@@ -7,7 +7,7 @@ import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-st
 import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
 import { useImageStore } from "@/store/image-store";
 import { FlagValue, RatingValue } from "@/types/file-annotations";
-import { ImageMetadata } from "@/types/image";
+import { FileMetadata } from "@/types/image";
 import { useImageLoader } from "@/hooks/use-image-loader";
 import { clearRenderer } from "@/services/api/renderer";
 
@@ -16,7 +16,7 @@ type FilterSnapshot = Pick<
   "search" | "rating" | "flags" | "exts" | "size" | "edited" | "sort"
 >;
 
-type AnnotatedImage = ImageMetadata & {
+type AnnotatedImage = FileMetadata & {
   ext: string;
   rating: RatingValue;
   flag: FlagValue;
@@ -26,7 +26,7 @@ type AnnotatedImage = ImageMetadata & {
 };
 
 function buildAnnotatedImages(
-  files: ImageMetadata[],
+  files: FileMetadata[],
   ratings: Record<string, RatingValue>,
   flags: Record<string, FlagValue>,
 ): AnnotatedImage[] {
@@ -47,7 +47,7 @@ export function getFilteredImagesFromState({
   flags,
   filters,
 }: {
-  files: ImageMetadata[];
+  files: FileMetadata[];
   ratings: Record<string, RatingValue>;
   flags: Record<string, FlagValue>;
   filters: FilterSnapshot;
@@ -134,7 +134,7 @@ export function getFilteredPathsFromState({
   flags,
   filters,
 }: {
-  files: ImageMetadata[];
+  files: FileMetadata[];
   ratings: Record<string, RatingValue>;
   flags: Record<string, FlagValue>;
   filters: FilterSnapshot;

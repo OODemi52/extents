@@ -3,7 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 
 import { useImageStore } from "@/store/image-store";
-import { ImageMetadata } from "@/types/image";
+import { FileMetadata } from "@/types/image";
 import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { api } from "@/services/api";
@@ -27,7 +27,7 @@ export function useFolderScanner() {
     complete?: UnlistenFn;
     error?: UnlistenFn;
   }>({});
-  const pendingBatchRef = useRef<ImageMetadata[]>([]);
+  const pendingBatchRef = useRef<FileMetadata[]>([]);
   const flushFrameRef = useRef<number | null>(null);
 
   const scheduleBatchFlush = useCallback(() => {
@@ -109,7 +109,7 @@ export function useFolderScanner() {
 
       let isFirstBatch = true;
 
-      const batchListener = await listen<ImageMetadata[]>(
+      const batchListener = await listen<FileMetadata[]>(
         "folder-scan-batch",
         ({ payload }) => {
           if (isFirstBatch && payload.length > 0) {

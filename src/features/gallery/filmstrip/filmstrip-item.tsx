@@ -7,10 +7,10 @@ import { Thumbnail } from "../thumbnail/thumbnail";
 
 import { FlagControls } from "@/features/annotate/flagging/components/flag-controls";
 import { RatingStars } from "@/features/annotate/rating/components/rating-stars";
-import { ImageMetadata } from "@/types/image";
+import { FileMetadata } from "@/types/image";
 
 interface FilmstripItemProps {
-  file: ImageMetadata;
+  file: FileMetadata;
   index: number;
   isSelected: boolean;
   size: number;

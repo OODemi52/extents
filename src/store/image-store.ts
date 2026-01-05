@@ -1,12 +1,12 @@
 import { create } from "zustand";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
-import { ImageMetadata } from "../types/image";
+import { FileMetadata } from "../types/image";
 
 import { useImageTransformStore } from "./transform-store";
 
 interface ImageStore {
-  fileMetadataList: ImageMetadata[];
+  fileMetadataList: FileMetadata[];
   selectedIndex: number | null;
   selectedPaths: Set<string>;
   currentImageData: string | null;
@@ -16,8 +16,8 @@ interface ImageStore {
   currentFolderPath: string | null;
   folderList: string[];
 
-  setFileMetadataList: (list: ImageMetadata[]) => void;
-  appendFileMetadataList: (list: ImageMetadata[]) => void;
+  setFileMetadataList: (list: FileMetadata[]) => void;
+  appendFileMetadataList: (list: FileMetadata[]) => void;
   setSelectedIndex: (index: number | null) => void;
   selectSingleByIndex: (index: number) => void;
   toggleSelectionByIndex: (index: number) => void;

@@ -1,4 +1,4 @@
-export type ImageMetadata = {
+export type FileMetadata = {
   path: string;
   fileName: string;
   width: number | null;
@@ -14,7 +14,7 @@ export interface ThumbnailProps {
 }
 
 export interface FilmstripProps {
-  fileMetadataList: ImageMetadata[];
+  fileMetadataList: FileMetadata[];
   selectedIndex: number | null;
   onSelectImage: (index: number) => void;
 }
