@@ -27,28 +27,6 @@ export function Sidebar({ onPickFolder }: SidebarProps) {
 
   return (
     <aside className="w-full h-full bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col pl-2 p-2 gap-y-1 overflow-scroll overflow-x-hidden">
-      <div className="flex flex-row gap-3 py-2 px-4 flex-shrink-0">
-        <Tooltip
-          className="border border-zinc-500"
-          closeDelay={0}
-          content="Open Folder"
-          delay={1000}
-          radius="sm"
-          size="sm"
-        >
-          <Button
-            disableRipple
-            isIconOnly
-            className="bg-transparent"
-            color="secondary"
-            hidden={selectedTab !== "browse"}
-            onPress={handlePickFolder}
-          >
-            <FolderOpenIcon size={18} weight="fill" />
-          </Button>
-        </Tooltip>
-      </div>
-
       <Tabs
         aria-label="File Tabs"
         className="flex flex-col min-h-0"
