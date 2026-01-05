@@ -84,10 +84,25 @@ export function useFolderScanner() {
     pendingBatch.current = [];
   }, []);
 
+  const normalizeFolderPath = (value: unknown): string | null => {
+    if (!value) return null;
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) return value[0] ?? null;
+    if (typeof value === "object" && "path" in value) {
+      return (value as any).path;
+    }
+
+    return null;
+  };
+
   const openFolder = useCallback(
-    async (path: string | null = null) => {
-      let folderPath: string | null =
-        path || ((await open({ directory: true })) as string | null);
+    async (
+      path: string | null = null,
+      source: "picker" | "tree" = "picker",
+    ) => {
+      const folderPath = normalizeFolderPath(
+        path ?? (await open({ directory: true })),
+      );
 
       if (!folderPath) return;
 
@@ -97,7 +112,7 @@ export function useFolderScanner() {
       lastOpenedFolder.current = folderPath;
       setCurrentFolderPath(folderPath);
 
-      if (!path) {
+      if (source === "picker") {
         useFileSystemStore.getState().selectItem(folderPath);
       }
 
@@ -136,8 +151,11 @@ export function useFolderScanner() {
       const totalCountListener = await listen<number>(
         "folder-total",
         ({ payload }) => {
-          // Use this to implement immediate perceptual load of folder later
-          console.log(payload);
+          if (payload === 0) {
+            setFiles([]);
+            setIsLoading(false);
+          }
+          // Use this to implement immediate perceptual load of folder later (i.e. loading skeletons)
         },
       );
 

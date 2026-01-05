@@ -1,4 +1,5 @@
 import { MenuItem, Submenu } from "@tauri-apps/api/menu";
+import { useFolderScanner } from "@/hooks/use-folder-scanner";
 
 import { createSeparator } from "./standard";
 
@@ -21,6 +22,16 @@ export async function createFileSubmenu() {
     text: "Import...",
     enabled: false,
     accelerator: "Shift+CmdOrCtrl+I",
+  });
+
+  const open = await MenuItem.new({
+    id: "file.open",
+    text: "Open Folder...",
+    enabled: false,
+    accelerator: "Shift+CmdOrCtrl+O",
+    action: () => {
+      openF;
+    },
   });
 
   const exportFiles = await MenuItem.new({
