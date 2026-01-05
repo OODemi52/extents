@@ -91,7 +91,6 @@ export function useFolderScanner() {
 
       if (!folderPath) return;
 
-      // Clear filters if opening a new folder
       if (folderPath !== lastOpenedFolder.current) {
         useFilterStore.getState().clearFilters();
       }
