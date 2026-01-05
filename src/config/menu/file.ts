@@ -1,7 +1,9 @@
 import { MenuItem, Submenu } from "@tauri-apps/api/menu";
-import { useFolderScanner } from "@/hooks/use-folder-scanner";
+import { open } from "@tauri-apps/plugin-dialog";
 
 import { createSeparator } from "./standard";
+
+import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
 
 export async function createFileSubmenu() {
   const separator = await createSeparator();
@@ -24,13 +26,16 @@ export async function createFileSubmenu() {
     accelerator: "Shift+CmdOrCtrl+I",
   });
 
-  const open = await MenuItem.new({
+  const openFolder = await MenuItem.new({
     id: "file.open",
     text: "Open Folder...",
-    enabled: false,
     accelerator: "Shift+CmdOrCtrl+O",
-    action: () => {
-      openF;
+    action: async () => {
+      const folderPath = await open({ directory: true });
+
+      if (!folderPath) return;
+
+      useFileSystemStore.getState().selectItem(folderPath);
     },
   });
 
@@ -66,6 +71,7 @@ export async function createFileSubmenu() {
       search,
       separator,
       importFiles,
+      openFolder,
       separator,
       exportFiles,
       exportFilesWithPrevious,
