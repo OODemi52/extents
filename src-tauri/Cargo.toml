@@ -47,6 +47,7 @@ memmap2 = "0.9.9"
 kamadak-exif = "0.6.1"
 tokio = "1.48.0"
 rawler = "0.7.1"
+unicase = "2.8.1"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-single-instance = "2"

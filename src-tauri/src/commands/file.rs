@@ -3,6 +3,7 @@ use base64::{engine::general_purpose, Engine as _};
 use std::path::PathBuf;
 use tauri::Emitter;
 use tauri::Manager;
+use unicase::UniCase;
 
 use crate::core::cache::manager::CacheManager;
 use crate::core::db::exif::refresh_exif_entries;
@@ -63,19 +64,23 @@ pub fn start_folder_scan(folder_path: String, app_handle: tauri::AppHandle) -> R
 
     tauri::async_runtime::spawn(async move {
         let result = tauri::async_runtime::spawn_blocking(move || -> Result<(), anyhow::Error> {
-            let mut batch: Vec<ImageMetadata> = Vec::with_capacity(SCAN_BATCH_SIZE);
+            let mut valid_files: Vec<ImageMetadata> = Vec::new();
             let mut exif_paths: Vec<String> = Vec::new();
-            let entries = std::fs::read_dir(&scan_path)
-                .map_err(|e| anyhow!("Failed to read directory {}: {}", scan_path.display(), e))?;
-            let mut processed = 0usize;
 
-            for entry in entries {
-                let entry = match entry {
-                    Ok(e) => e,
-                    Err(_) => continue,
-                };
+            let all_files: Vec<_> = std::fs::read_dir(&scan_path)
+                .map_err(|error| {
+                    anyhow!(
+                        "Failed to read directory {}: {}",
+                        scan_path.display(),
+                        error
+                    )
+                })?
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap_or_default();
 
-                let path = entry.path();
+            for file in &all_files {
+                let path = file.path();
+
                 if !is_valid_file(&path) {
                     continue;
                 }
@@ -86,9 +91,9 @@ pub fn start_folder_scan(folder_path: String, app_handle: tauri::AppHandle) -> R
                     .to_string_lossy()
                     .to_string();
 
-                let file_size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                let file_size = file.metadata().map(|m| m.len()).unwrap_or(0);
 
-                batch.push(ImageMetadata {
+                valid_files.push(ImageMetadata {
                     path: path.to_string_lossy().to_string(),
                     thumbnail_path: None,
                     width: None,
@@ -96,29 +101,28 @@ pub fn start_folder_scan(folder_path: String, app_handle: tauri::AppHandle) -> R
                     file_size,
                     file_name,
                 });
-                exif_paths.push(path.to_string_lossy().to_string());
-                processed += 1;
 
-                if batch.len() >= SCAN_BATCH_SIZE {
-                    let payload = std::mem::take(&mut batch);
-                    emit_handle
-                        .emit("folder-scan-batch", payload)
-                        .map_err(|e| anyhow!(e.to_string()))?;
-                    batch = Vec::with_capacity(SCAN_BATCH_SIZE);
-                }
+                exif_paths.push(path.to_string_lossy().to_string());
             }
 
-            if !batch.is_empty() {
-                let payload = std::mem::take(&mut batch);
+            let total_file_count = valid_files.len();
+
+            emit_handle
+                .emit("folder-total", total_file_count)
+                .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
+            valid_files.sort_by(|a, b| UniCase::new(&a.file_name).cmp(&UniCase::new(&b.file_name)));
+
+            for batch in valid_files.chunks(SCAN_BATCH_SIZE) {
                 emit_handle
-                    .emit("folder-scan-batch", payload)
+                    .emit("folder-scan-batch", batch.to_vec())
                     .map_err(|e| anyhow!(e.to_string()))?;
             }
 
             log::info!(
                 "Folder scan complete for {} ({} images)",
                 folder_path,
-                processed
+                total_file_count
             );
 
             if !exif_paths.is_empty() {
