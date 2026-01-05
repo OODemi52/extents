@@ -104,9 +104,6 @@ export function useFolderScanner() {
 
       let isFirstBatch = true;
 
-      // -------------------
-      // Batch listener
-      // -------------------
       const batchListener = await listen<FileMetadata[]>(
         "folder-scan-batch",
         ({ payload }) => {
@@ -115,10 +112,8 @@ export function useFolderScanner() {
           if (isFirstBatch) {
             isFirstBatch = false;
 
-            // Replace old files with first batch
             setFiles(payload);
 
-            // Initial selection logic after first batch
             const ratings = useRatingStore.getState().ratings;
             const flags = useFlagStore.getState().flags;
             const filters = useFilterStore.getState();
@@ -133,7 +128,6 @@ export function useFolderScanner() {
               selectSingleByIndex(0);
             }
           } else {
-            // Subsequent batches are staged
             pendingBatch.current.push(...payload);
             schedulePendingBatch();
           }
@@ -143,7 +137,7 @@ export function useFolderScanner() {
       const totalCountListener = await listen<number>(
         "folder-total",
         ({ payload }) => {
-          // Use this to implement immediate perceptual load of folder
+          // Use this to implement immediate perceptual load of folder later
           console.log(payload);
         },
       );
