@@ -17,15 +17,12 @@ pub fn run() {
                 let _ = main_window.set_focus();
             }
         }))
+        .plugin(
+            tauri_plugin_log::Builder::default()
+                .level(log::LevelFilter::Info)
+                .build(),
+        )
         .setup(move |app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-
             let cache_manager = CacheManager::new(&app.handle());
 
             app.manage(cache_manager);

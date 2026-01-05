@@ -1,5 +1,5 @@
 use image::image_dimensions;
-use log::error;
+use log::{error, info};
 use std::path::PathBuf;
 use tokio::sync::{oneshot, watch};
 
@@ -19,6 +19,7 @@ pub async fn get_or_create_thumbnail(
     let cache_path = cache_manager.get_cache_path(original_path, CacheType::Thumbnail)?;
 
     if cache_path.exists() {
+        info!("[thumbnail] cache hit {}", original_path);
         let (width, height) = image_dimensions(&cache_path)
             .map_err(|error| format!("Thumbnail dimensions error: {error}"))?;
 
@@ -31,8 +32,10 @@ pub async fn get_or_create_thumbnail(
 
     let inflight = cache_manager.inflight_thumbnail_generation_map();
 
+    let mut logged_wait = false;
     let inflight_sender = loop {
         if cache_path.exists() {
+            info!("[thumbnail] cache hit {}", original_path);
             let (width, height) = image_dimensions(&cache_path)
                 .map_err(|error| format!("Thumbnail dimensions error: {error}"))?;
 
@@ -58,7 +61,13 @@ pub async fn get_or_create_thumbnail(
         };
 
         if should_generate {
+            info!("[thumbnail] generate {}", original_path);
             break inflight_sender;
+        }
+
+        if !logged_wait {
+            info!("[thumbnail] wait inflight {}", original_path);
+            logged_wait = true;
         }
 
         if !*inflight_receiver.borrow() {

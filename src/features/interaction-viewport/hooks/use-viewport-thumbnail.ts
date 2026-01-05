@@ -1,28 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-
-import { api } from "@/services/api";
+import { useThumbnailQuery } from "@/features/gallery/hooks/use-thumbnails";
 
 export function useViewportThumbnail(path: string | null) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["image-thumbnail", path],
-    queryFn: async () => {
-      if (!path) {
-        throw new Error("No image path provided");
-      }
-
-      return api.thumbnails.get(path);
-    },
-    enabled: Boolean(path),
-    staleTime: Infinity,
-    gcTime: Infinity,
-  });
-
-  const errorMessage =
-    error instanceof Error ? error.message : error ? String(error) : null;
+  const { thumbnailPath, isLoading, error } = useThumbnailQuery(path);
 
   return {
-    thumbnailPath: data ?? null,
+    thumbnailPath,
     isLoading,
-    error: errorMessage,
+    error,
   };
 }

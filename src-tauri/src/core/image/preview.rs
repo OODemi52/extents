@@ -1,5 +1,5 @@
 use image::image_dimensions;
-use log::error;
+use log::{error, info};
 use std::path::PathBuf;
 use tokio::sync::oneshot;
 
@@ -19,6 +19,7 @@ pub async fn get_or_create_preview(
     let cache_path = cache_manager.get_cache_path(original_path, CacheType::Preview)?;
 
     if cache_path.exists() {
+        info!("[preview] cache hit {}", original_path);
         let (width, height) = image_dimensions(&cache_path)
             .map_err(|error| format!("Preview dimensions error: {error}"))?;
 
@@ -29,6 +30,7 @@ pub async fn get_or_create_preview(
         });
     }
 
+    info!("[preview] generate {}", original_path);
     let pool = cache_manager.preview_pool();
 
     let owned_path = original_path.to_owned();

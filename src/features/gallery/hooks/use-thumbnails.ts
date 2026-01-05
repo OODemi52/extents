@@ -14,17 +14,25 @@ const prefetchedPaths = new Set<string>();
 const pendingPrefetchPaths = new Set<string>();
 let prefetchTimer: number | null = null;
 
-export function useThumbnailQuery(imagePath: string) {
+export function useThumbnailQuery(imagePath: string | null) {
   const query = useQuery({
     queryKey: ["thumbnail", imagePath],
-    queryFn: () => fetchThumbnail(imagePath),
+    queryFn: () => {
+      if (!imagePath) {
+        throw new Error("No image path provided");
+      }
+
+      return fetchThumbnail(imagePath);
+    },
     staleTime: Infinity,
     gcTime: THUMBNAIL_CACHE_TTL_MS,
     refetchOnWindowFocus: false,
+    enabled: Boolean(imagePath),
   });
 
   return {
-    thumbnail: query.data ?? null,
+    thumbnail: query.data?.src ?? null,
+    thumbnailPath: query.data?.path ?? null,
     isLoading: query.isLoading,
     error: query.error ? String(query.error) : null,
   };

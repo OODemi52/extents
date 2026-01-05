@@ -7,6 +7,9 @@ import { ImageMetadata } from "@/types/image";
 import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { api } from "@/services/api";
+import { getFilteredImagesFromState } from "@/features/filter/hooks/use-filtered-files";
+import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
+import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-store";
 
 export function useFolderScanner() {
   const {
@@ -16,6 +19,7 @@ export function useFolderScanner() {
     setCurrentImageData,
     setCurrentFolderPath,
     setIsLoading,
+    selectSingleByIndex,
   } = useImageStore();
 
   const scanListenersRef = useRef<{
@@ -95,30 +99,84 @@ export function useFolderScanner() {
         useFileSystemStore.getState().selectItem(folderPath);
       }
 
-      cleanupScanListeners();
-
       setFileMetadataList([]);
       setSelectedIndex(null);
       setCurrentImageData(null);
-      setIsLoading(true);
+
+      const loadingTimeout = setTimeout(() => {
+        setIsLoading(true);
+      }, 150);
+
+      let isFirstBatch = true;
 
       const batchListener = await listen<ImageMetadata[]>(
         "folder-scan-batch",
         ({ payload }) => {
-          pendingBatchRef.current.push(...payload);
-          scheduleBatchFlush();
+          if (isFirstBatch && payload.length > 0) {
+            isFirstBatch = false;
+            appendFileMetadataList(payload);
+
+            const ratings = useRatingStore.getState().ratings;
+            const flags = useFlagStore.getState().flags;
+            const filters = useFilterStore.getState();
+            const filtered = getFilteredImagesFromState({
+              files: payload,
+              ratings,
+              flags,
+              filters,
+            });
+
+            if (filtered.length > 0) {
+              selectSingleByIndex(0);
+            }
+          } else {
+            pendingBatchRef.current.push(...payload);
+            scheduleBatchFlush();
+          }
         },
       );
 
       const completeListener = await listen("folder-scan-complete", () => {
+        clearTimeout(loadingTimeout);
         flushPendingBatch();
         setIsLoading(false);
         cleanupScanListeners();
+
+        const { fileMetadataList, selectedIndex } = useImageStore.getState();
+        const ratings = useRatingStore.getState().ratings;
+        const flags = useFlagStore.getState().flags;
+        const filters = useFilterStore.getState();
+
+        const filtered = getFilteredImagesFromState({
+          files: fileMetadataList,
+          ratings,
+          flags,
+          filters,
+        });
+
+        if (filtered.length > 0) {
+          const firstPath = filtered[0].path;
+          const selectedPath =
+            selectedIndex !== null
+              ? fileMetadataList[selectedIndex]?.path
+              : null;
+
+          if (firstPath !== selectedPath) {
+            const indexInMainList = fileMetadataList.findIndex(
+              (f) => f.path === firstPath,
+            );
+
+            if (indexInMainList !== -1) {
+              selectSingleByIndex(indexInMainList);
+            }
+          }
+        }
       });
 
       const errorListener = await listen<string>(
         "folder-scan-error",
         ({ payload }) => {
+          clearTimeout(loadingTimeout);
           console.error("Folder scan failed:", payload);
           flushPendingBatch();
           setIsLoading(false);
@@ -132,13 +190,12 @@ export function useFolderScanner() {
         error: errorListener,
       };
 
-      try {
-        await api.fs.startFolderScan({ folderPath });
-      } catch (err) {
+      api.fs.startFolderScan({ folderPath }).catch((err) => {
+        clearTimeout(loadingTimeout);
         console.error("Failed to start folder scan:", err);
         setIsLoading(false);
         cleanupScanListeners();
-      }
+      });
     },
     [
       appendFileMetadataList,
@@ -150,12 +207,14 @@ export function useFolderScanner() {
       setFileMetadataList,
       setIsLoading,
       setSelectedIndex,
+      selectSingleByIndex,
     ],
   );
 
   useEffect(() => {
     const unsubscribe = useFileSystemStore.subscribe((state) => {
       const { selectedId } = state;
+
       const currentSelected =
         typeof selectedId === "string" && selectedId.length > 0
           ? selectedId

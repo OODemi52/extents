@@ -2,8 +2,18 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { api } from "@/services/api";
 
-export async function fetchThumbnail(imagePath: string): Promise<string> {
-  const cachePath = await api.thumbnails.get(imagePath);
+export type ThumbnailPayload = {
+  path: string;
+  src: string;
+};
 
-  return convertFileSrc(cachePath);
+export async function fetchThumbnail(
+  imagePath: string,
+): Promise<ThumbnailPayload> {
+  const path = await api.thumbnails.get(imagePath);
+
+  return {
+    path,
+    src: convertFileSrc(path),
+  };
 }

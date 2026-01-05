@@ -5,14 +5,14 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { api } from "@/services/api";
 
 const VIEWPORT_DEBOUNCE_MS = 100;
-const SCRUB_THRESHOLD_MS = 120;
-const FULL_DECODE_DEBOUNCE_MS = 180;
+const FULL_DECODE_DEBOUNCE_MS = 200; // Add debounce for full decode
 
 export function useViewportSync(
   viewportRef: React.RefObject<HTMLDivElement>,
   preview: PreviewInfo | undefined,
   thumbnailPath: string | null,
   imagePath: string | null,
+  isScrubbing: boolean,
   scale: number,
   offsetX: number,
   offsetY: number,
@@ -21,11 +21,14 @@ export function useViewportSync(
   const lastSwapPathRef = useRef<string | null>(null);
   const activeImagePathRef = useRef<string | null>(null);
   const [requestId, setRequestId] = useState<number | null>(null);
-  const fullDecodeTimerRef = useRef<number | null>(null);
-  const lastSelectionTimeRef = useRef<number | null>(null);
-  const isScrubbingRef = useRef(false);
+  const pendingFullRequestRef = useRef<{
+    path: string;
+    requestId: number;
+  } | null>(null);
+  const scrubbingRef = useRef(isScrubbing);
   const viewportTimeoutRef = useRef<number | null>(null);
   const transformTimeoutRef = useRef<number | null>(null);
+  const fullDecodeTimeoutRef = useRef<number | null>(null); // NEW: timeout for full decode
   const lastTransformRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
 
   const updateViewport = useCallback(() => {
@@ -64,11 +67,8 @@ export function useViewportSync(
       lastSwapPathRef.current = null;
       activeImagePathRef.current = null;
       setRequestId(null);
-
-      if (fullDecodeTimerRef.current !== null) {
-        clearTimeout(fullDecodeTimerRef.current);
-        fullDecodeTimerRef.current = null;
-      }
+      pendingFullRequestRef.current = null;
+      void api.renderer.clearRenderer();
 
       return;
     }
@@ -79,20 +79,7 @@ export function useViewportSync(
     lastSwapPathRef.current = null;
     activeImagePathRef.current = imagePath;
     setRequestId(null);
-
-    if (fullDecodeTimerRef.current !== null) {
-      clearTimeout(fullDecodeTimerRef.current);
-      fullDecodeTimerRef.current = null;
-    }
-
-    const now = Date.now();
-    const lastSelectionTime = lastSelectionTimeRef.current;
-    const isScrubbing =
-      lastSelectionTime !== null &&
-      now - lastSelectionTime < SCRUB_THRESHOLD_MS;
-
-    lastSelectionTimeRef.current = now;
-    isScrubbingRef.current = isScrubbing;
+    pendingFullRequestRef.current = null;
 
     const clientViewportDimensions =
       viewportRef.current.getBoundingClientRect();
@@ -104,7 +91,7 @@ export function useViewportSync(
       lastSwapPathRef.current = proxyPath;
     }
 
-    const shouldDeferFull = Boolean(proxyPath) && isScrubbing;
+    const shouldDeferFull = isScrubbing;
 
     let rafId: number | null = null;
 
@@ -117,7 +104,7 @@ export function useViewportSync(
           viewportY: clientViewportDimensions.y * devicePixelRatio,
           viewportWidth: clientViewportDimensions.width * devicePixelRatio,
           viewportHeight: clientViewportDimensions.height * devicePixelRatio,
-          deferFull: shouldDeferFull,
+          deferFullImageLoad: shouldDeferFull,
         })
         .then((nextRequestId) => {
           if (activeImagePathRef.current !== imagePath) {
@@ -128,29 +115,10 @@ export function useViewportSync(
           updateViewport();
 
           if (shouldDeferFull) {
-            if (fullDecodeTimerRef.current !== null) {
-              clearTimeout(fullDecodeTimerRef.current);
-            }
-
-            fullDecodeTimerRef.current = window.setTimeout(() => {
-              fullDecodeTimerRef.current = null;
-
-              if (activeImagePathRef.current !== imagePath) {
-                return;
-              }
-
-              api.renderer
-                .startFullImageLoad({
-                  path: imagePath,
-                  requestId: nextRequestId,
-                })
-                .catch((error) =>
-                  console.error(
-                    "[useViewportSync] start_full_image_load failed:",
-                    error,
-                  ),
-                );
-            }, FULL_DECODE_DEBOUNCE_MS);
+            pendingFullRequestRef.current = {
+              path: imagePath,
+              requestId: nextRequestId,
+            };
           }
         })
         .catch((error) =>
@@ -162,13 +130,63 @@ export function useViewportSync(
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
       }
+    };
+  }, [
+    imagePath,
+    viewportRef,
+    updateViewport,
+    isScrubbing,
+    thumbnailPath,
+    preview?.path,
+  ]);
 
-      if (fullDecodeTimerRef.current !== null) {
-        clearTimeout(fullDecodeTimerRef.current);
-        fullDecodeTimerRef.current = null;
+  // NEW: Debounced full decode trigger
+  useEffect(() => {
+    scrubbingRef.current = isScrubbing;
+
+    // Clear any pending full decode timeout
+    if (fullDecodeTimeoutRef.current !== null) {
+      clearTimeout(fullDecodeTimeoutRef.current);
+      fullDecodeTimeoutRef.current = null;
+    }
+
+    // If still scrubbing, don't start decode
+    if (isScrubbing) return;
+
+    // Wait a bit before starting full decode to ensure scrubbing has truly stopped
+    fullDecodeTimeoutRef.current = window.setTimeout(() => {
+      const pending = pendingFullRequestRef.current;
+
+      if (!pending) return;
+
+      if (activeImagePathRef.current !== pending.path) {
+        pendingFullRequestRef.current = null;
+
+        return;
+      }
+
+      pendingFullRequestRef.current = null;
+
+      api.renderer
+        .startFullImageLoad({
+          path: pending.path,
+          requestId: pending.requestId,
+        })
+        .catch((error) =>
+          console.error(
+            "[useViewportSync] start_full_image_load failed:",
+            error,
+          ),
+        );
+    }, FULL_DECODE_DEBOUNCE_MS);
+
+    return () => {
+      if (fullDecodeTimeoutRef.current !== null) {
+        clearTimeout(fullDecodeTimeoutRef.current);
+        fullDecodeTimeoutRef.current = null;
       }
     };
-  }, [imagePath, preview?.path, thumbnailPath, viewportRef, updateViewport]);
+  }, [isScrubbing]);
 
   useEffect(() => {
     if (!requestId) return;

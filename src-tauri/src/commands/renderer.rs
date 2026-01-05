@@ -51,6 +51,8 @@ pub fn load_image(
     state: State<AppState>,
 ) -> Result<u64, String> {
     info!("[CMD] Loading image from path: {}", path);
+    let defer_full = defer_full_image_load.unwrap_or(false);
+    let preview_label = preview_path.as_deref().unwrap_or("<none>");
 
     let renderer_handle = state.renderer.clone();
 
@@ -65,6 +67,10 @@ pub fn load_image(
             );
 
             let request_id = renderer.begin_image_request();
+            info!(
+                "[CMD] Image request {} defer_full={} preview={}",
+                request_id, defer_full, preview_label
+            );
 
             if let Some(preview_path) = preview_path {
                 if let Err(err) = load_texture_from_path(renderer, &preview_path) {
@@ -83,8 +89,10 @@ pub fn load_image(
         }
     };
 
-    if !defer_full_image_load.unwrap_or(false) {
+    if !defer_full {
         spawn_full_image_load(path, request_id, renderer_handle.clone());
+    } else {
+        info!("[CMD] Deferring full decode for request {}", request_id);
     }
 
     Ok(request_id)
@@ -96,6 +104,10 @@ pub fn start_full_image_load(
     request_id: u64,
     state: State<AppState>,
 ) -> Result<(), String> {
+    info!(
+        "[CMD] start_full_image_load request {} path {}",
+        request_id, path
+    );
     let renderer_handle = state.renderer.clone();
 
     let should_start = {
@@ -109,6 +121,10 @@ pub fn start_full_image_load(
     };
 
     if !should_start {
+        info!(
+            "[CMD] start_full_image_load skipped (inactive request {})",
+            request_id
+        );
         return Ok(());
     }
 
@@ -136,6 +152,10 @@ fn spawn_full_image_load(
 ) {
     let renderer_for_task = renderer_handle.clone();
     let cloned_path_for_logging = path.clone();
+    info!(
+        "[CMD] Starting full decode request {} path {}",
+        request_id, cloned_path_for_logging
+    );
 
     let join_handle = async_runtime::spawn(async move {
         let decode_result =
@@ -196,6 +216,10 @@ pub async fn swap_requested_texture(
     request_id: u64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    info!(
+        "[CMD] swap_requested_texture request {} path {}",
+        request_id, path
+    );
     let renderer_handle = state.renderer.clone();
 
     let decode_result =

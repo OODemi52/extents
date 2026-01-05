@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 import { useImagePreview } from "../hooks/use-image-preview";
 import { useViewportThumbnail } from "../hooks/use-viewport-thumbnail";
@@ -10,13 +10,11 @@ import { useImageStore } from "@/store/image-store";
 import { FilterMenuBar } from "@/features/filter/components/menu-bar/menu-bar";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
-import { useImageLoader } from "@/hooks/use-image-loader";
 
 export function InteractionViewport() {
   const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const filteredFiles = useFilteredImages();
-  const { handleSelectImageByPath } = useImageLoader();
 
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -25,11 +23,15 @@ export function InteractionViewport() {
 
   const imagePath = selected?.path || null;
 
+  const isScrubbing = useImageStore((state) => state.isScrubbing);
+
   const {
     preview,
     isLoading: isPreviewLoading,
     error: previewError,
-  } = useImagePreview(imagePath);
+  } = useImagePreview(imagePath, {
+    enabled: Boolean(imagePath) && !isScrubbing,
+  });
 
   const { thumbnailPath } = useViewportThumbnail(imagePath);
 
@@ -40,6 +42,7 @@ export function InteractionViewport() {
     preview,
     thumbnailPath,
     imagePath,
+    isScrubbing,
     scale,
     offsetX,
     offsetY,
@@ -59,15 +62,6 @@ export function InteractionViewport() {
     !isPreviewLoading &&
     filteredFiles.length === 0 &&
     fileMetadataList.length > 0;
-
-  useEffect(() => {
-    if (
-      filteredFiles.length > 0 &&
-      (!imagePath || !filteredFiles.some((file) => file.path === imagePath))
-    ) {
-      handleSelectImageByPath(filteredFiles[0].path);
-    }
-  }, [filteredFiles, imagePath, handleSelectImageByPath]);
 
   return (
     <div

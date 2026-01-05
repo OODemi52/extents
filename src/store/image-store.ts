@@ -11,6 +11,7 @@ interface ImageStore {
   selectedPaths: Set<string>;
   currentImageData: string | null;
   isLoading: boolean;
+  isScrubbing: boolean;
 
   currentFolderPath: string | null;
   folderList: string[];
@@ -28,6 +29,7 @@ interface ImageStore {
   deselectAll: () => void;
   setCurrentImageData: (data: string | null) => void;
   setIsLoading: (loading: boolean) => void;
+  setIsScrubbing: (scrubbing: boolean) => void;
   setThumbnailPath: (originalPath: string, cachePath: string) => void;
 
   setCurrentFolderPath: (path: string | null) => void;
@@ -138,6 +140,7 @@ export const useImageStore = create<ImageStore>((set, get) => {
     selectedPaths: new Set(),
     currentImageData: null,
     isLoading: false,
+    isScrubbing: false,
 
     currentFolderPath: null,
     folderList: [],
@@ -264,6 +267,7 @@ export const useImageStore = create<ImageStore>((set, get) => {
       ),
     setCurrentImageData: (data) => set({ currentImageData: data }),
     setIsLoading: (loading) => set({ isLoading: loading }),
+    setIsScrubbing: (scrubbing) => set({ isScrubbing: scrubbing }),
     setThumbnailPath: (originalPath, cachePath) => {
       set((state) => ({
         fileMetadataList: state.fileMetadataList.map((file) =>

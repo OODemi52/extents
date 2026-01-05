@@ -20,7 +20,7 @@ export interface CommandArgs {
     viewportY: number;
     viewportWidth: number;
     viewportHeight: number;
-    deferFull?: boolean | null;
+    deferFullImageLoad?: boolean | null;
   };
   start_full_image_load: { path: string; requestId: number };
   swap_requested_texture: { path: string; requestId: number };

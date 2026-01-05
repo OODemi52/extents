@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 import { useImageLoader } from "@/hooks/use-image-loader";
 import { useImageStore } from "@/store/image-store";
+
+const SCRUB_SETTLE_MS = 250;
 
 function shouldIgnoreTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
@@ -21,18 +23,39 @@ function shouldIgnoreTarget(target: EventTarget | null): boolean {
 
 export function useImageKeyboardNavigation(paths: string[], enabled = true) {
   const { handleSelectImageByPath } = useImageLoader();
-  const { fileMetadataList, selectedIndex } = useImageStore();
   const hasImages = paths.length > 0;
+  const scrubTimeoutRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (!enabled || !hasImages) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
       if (event.defaultPrevented || shouldIgnoreTarget(event.target)) {
         return;
       }
+
+      const { fileMetadataList, selectedIndex, isScrubbing, setIsScrubbing } =
+        useImageStore.getState();
+
+      const clearScrubTimeout = () => {
+        if (scrubTimeoutRef.current !== null) {
+          clearTimeout(scrubTimeoutRef.current);
+          scrubTimeoutRef.current = null;
+        }
+      };
+
+      const scheduleScrubClear = () => {
+        clearScrubTimeout();
+        scrubTimeoutRef.current = window.setTimeout(() => {
+          scrubTimeoutRef.current = null;
+          setIsScrubbing(false);
+        }, SCRUB_SETTLE_MS);
+      };
+
+      const markScrubbing = () => {
+        if (!isScrubbing) {
+          setIsScrubbing(true);
+        }
+        scheduleScrubClear();
+      };
 
       const currentPath =
         selectedIndex !== null
@@ -44,10 +67,11 @@ export function useImageKeyboardNavigation(paths: string[], enabled = true) {
       const selectByIndex = (index: number) => {
         const path = paths[index];
 
-        if (!path) {
+        if (!path || path === currentPath) {
           return;
         }
 
+        markScrubbing();
         handleSelectImageByPath(path);
       };
 
@@ -85,19 +109,23 @@ export function useImageKeyboardNavigation(paths: string[], enabled = true) {
           selectRelative(1);
         }
       }
-    };
+    },
+    [paths, handleSelectImageByPath],
+  );
+
+  useEffect(() => {
+    if (!enabled || !hasImages) {
+      return;
+    }
 
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      if (scrubTimeoutRef.current !== null) {
+        clearTimeout(scrubTimeoutRef.current);
+      }
+      useImageStore.getState().setIsScrubbing(false);
     };
-  }, [
-    enabled,
-    hasImages,
-    paths,
-    fileMetadataList,
-    selectedIndex,
-    handleSelectImageByPath,
-  ]);
+  }, [enabled, hasImages, handleKeyDown]);
 }
