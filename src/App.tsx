@@ -88,7 +88,7 @@ function App() {
                   initial={false}
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
-                  <Sidebar onPickFolder={openFolder} />
+                  <Sidebar />
                 </motion.div>
               </Allotment.Pane>
 
