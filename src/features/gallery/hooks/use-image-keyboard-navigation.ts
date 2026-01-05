@@ -32,7 +32,7 @@ export function useImageKeyboardNavigation(paths: string[], enabled = true) {
         return;
       }
 
-      const { fileMetadataList, selectedIndex, isScrubbing, setIsScrubbing } =
+      const { files, selectedIndex, isScrubbing, setIsScrubbing } =
         useImageStore.getState();
 
       const clearScrubTimeout = () => {
@@ -58,9 +58,7 @@ export function useImageKeyboardNavigation(paths: string[], enabled = true) {
       };
 
       const currentPath =
-        selectedIndex !== null
-          ? (fileMetadataList[selectedIndex]?.path ?? null)
-          : null;
+        selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
 
       const currentIndex = currentPath ? paths.indexOf(currentPath) : -1;
 

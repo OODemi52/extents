@@ -4,9 +4,8 @@ import { api } from "@/services/api";
 import { useImageStore } from "@/store/image-store";
 
 export function useHistogram() {
-  const { fileMetadataList, selectedIndex } = useImageStore();
-  const selected =
-    selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
+  const { files, selectedIndex } = useImageStore();
+  const selected = selectedIndex !== null ? files[selectedIndex] : null;
   const path = selected?.path ?? null;
 
   const { data, isLoading, error } = useQuery({

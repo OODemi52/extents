@@ -148,13 +148,13 @@ export function getFilteredPathsFromState({
 }
 
 export function getFilteredPaths() {
-  const { fileMetadataList } = useImageStore.getState();
+  const { files } = useImageStore.getState();
   const ratings = useRatingStore.getState().ratings;
   const flags = useFlagStore.getState().flags;
   const filterState = useFilterStore.getState();
 
   return getFilteredPathsFromState({
-    files: fileMetadataList,
+    files: files,
     ratings,
     flags,
     filters: {
@@ -170,7 +170,7 @@ export function getFilteredPaths() {
 }
 
 export function useFilteredPaths() {
-  const { fileMetadataList } = useImageStore();
+  const { files } = useImageStore();
   const ratings = useRatingStore((state) => state.ratings);
   const flags = useFlagStore((state) => state.flags);
   const {
@@ -186,7 +186,7 @@ export function useFilteredPaths() {
   return useMemo(
     () =>
       getFilteredImagesFromState({
-        files: fileMetadataList,
+        files: files,
         ratings,
         flags,
         filters: {
@@ -200,7 +200,7 @@ export function useFilteredPaths() {
         },
       }).map((file) => file.path),
     [
-      fileMetadataList,
+      files,
       ratings,
       flags,
       search,
@@ -215,7 +215,7 @@ export function useFilteredPaths() {
 }
 
 export function useFilteredImages() {
-  const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
+  const { files, selectedIndex, isLoading } = useImageStore();
   const { handleSelectImageByPath } = useImageLoader();
   const ratings = useRatingStore((state) => state.ratings);
   const flags = useFlagStore((state) => state.flags);
@@ -232,7 +232,7 @@ export function useFilteredImages() {
   const filtered = useMemo(
     () =>
       getFilteredImagesFromState({
-        files: fileMetadataList,
+        files: files,
         ratings,
         flags,
         filters: {
@@ -246,7 +246,7 @@ export function useFilteredImages() {
         },
       }),
     [
-      fileMetadataList,
+      files,
       ratings,
       flags,
       search,
@@ -269,9 +269,7 @@ export function useFilteredImages() {
     }
 
     const currentPath =
-      selectedIndex !== null
-        ? (fileMetadataList[selectedIndex]?.path ?? null)
-        : null;
+      selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
 
     if (
       currentPath &&
@@ -299,13 +297,7 @@ export function useFilteredImages() {
         autoSelectedPathRef.current = firstPath;
       }
     }
-  }, [
-    filtered,
-    selectedIndex,
-    fileMetadataList,
-    handleSelectImageByPath,
-    isLoading,
-  ]);
+  }, [filtered, selectedIndex, files, handleSelectImageByPath, isLoading]);
 
   return filtered;
 }

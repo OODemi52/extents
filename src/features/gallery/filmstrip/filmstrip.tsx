@@ -31,17 +31,14 @@ export function Filmstrip() {
   const filmstripRef = useRef<HTMLDivElement>(null);
   const [itemSize, setItemSize] = useState(72);
   const lastSizeRef = useRef(itemSize);
-  const { fileMetadataList, selectedIndex, currentFolderPath } =
-    useImageStore();
+  const { files, selectedIndex, currentFolderPath } = useImageStore();
   const selectedPaths = useImageStore((state) => state.selectedPaths);
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
   const prefetchThumbnails = usePrefetchThumbnails();
 
   const selectedPath =
-    selectedIndex !== null
-      ? (fileMetadataList[selectedIndex]?.path ?? null)
-      : null;
+    selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
   const density = useMemo(() => densityForSize(itemSize), [itemSize]);
 
   const filteredPaths = useMemo(

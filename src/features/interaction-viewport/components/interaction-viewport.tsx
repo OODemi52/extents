@@ -12,14 +12,13 @@ import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
 
 export function InteractionViewport() {
-  const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
+  const { files, selectedIndex, isLoading } = useImageStore();
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const filteredFiles = useFilteredImages();
 
   const viewportRef = useRef<HTMLDivElement>(null);
 
-  const selected =
-    selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
+  const selected = selectedIndex !== null ? files[selectedIndex] : null;
 
   const imagePath = selected?.path || null;
 
@@ -61,7 +60,7 @@ export function InteractionViewport() {
     !isLoading &&
     !isPreviewLoading &&
     filteredFiles.length === 0 &&
-    fileMetadataList.length > 0;
+    files.length > 0;
 
   return (
     <div
@@ -95,7 +94,7 @@ export function InteractionViewport() {
 
       {showEmptyState && !showFilteredEmpty && (
         <div className="text-center text-sm text-gray-500">
-          {fileMetadataList.length
+          {files.length
             ? "Select an image to view."
             : "No folder selected. Pick a folder to start."}
         </div>

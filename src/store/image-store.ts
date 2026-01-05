@@ -6,7 +6,7 @@ import { FileMetadata } from "../types/image";
 import { useImageTransformStore } from "./transform-store";
 
 interface ImageStore {
-  fileMetadataList: FileMetadata[];
+  files: FileMetadata[];
   selectedIndex: number | null;
   selectedPaths: Set<string>;
   currentImageData: string | null;
@@ -16,8 +16,8 @@ interface ImageStore {
   currentFolderPath: string | null;
   folderList: string[];
 
-  setFileMetadataList: (list: FileMetadata[]) => void;
-  appendFileMetadataList: (list: FileMetadata[]) => void;
+  setFiles: (list: FileMetadata[]) => void;
+  appendFiles: (list: FileMetadata[]) => void;
   setSelectedIndex: (index: number | null) => void;
   selectSingleByIndex: (index: number) => void;
   toggleSelectionByIndex: (index: number) => void;
@@ -38,13 +38,13 @@ interface ImageStore {
 
 type ImageSelectionState = Pick<
   ImageStore,
-  "fileMetadataList" | "selectedIndex" | "selectedPaths"
+  "files" | "selectedIndex" | "selectedPaths"
 >;
 
-type ImageIndexState = Pick<ImageStore, "fileMetadataList" | "selectedIndex">;
+type ImageIndexState = Pick<ImageStore, "files" | "selectedIndex">;
 
 const getPathAtIndex = (state: ImageSelectionState, index: number) =>
-  state.fileMetadataList[index]?.path ?? null;
+  state.files[index]?.path ?? null;
 
 const resetTransformIfChanged = (
   state: ImageSelectionState,
@@ -55,13 +55,11 @@ const resetTransformIfChanged = (
   }
 };
 
-const findIndexByPath = (
-  state: Pick<ImageStore, "fileMetadataList">,
-  path: string,
-) => state.fileMetadataList.findIndex((file) => file.path === path);
+const findIndexByPath = (state: Pick<ImageStore, "files">, path: string) =>
+  state.files.findIndex((file) => file.path === path);
 
 const getRelativeIndex = (state: ImageIndexState, delta: number) => {
-  const total = state.fileMetadataList.length;
+  const total = state.files.length;
 
   if (total === 0 || delta === 0) {
     return null;
@@ -135,7 +133,7 @@ export const useImageStore = create<ImageStore>((set, get) => {
   };
 
   return {
-    fileMetadataList: [],
+    files: [],
     selectedIndex: null,
     selectedPaths: new Set(),
     currentImageData: null,
@@ -145,18 +143,18 @@ export const useImageStore = create<ImageStore>((set, get) => {
     currentFolderPath: null,
     folderList: [],
 
-    setFileMetadataList: (list) =>
+    setFiles: (list) =>
       set((state) => {
         const nextPaths = new Set(list.map((file) => file.path));
         const nextSelectedPaths = new Set(
           [...state.selectedPaths].filter((path) => nextPaths.has(path)),
         );
 
-        return { fileMetadataList: list, selectedPaths: nextSelectedPaths };
+        return { files: list, selectedPaths: nextSelectedPaths };
       }),
-    appendFileMetadataList: (list) =>
+    appendFiles: (list) =>
       set((state) => ({
-        fileMetadataList: [...state.fileMetadataList, ...list],
+        files: [...state.files, ...list],
       })),
     setSelectedIndex: (index: number | null) => {
       if (index === null) {
@@ -166,7 +164,7 @@ export const useImageStore = create<ImageStore>((set, get) => {
       }
 
       set((state) => {
-        if (index < 0 || index >= state.fileMetadataList.length) {
+        if (index < 0 || index >= state.files.length) {
           return {};
         }
 
@@ -189,19 +187,19 @@ export const useImageStore = create<ImageStore>((set, get) => {
       }
     },
     selectFirst: () => {
-      const { fileMetadataList, selectedIndex } = get();
+      const { files, selectedIndex } = get();
 
-      if (!fileMetadataList.length || selectedIndex === 0) {
+      if (!files.length || selectedIndex === 0) {
         return;
       }
 
       selectSingleByIndex(0);
     },
     selectLast: () => {
-      const { fileMetadataList, selectedIndex } = get();
-      const lastIndex = fileMetadataList.length - 1;
+      const { files, selectedIndex } = get();
+      const lastIndex = files.length - 1;
 
-      if (!fileMetadataList.length || selectedIndex === lastIndex) {
+      if (!files.length || selectedIndex === lastIndex) {
         return;
       }
 
@@ -270,7 +268,7 @@ export const useImageStore = create<ImageStore>((set, get) => {
     setIsScrubbing: (scrubbing) => set({ isScrubbing: scrubbing }),
     setThumbnailPath: (originalPath, cachePath) => {
       set((state) => ({
-        fileMetadataList: state.fileMetadataList.map((file) =>
+        files: state.files.map((file) =>
           file.path === originalPath
             ? { ...file, thumbnailPath: convertFileSrc(cachePath) }
             : file,

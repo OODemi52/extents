@@ -13,8 +13,8 @@ import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-st
 
 export function useFolderScanner() {
   const {
-    setFileMetadataList,
-    appendFileMetadataList,
+    setFiles,
+    appendFiles,
     setSelectedIndex,
     setCurrentImageData,
     setCurrentFolderPath,
@@ -41,9 +41,9 @@ export function useFolderScanner() {
       const payload = pendingBatchRef.current;
 
       pendingBatchRef.current = [];
-      appendFileMetadataList(payload);
+      appendFiles(payload);
     });
-  }, [appendFileMetadataList]);
+  }, [appendFiles]);
 
   const flushPendingBatch = useCallback(() => {
     if (flushFrameRef.current !== null) {
@@ -56,8 +56,8 @@ export function useFolderScanner() {
     const payload = pendingBatchRef.current;
 
     pendingBatchRef.current = [];
-    appendFileMetadataList(payload);
-  }, [appendFileMetadataList]);
+    appendFiles(payload);
+  }, [appendFiles]);
 
   const cleanupScanListeners = useCallback(() => {
     scanListenersRef.current.batch?.();
@@ -99,7 +99,7 @@ export function useFolderScanner() {
         useFileSystemStore.getState().selectItem(folderPath);
       }
 
-      setFileMetadataList([]);
+      setFiles([]);
       setSelectedIndex(null);
       setCurrentImageData(null);
 
@@ -114,7 +114,7 @@ export function useFolderScanner() {
         ({ payload }) => {
           if (isFirstBatch && payload.length > 0) {
             isFirstBatch = false;
-            appendFileMetadataList(payload);
+            appendFiles(payload);
 
             const ratings = useRatingStore.getState().ratings;
             const flags = useFlagStore.getState().flags;
@@ -142,13 +142,13 @@ export function useFolderScanner() {
         setIsLoading(false);
         cleanupScanListeners();
 
-        const { fileMetadataList, selectedIndex } = useImageStore.getState();
+        const { files, selectedIndex } = useImageStore.getState();
         const ratings = useRatingStore.getState().ratings;
         const flags = useFlagStore.getState().flags;
         const filters = useFilterStore.getState();
 
         const filtered = getFilteredImagesFromState({
-          files: fileMetadataList,
+          files: files,
           ratings,
           flags,
           filters,
@@ -157,12 +157,10 @@ export function useFolderScanner() {
         if (filtered.length > 0) {
           const firstPath = filtered[0].path;
           const selectedPath =
-            selectedIndex !== null
-              ? fileMetadataList[selectedIndex]?.path
-              : null;
+            selectedIndex !== null ? files[selectedIndex]?.path : null;
 
           if (firstPath !== selectedPath) {
-            const indexInMainList = fileMetadataList.findIndex(
+            const indexInMainList = files.findIndex(
               (f) => f.path === firstPath,
             );
 
@@ -198,13 +196,13 @@ export function useFolderScanner() {
       });
     },
     [
-      appendFileMetadataList,
+      appendFiles,
       cleanupScanListeners,
       flushPendingBatch,
       scheduleBatchFlush,
       setCurrentFolderPath,
       setCurrentImageData,
-      setFileMetadataList,
+      setFiles,
       setIsLoading,
       setSelectedIndex,
       selectSingleByIndex,

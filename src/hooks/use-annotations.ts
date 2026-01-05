@@ -6,7 +6,7 @@ import { useImageStore } from "@/store/image-store";
 import { getAnnotations } from "@/services/api/annotations";
 
 export function useAnnotations() {
-  const files = useImageStore((selected) => selected.fileMetadataList);
+  const files = useImageStore((selected) => selected.files);
   const isLoading = useImageStore((selected) => selected.isLoading);
   const paths = useMemo(() => files.map((file) => file.path), [files]);
   const dependencyKey = useMemo(() => paths.join("|"), [paths]);

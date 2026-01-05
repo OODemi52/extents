@@ -21,13 +21,13 @@ interface TitleBarProps {
 export function TitleBar({ onPickFolder }: TitleBarProps) {
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const toggleFilter = useFilterStore((state) => state.toggleOpen);
-  const { currentFolderPath, fileMetadataList, isLoading } = useImageStore();
+  const { currentFolderPath, files, isLoading } = useImageStore();
 
   const folderName = currentFolderPath
     ? (currentFolderPath.split(/[/\\]/).filter(Boolean).pop() ??
       "Unnamed Folder")
     : "Select Folder";
-  const photoCount = fileMetadataList.length;
+  const photoCount = files.length;
   const photoCountLabel = currentFolderPath
     ? `${photoCount} photo${photoCount === 1 ? "" : "s"}`
     : "No photos";

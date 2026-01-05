@@ -5,7 +5,7 @@ import { useImageStore } from "@/store/image-store";
 import { useExifStore } from "@/store/exif-store";
 
 export function useExifMetadata() {
-  const files = useImageStore((state) => state.fileMetadataList);
+  const files = useImageStore((state) => state.files);
   const isLoading = useImageStore((state) => state.isLoading);
   const setEntries = useExifStore((state) => state.setEntries);
   const clearEntries = useExifStore((state) => state.clearEntries);

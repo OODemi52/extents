@@ -14,7 +14,7 @@ export interface ThumbnailProps {
 }
 
 export interface FilmstripProps {
-  fileMetadataList: FileMetadata[];
+  files: FileMetadata[];
   selectedIndex: number | null;
   onSelectImage: (index: number) => void;
 }

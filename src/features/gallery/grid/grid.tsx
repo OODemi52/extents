@@ -26,7 +26,7 @@ export function ThumbnailGrid() {
   const isSidebarResizing = useLayoutStore((state) => state.isSidebarResizing);
   const isSidebarResizingRef = useRef(isSidebarResizing);
 
-  const { fileMetadataList } = useImageStore();
+  const { files } = useImageStore();
   const selectedPaths = useImageStore((state) => state.selectedPaths);
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
@@ -36,7 +36,7 @@ export function ThumbnailGrid() {
     [handleSelectImageByPath],
   );
   const prefetchThumbnails = usePrefetchThumbnails();
-  const hasBaseImages = fileMetadataList.length > 0;
+  const hasBaseImages = files.length > 0;
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const showFileNameInGrid = useGalleryPreferencesStore(
     (state) => state.showFileNameInGrid,
