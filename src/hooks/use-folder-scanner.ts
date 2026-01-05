@@ -22,100 +22,103 @@ export function useFolderScanner() {
     selectSingleByIndex,
   } = useImageStore();
 
-  const scanListenersRef = useRef<{
-    batch?: UnlistenFn;
-    complete?: UnlistenFn;
-    error?: UnlistenFn;
-  }>({});
-  const pendingBatchRef = useRef<FileMetadata[]>([]);
-  const flushFrameRef = useRef<number | null>(null);
+  const lastOpenedFolder = useRef<string | null>(null);
+  const prevSelectedIdRef = useRef<string | null>(null);
 
-  const scheduleBatchFlush = useCallback(() => {
-    if (flushFrameRef.current !== null) return;
+  const pendingBatch = useRef<FileMetadata[]>([]);
+  const flushFrame = useRef<number | null>(null);
 
-    flushFrameRef.current = window.requestAnimationFrame(() => {
-      flushFrameRef.current = null;
+  const schedulePendingBatch = useCallback(() => {
+    if (flushFrame.current !== null) return;
 
-      if (!pendingBatchRef.current.length) return;
+    flushFrame.current = window.requestAnimationFrame(() => {
+      flushFrame.current = null;
 
-      const payload = pendingBatchRef.current;
+      if (!pendingBatch.current.length) return;
 
-      pendingBatchRef.current = [];
+      const payload = pendingBatch.current;
+
+      pendingBatch.current = [];
       appendFiles(payload);
     });
   }, [appendFiles]);
 
   const flushPendingBatch = useCallback(() => {
-    if (flushFrameRef.current !== null) {
-      cancelAnimationFrame(flushFrameRef.current);
-      flushFrameRef.current = null;
+    if (flushFrame.current !== null) {
+      cancelAnimationFrame(flushFrame.current);
+
+      flushFrame.current = null;
     }
 
-    if (!pendingBatchRef.current.length) return;
+    if (!pendingBatch.current.length) return;
 
-    const payload = pendingBatchRef.current;
+    const payload = pendingBatch.current;
 
-    pendingBatchRef.current = [];
+    pendingBatch.current = [];
     appendFiles(payload);
   }, [appendFiles]);
 
+  const scanListeners = useRef<{
+    batch?: UnlistenFn;
+    complete?: UnlistenFn;
+    error?: UnlistenFn;
+    total?: UnlistenFn;
+  }>({});
   const cleanupScanListeners = useCallback(() => {
-    scanListenersRef.current.batch?.();
-    scanListenersRef.current.complete?.();
-    scanListenersRef.current.error?.();
-    scanListenersRef.current = {};
-    if (flushFrameRef.current !== null) {
-      cancelAnimationFrame(flushFrameRef.current);
-      flushFrameRef.current = null;
-    }
-    pendingBatchRef.current = [];
-  }, []);
+    scanListeners.current.batch?.();
 
-  const lastOpenedFolderRef = useRef<string | null>(null);
-  const prevSelectedIdRef = useRef<string | null>(null);
+    scanListeners.current.complete?.();
+
+    scanListeners.current.error?.();
+
+    scanListeners.current.total?.();
+
+    scanListeners.current = {};
+
+    if (flushFrame.current !== null) {
+      cancelAnimationFrame(flushFrame.current);
+
+      flushFrame.current = null;
+    }
+
+    pendingBatch.current = [];
+  }, []);
 
   const openFolder = useCallback(
     async (path: string | null = null) => {
-      let folderPath: string | null = null;
+      let folderPath: string | null =
+        path || ((await open({ directory: true })) as string | null);
 
-      if (typeof path === "string" && path.length > 0) {
-        folderPath = path;
-      } else {
-        folderPath = (await open({ directory: true })) as string | null;
-      }
+      if (!folderPath) return;
 
-      if (!folderPath || typeof folderPath !== "string") return;
-
-      const wasProvidedPath = typeof path === "string" && path.length > 0;
-
-      if (folderPath !== lastOpenedFolderRef.current) {
+      // Clear filters if opening a new folder
+      if (folderPath !== lastOpenedFolder.current) {
         useFilterStore.getState().clearFilters();
       }
-
-      lastOpenedFolderRef.current = folderPath;
+      lastOpenedFolder.current = folderPath;
       setCurrentFolderPath(folderPath);
 
-      if (!wasProvidedPath) {
+      if (!path) {
         useFileSystemStore.getState().selectItem(folderPath);
       }
 
-      setFiles([]);
-      setSelectedIndex(null);
-      setCurrentImageData(null);
-
-      const loadingTimeout = setTimeout(() => {
-        setIsLoading(true);
-      }, 150);
-
       let isFirstBatch = true;
 
+      // -------------------
+      // Batch listener
+      // -------------------
       const batchListener = await listen<FileMetadata[]>(
         "folder-scan-batch",
         ({ payload }) => {
-          if (isFirstBatch && payload.length > 0) {
-            isFirstBatch = false;
-            appendFiles(payload);
+          if (!payload.length) return;
 
+          if (isFirstBatch) {
+            isFirstBatch = false;
+
+            // Replace old files with first batch
+            setFiles(payload);
+
+            // Initial selection logic after first batch
             const ratings = useRatingStore.getState().ratings;
             const flags = useFlagStore.getState().flags;
             const filters = useFilterStore.getState();
@@ -130,51 +133,30 @@ export function useFolderScanner() {
               selectSingleByIndex(0);
             }
           } else {
-            pendingBatchRef.current.push(...payload);
-            scheduleBatchFlush();
+            // Subsequent batches are staged
+            pendingBatch.current.push(...payload);
+            schedulePendingBatch();
           }
         },
       );
 
-      const completeListener = await listen("folder-scan-complete", () => {
-        clearTimeout(loadingTimeout);
+      const totalCountListener = await listen<number>(
+        "folder-total",
+        ({ payload }) => {
+          // Use this to implement immediate perceptual load of folder
+          console.log(payload);
+        },
+      );
+
+      const scanCompleteListener = await listen("folder-scan-complete", () => {
         flushPendingBatch();
         setIsLoading(false);
         cleanupScanListeners();
-
-        const { files, selectedIndex } = useImageStore.getState();
-        const ratings = useRatingStore.getState().ratings;
-        const flags = useFlagStore.getState().flags;
-        const filters = useFilterStore.getState();
-
-        const filtered = getFilteredImagesFromState({
-          files: files,
-          ratings,
-          flags,
-          filters,
-        });
-
-        if (filtered.length > 0) {
-          const firstPath = filtered[0].path;
-          const selectedPath =
-            selectedIndex !== null ? files[selectedIndex]?.path : null;
-
-          if (firstPath !== selectedPath) {
-            const indexInMainList = files.findIndex(
-              (f) => f.path === firstPath,
-            );
-
-            if (indexInMainList !== -1) {
-              selectSingleByIndex(indexInMainList);
-            }
-          }
-        }
       });
 
-      const errorListener = await listen<string>(
+      const scanErrorListener = await listen<string>(
         "folder-scan-error",
         ({ payload }) => {
-          clearTimeout(loadingTimeout);
           console.error("Folder scan failed:", payload);
           flushPendingBatch();
           setIsLoading(false);
@@ -182,14 +164,14 @@ export function useFolderScanner() {
         },
       );
 
-      scanListenersRef.current = {
+      scanListeners.current = {
         batch: batchListener,
-        complete: completeListener,
-        error: errorListener,
+        complete: scanCompleteListener,
+        error: scanErrorListener,
+        total: totalCountListener,
       };
 
       api.fs.startFolderScan({ folderPath }).catch((err) => {
-        clearTimeout(loadingTimeout);
         console.error("Failed to start folder scan:", err);
         setIsLoading(false);
         cleanupScanListeners();
@@ -199,7 +181,7 @@ export function useFolderScanner() {
       appendFiles,
       cleanupScanListeners,
       flushPendingBatch,
-      scheduleBatchFlush,
+      schedulePendingBatch,
       setCurrentFolderPath,
       setCurrentImageData,
       setFiles,
@@ -211,36 +193,27 @@ export function useFolderScanner() {
 
   useEffect(() => {
     const unsubscribe = useFileSystemStore.subscribe((state) => {
-      const { selectedId } = state;
-
       const currentSelected =
-        typeof selectedId === "string" && selectedId.length > 0
-          ? selectedId
+        state.selectedId && state.selectedId.length > 0
+          ? state.selectedId
           : null;
 
       if (
         currentSelected &&
         currentSelected !== prevSelectedIdRef.current &&
-        currentSelected !== lastOpenedFolderRef.current
+        currentSelected !== lastOpenedFolder.current
       ) {
         prevSelectedIdRef.current = currentSelected;
         openFolder(currentSelected);
-
-        return;
       }
-
       prevSelectedIdRef.current = currentSelected;
     });
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [openFolder]);
 
   useEffect(() => {
-    return () => {
-      cleanupScanListeners();
-    };
+    return () => cleanupScanListeners();
   }, [cleanupScanListeners]);
 
   return { openFolder };
