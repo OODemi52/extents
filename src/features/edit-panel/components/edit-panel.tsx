@@ -46,6 +46,7 @@ export function EditPanel() {
 
       <div className="flex flex-row gap-2 pt-2 flex-shrink-0">
         <Button
+          isDisabled
           className="rounded-md w-full shadow-md"
           color="default"
           size="sm"
@@ -54,6 +55,7 @@ export function EditPanel() {
           Export
         </Button>
         <Button
+          isDisabled
           isIconOnly
           className="rounded-md shadow-md"
           color="default"
