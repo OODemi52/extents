@@ -5,7 +5,7 @@ import {
   FunnelIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { Button, ButtonGroup } from "@heroui/button";
-import { Spinner } from "@heroui/react";
+import { Spinner, Tooltip } from "@heroui/react";
 
 import { ToolbarIconButton } from "./ui/buttons/toolbar-icon-button";
 
@@ -46,39 +46,48 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
         {isMac && !isFullscreen && (
           <div className={`${trafficLightsClass} shrink-0`} />
         )}
-        <Button
-          disableRipple
-          className="h-auto min-h-0 px-2 py-1 text-left bg-transparent hover:bg-white/5"
+        <Tooltip
+          className="border border-zinc-500"
+          closeDelay={0}
+          content={"Open Folder"}
+          delay={750}
           radius="sm"
           size="sm"
-          onPress={onPickFolder}
         >
-          <div className="flex items-start gap-2">
-            <FolderOpenIcon
-              className="text-zinc-400 shrink-0"
-              size={32}
-              weight="duotone"
-            />
-            <span className="flex flex-col leading-tight text-left">
-              <span className="max-w-[160px] truncate text-xs font-semibold text-zinc-100 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
-                {folderName}
+          <Button
+            disableRipple
+            className="h-auto min-h-0 px-2 py-1 text-left bg-transparent hover:bg-white/5"
+            radius="sm"
+            size="sm"
+            onPress={onPickFolder}
+          >
+            <div className="flex items-start gap-2">
+              <FolderOpenIcon
+                className="text-zinc-400 shrink-0"
+                size={32}
+                weight="duotone"
+              />
+              <span className="flex flex-col leading-tight text-left">
+                <span className="max-w-[160px] truncate text-xs font-semibold text-zinc-100 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
+                  {folderName}
+                </span>
+                <span className="flex h-[18px] items-center">
+                  {isLoading ? (
+                    <Spinner
+                      className="origin-left scale-[0.7]"
+                      color="default"
+                      variant="dots"
+                    />
+                  ) : (
+                    <span className="text-[10px] leading-none text-zinc-400 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
+                      {photoCountLabel}
+                    </span>
+                  )}
+                </span>
               </span>
-              <span className="flex h-[18px] items-center">
-                {isLoading ? (
-                  <Spinner
-                    className="origin-left scale-[0.7]"
-                    color="default"
-                    variant="dots"
-                  />
-                ) : (
-                  <span className="text-[10px] leading-none text-zinc-400 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
-                    {photoCountLabel}
-                  </span>
-                )}
-              </span>
-            </span>
-          </div>
-        </Button>
+            </div>
+          </Button>
+        </Tooltip>
       </div>
 
       <div className="flex items-center space-x-2 max-w-3xl flex-1">
