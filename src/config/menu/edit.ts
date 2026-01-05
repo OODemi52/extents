@@ -11,6 +11,7 @@ export async function createEditSubmenu() {
   const undo = await MenuItem.new({
     id: "undo",
     text: "Undo [action]",
+    enabled: false,
     accelerator: "CmdOrCtrl+Z",
   });
 
