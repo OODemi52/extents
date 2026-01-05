@@ -1,9 +1,9 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 
 import { useBackgroundThumbnailPrefetch } from "../hooks/use-background-thumbnail-prefetch";
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
-import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
+import { useScrubbing } from "../hooks/use-scrubbing";
 
 import { FilmstripItem } from "./filmstrip-item";
 
@@ -36,6 +36,7 @@ export function Filmstrip() {
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
   const prefetchThumbnails = usePrefetchThumbnails();
+  const { startScrubbing } = useScrubbing();
 
   const selectedPath =
     selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
@@ -46,7 +47,6 @@ export function Filmstrip() {
     [filteredFiles],
   );
 
-  useImageKeyboardNavigation(filteredPaths, filteredPaths.length > 0);
   useBackgroundThumbnailPrefetch(filteredPaths, filmstripRef, true);
 
   const virtualizer = useVirtualizer({
@@ -57,10 +57,82 @@ export function Filmstrip() {
     overscan: 5,
   });
 
-  useEffect(() => {
-    const el = filmstripRef.current;
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.defaultPrevented) {
+        return;
+      }
 
-    if (!el) return;
+      const currentPath =
+        selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
+
+      const currentIndex = currentPath
+        ? filteredPaths.indexOf(currentPath)
+        : -1;
+
+      const selectByIndex = (index: number) => {
+        const path = filteredPaths[index];
+
+        if (!path || path === currentPath) {
+          return;
+        }
+
+        startScrubbing();
+        handleSelectImageByPath(path);
+      };
+
+      const selectRelative = (delta: number) => {
+        if (delta === 0 || filteredPaths.length === 0) {
+          return;
+        }
+
+        const baseIndex =
+          currentIndex !== -1
+            ? currentIndex
+            : delta > 0
+              ? -1
+              : filteredPaths.length;
+        const nextIndex = Math.min(
+          Math.max(baseIndex + delta, 0),
+          filteredPaths.length - 1,
+        );
+
+        if (nextIndex === baseIndex) {
+          return;
+        }
+
+        selectByIndex(nextIndex);
+      };
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        if (event.metaKey || event.ctrlKey) {
+          selectByIndex(0);
+        } else {
+          selectRelative(-1);
+        }
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        if (event.metaKey || event.ctrlKey) {
+          selectByIndex(filteredPaths.length - 1);
+        } else {
+          selectRelative(1);
+        }
+      }
+    },
+    [
+      filteredPaths,
+      handleSelectImageByPath,
+      selectedIndex,
+      files,
+      startScrubbing,
+    ],
+  );
+
+  useEffect(() => {
+    const filmstrip = filmstripRef.current;
+
+    if (!filmstrip) return;
 
     let frame = 0;
     let pendingHeight = 0;
@@ -91,7 +163,7 @@ export function Filmstrip() {
       });
     });
 
-    observer.observe(el);
+    observer.observe(filmstrip);
 
     return () => {
       observer.disconnect();
@@ -152,6 +224,7 @@ export function Filmstrip() {
 
     if (index >= 0) {
       virtualizer.scrollToIndex(index, { align: "center" });
+      filmstripRef.current?.focus({ preventScroll: true });
     }
   }, [selectedPath, filteredFiles, virtualizer]);
 
@@ -168,7 +241,10 @@ export function Filmstrip() {
     <div
       ref={filmstripRef}
       className="h-full overflow-x-auto overflow-y-hidden px-2 pb-2"
+      role="listbox"
       style={{ contain: "strict" }}
+      tabIndex={filteredFiles.length > 0 ? 0 : -1}
+      onKeyDown={handleKeyDown}
     >
       <div
         style={{
