@@ -3,6 +3,7 @@ use crate::renderer::{RenderState, Renderer};
 use crate::state::AppState;
 use anyhow::Result;
 use log::{error, info, warn};
+use std::sync::Arc;
 use std::time::Instant;
 use tauri::async_runtime;
 use tauri::{State, WebviewWindow};
@@ -46,9 +47,12 @@ pub fn load_image(
     viewport_y: u32,
     viewport_width: u32,
     viewport_height: u32,
+    defer_full_image_load: Option<bool>,
     state: State<AppState>,
-) {
+) -> Result<u64, String> {
     info!("[CMD] Loading image from path: {}", path);
+    let defer_full = defer_full_image_load.unwrap_or(false);
+    let preview_label = preview_path.as_deref().unwrap_or("<none>");
 
     let renderer_handle = state.renderer.clone();
 
@@ -63,6 +67,10 @@ pub fn load_image(
             );
 
             let request_id = renderer.begin_image_request();
+            info!(
+                "[CMD] Image request {} defer_full={} preview={}",
+                request_id, defer_full, preview_label
+            );
 
             if let Some(preview_path) = preview_path {
                 if let Err(err) = load_texture_from_path(renderer, &preview_path) {
@@ -77,16 +85,81 @@ pub fn load_image(
 
             request_id
         } else {
-            return;
+            return Err("Renderer not initialized".to_string());
         }
     };
 
-    let full_path = path.clone();
+    if !defer_full {
+        spawn_full_image_load(path, request_id, renderer_handle.clone());
+    } else {
+        info!("[CMD] Deferring full decode for request {}", request_id);
+    }
+
+    Ok(request_id)
+}
+
+#[tauri::command]
+pub fn start_full_image_load(
+    path: String,
+    request_id: u64,
+    state: State<AppState>,
+) -> Result<(), String> {
+    info!(
+        "[CMD] start_full_image_load request {} path {}",
+        request_id, path
+    );
+    let renderer_handle = state.renderer.clone();
+
+    let should_start = {
+        let renderer_lock = renderer_handle.lock().unwrap();
+        let renderer = match renderer_lock.as_ref() {
+            Some(renderer) => renderer,
+            None => return Err("Renderer not initialized".to_string()),
+        };
+
+        renderer.is_request_active(request_id)
+    };
+
+    if !should_start {
+        info!(
+            "[CMD] start_full_image_load skipped (inactive request {})",
+            request_id
+        );
+        return Ok(());
+    }
+
+    spawn_full_image_load(path, request_id, renderer_handle);
+
+    Ok(())
+}
+
+fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
+    let (raw, width, height) = decode_full_image(path)?;
+
+    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
+
+    renderer.display_checkboard(has_alpha);
+
+    renderer.update_texture(&raw, width, height);
+
+    Ok(())
+}
+
+fn spawn_full_image_load(
+    path: String,
+    request_id: u64,
+    renderer_handle: Arc<std::sync::Mutex<Option<Renderer<'static>>>>,
+) {
     let renderer_for_task = renderer_handle.clone();
+    let cloned_path_for_logging = path.clone();
+    info!(
+        "[CMD] Starting full decode request {} path {}",
+        request_id, cloned_path_for_logging
+    );
 
     let join_handle = async_runtime::spawn(async move {
         let decode_result =
-            async_runtime::spawn_blocking(move || decode_full_image(&full_path)).await;
+            async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
 
         match decode_result {
             Ok(Ok((rgba, width, height))) => {
@@ -108,7 +181,7 @@ pub fn load_image(
             Ok(Err(err)) => {
                 error!(
                     "[CMD] Failed to decode full image {}: {}",
-                    path,
+                    cloned_path_for_logging,
                     err.to_string()
                 );
 
@@ -120,7 +193,7 @@ pub fn load_image(
             Err(join_err) => {
                 error!(
                     "[CMD] Image decode task panicked for {}: {:?}",
-                    path, join_err
+                    cloned_path_for_logging, join_err
                 );
 
                 let mut renderer_lock = renderer_for_task.lock().unwrap();
@@ -137,16 +210,42 @@ pub fn load_image(
     }
 }
 
-fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
-    let (raw, width, height) = decode_full_image(path)?;
+#[tauri::command]
+pub async fn swap_requested_texture(
+    path: String,
+    request_id: u64,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    info!(
+        "[CMD] swap_requested_texture request {} path {}",
+        request_id, path
+    );
+    let renderer_handle = state.renderer.clone();
 
-    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
+    let decode_result =
+        async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
 
-    renderer.display_checkboard(has_alpha);
+    match decode_result {
+        Ok(Ok((raw, width, height))) => {
+            let mut renderer_lock = renderer_handle.lock().unwrap();
+            if let Some(renderer) = renderer_lock.as_mut() {
+                if renderer.is_request_active(request_id) {
+                    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
 
-    renderer.update_texture(&raw, width, height);
+                    renderer.display_checkboard(has_alpha);
+                    renderer.update_texture(&raw, width, height);
+                    renderer.render();
+                }
+            }
 
-    Ok(())
+            Ok(())
+        }
+        Ok(Err(err)) => Err(err.to_string()),
+        Err(join_err) => Err(format!(
+            "Proxy texture decode task panicked: {:?}",
+            join_err
+        )),
+    }
 }
 
 #[tauri::command]

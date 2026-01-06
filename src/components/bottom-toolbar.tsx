@@ -32,11 +32,9 @@ export function BottomToolbar() {
     setActiveLayout,
     setActiveEditTab,
   } = useLayoutStore();
-  const { fileMetadataList, selectedIndex, selectedPaths, deselectAll } =
-    useImageStore();
+  const { files, selectedIndex, selectedPaths, deselectAll } = useImageStore();
 
-  const selectedFile =
-    selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
+  const selectedFile = selectedIndex !== null ? files[selectedIndex] : null;
   const selectionCount = selectedPaths.size;
   const fallbackSelectedName =
     selectionCount === 1
@@ -227,7 +225,7 @@ export function BottomToolbar() {
         </div>
       </div>
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500 tracking-tight">
-        {fileMetadataList.length > 0 && selectionCount > 0 ? (
+        {files.length > 0 && selectionCount > 0 ? (
           <button
             className="group pointer-events-auto relative inline-flex items-center justify-center whitespace-nowrap"
             type="button"

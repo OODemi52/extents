@@ -20,7 +20,7 @@ export function Histogram() {
   if (!histogram || !normalized) {
     return (
       <div className="flex h-full items-center justify-center text-xs text-zinc-500">
-        {isLoading ? "Loading histogram..." : "No image selected"}
+        {isLoading ? "" : "No image selected"}
       </div>
     );
   }

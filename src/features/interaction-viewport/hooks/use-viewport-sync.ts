@@ -1,28 +1,38 @@
 import type { PreviewInfo } from "@/services/api/image";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 import { api } from "@/services/api";
 
 const VIEWPORT_DEBOUNCE_MS = 100;
+const FULL_DECODE_DEBOUNCE_MS = 150;
 
 export function useViewportSync(
   viewportRef: React.RefObject<HTMLDivElement>,
   preview: PreviewInfo | undefined,
+  thumbnailPath: string | null,
   imagePath: string | null,
+  isScrubbing: boolean,
   scale: number,
   offsetX: number,
   offsetY: number,
 ) {
   const lastLoadKeyRef = useRef<string | null>(null);
+  const lastSwapPathRef = useRef<string | null>(null);
+  const activeImagePathRef = useRef<string | null>(null);
+  const [requestId, setRequestId] = useState<number | null>(null);
+  const pendingFullRequestRef = useRef<{
+    path: string;
+    requestId: number;
+  } | null>(null);
+  const scrubbingRef = useRef(isScrubbing);
   const viewportTimeoutRef = useRef<number | null>(null);
   const transformTimeoutRef = useRef<number | null>(null);
+  const fullDecodeTimeoutRef = useRef<number | null>(null);
   const lastTransformRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
 
   const updateViewport = useCallback(() => {
-    if (!viewportRef.current) {
-      return;
-    }
+    if (!viewportRef.current) return;
 
     if (viewportTimeoutRef.current !== null) {
       clearTimeout(viewportTimeoutRef.current);
@@ -50,18 +60,38 @@ export function useViewportSync(
   }, [viewportRef]);
 
   useEffect(() => {
-    if (!preview || !viewportRef.current || !imagePath) return;
+    if (!viewportRef.current || !imagePath) {
+      lastLoadKeyRef.current = null;
+      lastSwapPathRef.current = null;
+      activeImagePathRef.current = null;
+      setRequestId(null);
+      pendingFullRequestRef.current = null;
+      void api.renderer.clearRenderer();
 
-    const loadKey = `${imagePath}|${preview.path}`;
+      return;
+    }
+
+    const proxyPath = thumbnailPath ?? preview?.path ?? null;
+    const loadKey = `${imagePath}|${proxyPath || "none"}`;
 
     if (lastLoadKeyRef.current === loadKey) return;
 
     lastLoadKeyRef.current = loadKey;
+    lastSwapPathRef.current = null;
+    activeImagePathRef.current = imagePath;
+    setRequestId(null);
+    pendingFullRequestRef.current = null;
 
     const clientViewportDimensions =
       viewportRef.current.getBoundingClientRect();
 
     const devicePixelRatio = window.devicePixelRatio;
+
+    if (proxyPath) {
+      lastSwapPathRef.current = proxyPath;
+    }
+
+    const shouldDeferFull = isScrubbing;
 
     let rafId: number | null = null;
 
@@ -69,18 +99,29 @@ export function useViewportSync(
       api.renderer
         .loadImage({
           path: imagePath,
-          previewPath: preview.path,
+          previewPath: proxyPath,
           viewportX: clientViewportDimensions.x * devicePixelRatio,
           viewportY: clientViewportDimensions.y * devicePixelRatio,
           viewportWidth: clientViewportDimensions.width * devicePixelRatio,
           viewportHeight: clientViewportDimensions.height * devicePixelRatio,
+          deferFullImageLoad: shouldDeferFull,
         })
-        .then(() => {
+        .then((nextRequestId) => {
+          if (activeImagePathRef.current !== imagePath) return;
+
+          setRequestId(nextRequestId);
           updateViewport();
+
+          if (shouldDeferFull) {
+            pendingFullRequestRef.current = {
+              path: imagePath,
+              requestId: nextRequestId,
+            };
+          }
         })
-        .catch((error) =>
-          console.error("[useViewportSync] load_image failed:", error),
-        );
+        .catch((error) => {
+          console.error("[ViewportSync] load_image failed:", error);
+        });
     });
 
     return () => {
@@ -88,46 +129,84 @@ export function useViewportSync(
         cancelAnimationFrame(rafId);
       }
     };
-  }, [imagePath, preview?.path, viewportRef, updateViewport]);
+  }, [
+    imagePath,
+    viewportRef,
+    updateViewport,
+    isScrubbing,
+    thumbnailPath,
+    preview?.path,
+  ]);
 
-  // Was tryign to use this previously to manage scaling the image when adjusting the window
-  // but honestly it seems kinda fine without it. Obviously needs some tuning, but i think its
-  // fine for now.
+  // Scrubbing / full decode
+  useEffect(() => {
+    scrubbingRef.current = isScrubbing;
 
-  // Realized cause of the thrashing. Initial load currently has the image aspect squished.
-  // When resizing the window, gpu corrects the aspect, but this function fires on observer changed
-  // of th viewport, then tries to update and resquishes the image
-  // To clarify the client does not direct affect the image, it is just passing the wrong dimensions
+    if (fullDecodeTimeoutRef.current !== null) {
+      clearTimeout(fullDecodeTimeoutRef.current);
 
-  // useEffect(() => {
-  //   if (!viewportRef.current) return;
+      fullDecodeTimeoutRef.current = null;
+    }
 
-  //   const resizeObserver = new ResizeObserver(() => {
-  //     updateViewport();
-  //   });
+    if (isScrubbing) return;
 
-  //   resizeObserver.observe(viewportRef.current);
+    fullDecodeTimeoutRef.current = window.setTimeout(() => {
+      const pending = pendingFullRequestRef.current;
 
-  //   const handleScroll = () => {
-  //     updateViewport();
-  //   };
+      if (!pending) return;
 
-  //   window.addEventListener("scroll", handleScroll, true);
+      if (activeImagePathRef.current !== pending.path) {
+        pendingFullRequestRef.current = null;
 
-  //   // Initial update
-  //   updateViewport();
+        return;
+      }
 
-  //   return () => {
-  //     resizeObserver.disconnect();
+      pendingFullRequestRef.current = null;
 
-  //     window.removeEventListener("scroll", handleScroll, true);
+      api.renderer
+        .startFullImageLoad({
+          path: pending.path,
+          requestId: pending.requestId,
+        })
+        .catch((error) =>
+          console.error(
+            "[useViewportSync] start_full_image_load failed:",
+            error,
+          ),
+        );
+    }, FULL_DECODE_DEBOUNCE_MS);
 
-  //     if (viewportTimeoutRef.current !== null) {
-  //       clearTimeout(viewportTimeoutRef.current);
-  //     }
-  //   };
-  // }, [updateViewport]);
+    return () => {
+      if (fullDecodeTimeoutRef.current !== null) {
+        clearTimeout(fullDecodeTimeoutRef.current);
 
+        fullDecodeTimeoutRef.current = null;
+      }
+    };
+  }, [isScrubbing]);
+
+  // Swapping Images (thumb -> preview)
+  useEffect(() => {
+    if (!requestId) return;
+
+    const proxyPath = preview?.path ?? thumbnailPath;
+
+    if (!proxyPath) return;
+    if (lastSwapPathRef.current === proxyPath) return;
+
+    lastSwapPathRef.current = proxyPath;
+
+    api.renderer
+      .swapRequestedTexture({ path: proxyPath, requestId })
+      .catch((error) =>
+        console.error(
+          "[useViewportSync] swap_requested_texture failed:",
+          error,
+        ),
+      );
+  }, [preview?.path, requestId, thumbnailPath]);
+
+  // Resize Listeners
   useEffect(() => {
     if (!viewportRef.current) return;
 
@@ -136,7 +215,6 @@ export function useViewportSync(
     };
 
     window.addEventListener("resize", handleWindowResize);
-
     updateViewport();
 
     return () => {
@@ -148,6 +226,7 @@ export function useViewportSync(
     };
   }, [updateViewport, viewportRef]);
 
+  // Image Transform
   useEffect(() => {
     if (!preview) return;
 

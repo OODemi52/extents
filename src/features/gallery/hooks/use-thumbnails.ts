@@ -1,18 +1,38 @@
+import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchThumbnail } from "../thumbnail/fetch-thumbnail";
 
-export function useThumbnailQuery(imagePath: string) {
+import { api } from "@/services/api";
+import { useImageStore } from "@/store/image-store";
+
+const THUMBNAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+const PREFETCH_FLUSH_DELAY_MS = 50;
+
+let activeFolderPath: string | null = null;
+const prefetchedPaths = new Set<string>();
+const pendingPrefetchPaths = new Set<string>();
+let prefetchTimer: number | null = null;
+
+export function useThumbnailQuery(imagePath: string | null) {
   const query = useQuery({
     queryKey: ["thumbnail", imagePath],
-    queryFn: () => fetchThumbnail(imagePath),
+    queryFn: () => {
+      if (!imagePath) {
+        throw new Error("No image path provided");
+      }
+
+      return fetchThumbnail(imagePath);
+    },
     staleTime: Infinity,
-    gcTime: Infinity,
+    gcTime: THUMBNAIL_CACHE_TTL_MS,
     refetchOnWindowFocus: false,
+    enabled: Boolean(imagePath),
   });
 
   return {
-    thumbnail: query.data ?? null,
+    thumbnail: query.data?.src ?? null,
+    thumbnailPath: query.data?.path ?? null,
     isLoading: query.isLoading,
     error: query.error ? String(query.error) : null,
   };
@@ -31,17 +51,53 @@ export function useClearThumbnailCache() {
 }
 
 export function usePrefetchThumbnails() {
-  const queryClient = useQueryClient();
+  const currentFolderPath = useImageStore((state) => state.currentFolderPath);
+
+  useEffect(() => {
+    if (activeFolderPath !== currentFolderPath) {
+      activeFolderPath = currentFolderPath;
+      prefetchedPaths.clear();
+      pendingPrefetchPaths.clear();
+      if (prefetchTimer !== null) {
+        clearTimeout(prefetchTimer);
+        prefetchTimer = null;
+      }
+    }
+  }, [currentFolderPath]);
 
   return (imagePaths: string | string[]) => {
     const paths = Array.isArray(imagePaths) ? imagePaths : [imagePaths];
 
-    paths.forEach((path) => {
-      queryClient.prefetchQuery({
-        queryKey: ["thumbnail", path],
-        queryFn: () => fetchThumbnail(path),
-        staleTime: Infinity,
-      });
+    if (!paths.length) return;
+
+    const nextPaths = paths.filter((path) => {
+      if (prefetchedPaths.has(path)) {
+        return false;
+      }
+
+      prefetchedPaths.add(path);
+
+      return true;
     });
+
+    if (!nextPaths.length) return;
+
+    nextPaths.forEach((path) => pendingPrefetchPaths.add(path));
+
+    if (prefetchTimer !== null) return;
+
+    prefetchTimer = window.setTimeout(() => {
+      prefetchTimer = null;
+
+      if (!pendingPrefetchPaths.size) return;
+
+      const pendingPaths = Array.from(pendingPrefetchPaths);
+
+      pendingPrefetchPaths.clear();
+
+      api.thumbnails.prefetch(pendingPaths).catch((error) => {
+        console.error("[usePrefetchThumbnails] batch prefetch failed:", error);
+      });
+    }, PREFETCH_FLUSH_DELAY_MS);
   };
 }

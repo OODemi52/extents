@@ -1,8 +1,12 @@
-use crate::core::image::{decode_derived_image, EmbeddedPreviewPolicy};
+use crate::core::image::{
+    decode_derived_image, decode_derived_image_prefetch, EmbeddedPreviewPolicy,
+};
 use fast_image_resize::ResizeAlg;
 use image::{self, codecs::jpeg::JpegEncoder, RgbImage, RgbaImage};
 use std::fs::File;
 use std::path::Path;
+use std::sync::Arc;
+use tokio::sync::Semaphore;
 
 // Need to work on optimizations for this
 const THUMBNAIL_LONGEST_EDGE: u32 = 300;
@@ -18,6 +22,21 @@ pub fn generate_thumbnail(original_path: &str, cache_path: &Path) -> Result<(), 
         THUMBNAIL_LONGEST_EDGE,
         true,
         THUMBNAIL_JPEG_QUALITY,
+    )
+}
+
+pub fn generate_thumbnail_prefetch(
+    original_path: &str,
+    cache_path: &Path,
+    raw_fallback_limit: Arc<Semaphore>,
+) -> Result<(), anyhow::Error> {
+    generate_scaled_image_prefetch(
+        original_path,
+        cache_path,
+        THUMBNAIL_LONGEST_EDGE,
+        true,
+        THUMBNAIL_JPEG_QUALITY,
+        raw_fallback_limit,
     )
 }
 
@@ -44,8 +63,41 @@ fn generate_scaled_image(
         EmbeddedPreviewPolicy::MinSize(MINIMUM_EMBEDDED_PREVIEW_SIZE)
     };
 
-    let mut source_image = decode_derived_image(original_path, embedded_preview)?;
+    let source_image = decode_derived_image(original_path, embedded_preview)?;
 
+    generate_scaled_image_from_image(source_image, cache_path, max_long_edge, jpeg_quality)
+}
+
+fn generate_scaled_image_prefetch(
+    original_path: &str,
+    cache_path: &Path,
+    max_long_edge: u32,
+    allow_embedded: bool,
+    jpeg_quality: u8,
+    raw_fallback_limit: Arc<Semaphore>,
+) -> Result<(), anyhow::Error> {
+    let embedded_preview = if allow_embedded {
+        EmbeddedPreviewPolicy::Any
+    } else {
+        EmbeddedPreviewPolicy::MinSize(MINIMUM_EMBEDDED_PREVIEW_SIZE)
+    };
+
+    let maybe_source =
+        decode_derived_image_prefetch(original_path, embedded_preview, Some(raw_fallback_limit))?;
+
+    let Some(source_image) = maybe_source else {
+        return Ok(());
+    };
+
+    generate_scaled_image_from_image(source_image, cache_path, max_long_edge, jpeg_quality)
+}
+
+fn generate_scaled_image_from_image(
+    mut source_image: RgbaImage,
+    cache_path: &Path,
+    max_long_edge: u32,
+    jpeg_quality: u8,
+) -> Result<(), anyhow::Error> {
     let (image_width, image_height) = source_image.dimensions();
 
     let (target_width, target_height) =

@@ -40,7 +40,7 @@ function App() {
     <div
       className={`flex h-screen flex-col ${activeLayout === "thumbnails" ? "bg-[#191919]" : ""}`}
     >
-      <TitleBar onPickFolder={openFolder} />
+      <TitleBar onPickFolder={() => openFolder(null, "picker")} />
       <div className="flex-1 overflow-hidden">
         <div className="flex h-full flex-col">
           <div className="flex flex-1 overflow-hidden py-2">
@@ -88,7 +88,7 @@ function App() {
                   initial={false}
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
-                  <Sidebar onPickFolder={openFolder} />
+                  <Sidebar />
                 </motion.div>
               </Allotment.Pane>
 

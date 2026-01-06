@@ -12,6 +12,7 @@ export const BasicAdjustmentsPanel = () => {
     >
       <AccordionItem
         key="basic-adjustments"
+        isDisabled
         aria-label="Basic Adjustments"
         className="w-full rounded-xl bg-zinc-800"
         startContent={<SunDimIcon />}
@@ -27,6 +28,7 @@ export const BasicAdjustmentsPanel = () => {
 
       <AccordionItem
         key="color-grading"
+        isDisabled
         aria-label="Color Grading"
         className="w-full rounded-xl bg-zinc-800"
         startContent={<PaletteIcon />}

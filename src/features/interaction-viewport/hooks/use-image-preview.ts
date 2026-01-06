@@ -4,7 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/services/api";
 
-export function useImagePreview(path: string | null) {
+type UseImagePreviewOptions = {
+  enabled?: boolean;
+};
+
+export function useImagePreview(
+  path: string | null,
+  options: UseImagePreviewOptions = {},
+) {
+  const shouldEnable = options.enabled ?? Boolean(path);
   const { data, isLoading, error } = useQuery<PreviewInfo>({
     queryKey: ["image-preview", path],
     queryFn: async () => {
@@ -15,7 +23,7 @@ export function useImagePreview(path: string | null) {
 
       return result;
     },
-    enabled: Boolean(path),
+    enabled: shouldEnable,
     staleTime: Infinity,
     gcTime: Infinity,
   });

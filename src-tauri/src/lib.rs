@@ -17,15 +17,12 @@ pub fn run() {
                 let _ = main_window.set_focus();
             }
         }))
+        .plugin(
+            tauri_plugin_log::Builder::default()
+                .level(log::LevelFilter::Info)
+                .build(),
+        )
         .setup(move |app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-
             let cache_manager = CacheManager::new(&app.handle());
 
             app.manage(cache_manager);
@@ -74,6 +71,8 @@ pub fn run() {
             // WGPU Renderer Commands
             commands::renderer::init_renderer,
             commands::renderer::load_image,
+            commands::renderer::start_full_image_load,
+            commands::renderer::swap_requested_texture,
             commands::renderer::update_viewport,
             commands::renderer::update_transform,
             commands::renderer::resize_surface,

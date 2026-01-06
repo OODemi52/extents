@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use image::ImageReader;
-use log::{error, info};
+use log::error;
 use serde::Serialize;
 use tauri::Manager;
 
@@ -64,35 +64,67 @@ pub async fn get_histogram(
 
 #[tauri::command]
 pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> Result<(), String> {
-    info!("Prefetching {} thumbnails", paths.len());
-
     let cache_manager = app_handle.state::<CacheManager>();
 
     let base_cache_path = cache_manager.base_cache_path.clone();
+    let thumbnail_pool = cache_manager.thumbnail_pool();
+    let inflight_thumbnail_generation_map = cache_manager.inflight_thumbnail_generation_map();
+    let raw_prefetch_limiter = cache_manager.raw_prefetch_limiter();
 
     let cache_subdirectory = base_cache_path.join(CacheType::Thumbnail.sub_directory());
 
     std::thread::spawn(move || {
-        use rayon::prelude::*;
+        thumbnail_pool.install(|| {
+            use rayon::prelude::*;
+            use tokio::sync::watch;
 
-        paths.par_iter().for_each(
-            |path| match get_cache_path_direct(path, &cache_subdirectory) {
-                Ok(cache_path) => {
-                    if !cache_path.exists() {
-                        if let Err(error) =
-                            crate::core::cache::generator::generate_thumbnail(path, &cache_path)
-                        {
-                            error!("Prefetch failed for {}: {}", path, error);
+            paths.par_iter().for_each(|path| {
+                let raw_prefetch_limiter = raw_prefetch_limiter.clone();
+                match get_cache_path_direct(path, &cache_subdirectory) {
+                    Ok(cache_path) => {
+                        if !cache_path.exists() {
+                            let inflight_sender = {
+                                let mut map = match inflight_thumbnail_generation_map.lock() {
+                                    Ok(guard) => guard,
+                                    Err(_) => {
+                                        error!("Failed to lock inflight thumbnail map");
+                                        return;
+                                    }
+                                };
+
+                                if map.contains_key(&cache_path) {
+                                    return;
+                                }
+
+                                let (sender, _receiver) = watch::channel(false);
+                                map.insert(cache_path.clone(), sender.clone());
+                                sender
+                            };
+
+                            if let Err(error) =
+                                crate::core::cache::generator::generate_thumbnail_prefetch(
+                                    path,
+                                    &cache_path,
+                                    raw_prefetch_limiter,
+                                )
+                            {
+                                error!("Prefetch failed for {}: {}", path, error);
+                            }
+
+                            let _ = inflight_sender.send(true);
+
+                            if let Ok(mut map) = inflight_thumbnail_generation_map.lock() {
+                                map.remove(&cache_path);
+                            }
                         }
                     }
+                    Err(error) => {
+                        error!("Failed to get cache path for {}: {}", path, error);
+                    }
                 }
-                Err(error) => {
-                    error!("Failed to get cache path for {}: {}", path, error);
-                }
-            },
-        );
+            });
+        });
 
-        info!("Prefetch complete");
     });
 
     Ok(())

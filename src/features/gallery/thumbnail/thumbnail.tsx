@@ -26,7 +26,7 @@ export function Thumbnail({
   showSelectionRing = true,
   rounded = true,
 }: ThumbnailProps) {
-  const { thumbnail, isLoading, error } = useThumbnailQuery(path);
+  const { thumbnail, error } = useThumbnailQuery(path);
   const [loaded, setLoaded] = useState(false);
 
   return (
@@ -74,7 +74,6 @@ export function Thumbnail({
                 ? "[outline:2px_solid_var(--focus-border,#007fd4)] [outline-offset:-2px]"
                 : ""
             }`}
-            isLoaded={isLoading}
           />
         )}
       </div>

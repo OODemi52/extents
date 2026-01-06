@@ -15,6 +15,14 @@ export const syncViewport = (viewport: CommandArgs["update_viewport"]) =>
 export const loadImage = (payload: CommandArgs["load_image"]) =>
   invokeTauri("load_image", payload);
 
+export const startFullImageLoad = (
+  payload: CommandArgs["start_full_image_load"],
+) => invokeTauri("start_full_image_load", payload);
+
+export const swapRequestedTexture = (
+  payload: CommandArgs["swap_requested_texture"],
+) => invokeTauri("swap_requested_texture", payload);
+
 export const updateTransform = (payload: CommandArgs["update_transform"]) =>
   invokeTauri("update_transform", payload);
 

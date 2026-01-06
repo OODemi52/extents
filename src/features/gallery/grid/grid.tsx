@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
-import { useImageKeyboardNavigation } from "../hooks/use-image-keyboard-navigation";
+import { useBackgroundThumbnailPrefetch } from "../hooks/use-background-thumbnail-prefetch";
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
+import { useScrubbing } from "../hooks/use-scrubbing";
 
 import { GridItem } from "./grid-item";
 
@@ -16,6 +17,7 @@ import { useGalleryPreferencesStore } from "@/features/gallery/stores/gallery-pr
 
 const THUMBNAIL_SIZE = 140;
 const GAP = 8;
+const PREFETCH_ROW_BUFFER = 6;
 
 export function ThumbnailGrid() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -24,17 +26,19 @@ export function ThumbnailGrid() {
   const isSidebarResizing = useLayoutStore((state) => state.isSidebarResizing);
   const isSidebarResizingRef = useRef(isSidebarResizing);
 
-  const { fileMetadataList } = useImageStore();
+  const { files, selectedIndex } = useImageStore();
   const selectedPaths = useImageStore((state) => state.selectedPaths);
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
+  const { startScrubbing } = useScrubbing();
+
   const handleSelect = useCallback(
     (path: string, selectionMode?: "single" | "multi") =>
       handleSelectImageByPath(path, selectionMode),
     [handleSelectImageByPath],
   );
   const prefetchThumbnails = usePrefetchThumbnails();
-  const hasBaseImages = fileMetadataList.length > 0;
+  const hasBaseImages = files.length > 0;
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const showFileNameInGrid = useGalleryPreferencesStore(
     (state) => state.showFileNameInGrid,
@@ -48,7 +52,7 @@ export function ThumbnailGrid() {
     [filteredFiles],
   );
 
-  useImageKeyboardNavigation(filteredPaths, filteredPaths.length > 0);
+  useBackgroundThumbnailPrefetch(filteredPaths, containerRef, hasBaseImages);
 
   const updateWidth = useCallback((width: number) => {
     const resizeStep = isSidebarResizingRef.current ? 1 : 1;
@@ -103,7 +107,7 @@ export function ThumbnailGrid() {
         cancelAnimationFrame(frame);
       }
     };
-  }, []);
+  }, [updateWidth]);
 
   const availableWidth = containerWidth > 0 ? containerWidth : THUMBNAIL_SIZE;
 
@@ -126,6 +130,76 @@ export function ThumbnailGrid() {
     overscan: 4,
   });
 
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.defaultPrevented) {
+        return;
+      }
+
+      const currentPath =
+        selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
+
+      const currentIndex = currentPath
+        ? filteredPaths.indexOf(currentPath)
+        : -1;
+
+      const selectByIndex = (index: number) => {
+        const path = filteredPaths[index];
+
+        if (!path || path === currentPath) {
+          return;
+        }
+
+        startScrubbing();
+        handleSelectImageByPath(path);
+      };
+
+      let delta = 0;
+
+      if (event.key === "ArrowLeft") {
+        delta = -1;
+      } else if (event.key === "ArrowRight") {
+        delta = 1;
+      }
+
+      if (delta !== 0) {
+        event.preventDefault();
+
+        if (filteredPaths.length === 0) {
+          return;
+        }
+
+        const baseIndex =
+          currentIndex !== -1
+            ? currentIndex
+            : delta > 0
+              ? -1
+              : filteredPaths.length;
+        const nextIndex = Math.min(
+          Math.max(baseIndex + delta, 0),
+          filteredPaths.length - 1,
+        );
+
+        if (nextIndex !== baseIndex) {
+          selectByIndex(nextIndex);
+        }
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        selectByIndex(0);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        selectByIndex(filteredPaths.length - 1);
+      }
+    },
+    [
+      filteredPaths,
+      handleSelectImageByPath,
+      selectedIndex,
+      files,
+      startScrubbing,
+    ],
+  );
+
   useEffect(() => {
     virtualizer.measure();
   }, [columns, cellSize, filteredFiles.length, virtualizer]);
@@ -134,6 +208,13 @@ export function ThumbnailGrid() {
     if (!filteredFiles.length) return;
 
     const visibleRows = virtualizer.getVirtualItems().map((item) => item.index);
+
+    if (!visibleRows.length) return;
+
+    const minRow = Math.min(...visibleRows);
+    const maxRow = Math.max(...visibleRows);
+    const startRow = Math.max(0, minRow - PREFETCH_ROW_BUFFER);
+    const endRow = Math.min(rowCount - 1, maxRow + PREFETCH_ROW_BUFFER);
 
     const visibleIndices = new Set<number>();
 
@@ -149,10 +230,25 @@ export function ThumbnailGrid() {
       }
     });
 
-    const offScreenPaths = filteredFiles
-      .map((file, idx) => ({ file, idx }))
-      .filter(({ idx }) => !visibleIndices.has(idx))
-      .map(({ file }) => file.path);
+    const offScreenPaths: string[] = [];
+
+    for (let rowIndex = startRow; rowIndex <= endRow; rowIndex += 1) {
+      const start = rowIndex * columns;
+
+      for (let colIndex = 0; colIndex < columns; colIndex += 1) {
+        const index = start + colIndex;
+
+        if (index >= filteredFiles.length) {
+          break;
+        }
+
+        if (visibleIndices.has(index)) {
+          continue;
+        }
+
+        offScreenPaths.push(filteredFiles[index].path);
+      }
+    }
 
     if (!offScreenPaths.length) return;
 
@@ -161,7 +257,22 @@ export function ThumbnailGrid() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [filteredFiles, virtualizer, columns, prefetchThumbnails]);
+  }, [filteredFiles, virtualizer, columns, rowCount, prefetchThumbnails]);
+
+  const selectedPath =
+    selectedIndex !== null ? files[selectedIndex]?.path : null;
+
+  useEffect(() => {
+    if (!selectedPath || filteredFiles.length === 0) return;
+    const index = filteredFiles.findIndex((file) => file.path === selectedPath);
+
+    if (index >= 0) {
+      virtualizer.scrollToIndex(Math.floor(index / columns), {
+        align: "auto",
+      });
+      containerRef.current?.focus({ preventScroll: true });
+    }
+  }, [selectedPath, filteredFiles, virtualizer, columns]);
 
   const showEmptyState = filteredFiles.length === 0;
 
@@ -180,7 +291,10 @@ export function ThumbnailGrid() {
       <div
         ref={containerRef}
         className="h-full overflow-y-auto px-4 pb-6"
+        role="listbox"
         style={{ contain: "strict" }}
+        tabIndex={filteredFiles.length > 0 ? 0 : -1}
+        onKeyDown={handleKeyDown}
       >
         {showEmptyState ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-500">
@@ -226,12 +340,13 @@ export function ThumbnailGrid() {
                   >
                     {rowItems.map((file, columnIndex) => {
                       const isSelected = selectedPaths.has(file.path);
+                      const index = startIndex + columnIndex;
 
                       return (
                         <GridItem
                           key={file.path}
                           file={file}
-                          index={startIndex + columnIndex}
+                          index={index}
                           isSelected={isSelected}
                           showFileExtensionInGrid={showFileExtensionInGrid}
                           showFileNameInGrid={showFileNameInGrid}

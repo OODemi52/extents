@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useRef, useEffect } from "react";
 
 import { useImagePreview } from "../hooks/use-image-preview";
+import { useViewportThumbnail } from "../hooks/use-viewport-thumbnail";
 import { useImageTransform } from "../hooks/use-image-transform";
 import { useViewportSync } from "../hooks/use-viewport-sync";
 import { useInteractionHandlers } from "../hooks/use-interaction-handlers";
@@ -9,30 +10,44 @@ import { useImageStore } from "@/store/image-store";
 import { FilterMenuBar } from "@/features/filter/components/menu-bar/menu-bar";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
-import { useImageLoader } from "@/hooks/use-image-loader";
 
 export function InteractionViewport() {
-  const { fileMetadataList, selectedIndex, isLoading } = useImageStore();
+  const { files, selectedIndex, isLoading, setSelectedIndex } = useImageStore();
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const filteredFiles = useFilteredImages();
-  const { handleSelectImageByPath } = useImageLoader();
-
   const viewportRef = useRef<HTMLDivElement>(null);
 
-  const selected =
-    selectedIndex !== null ? fileMetadataList[selectedIndex] : null;
+  useEffect(() => {
+    if (files.length > 0 && selectedIndex === null) {
+      setSelectedIndex(0);
+    }
+  }, [files, selectedIndex, setSelectedIndex]);
 
+  const selected = selectedIndex !== null ? files[selectedIndex] : null;
   const imagePath = selected?.path || null;
+  const isScrubbing = useImageStore((state) => state.isScrubbing);
 
   const {
     preview,
     isLoading: isPreviewLoading,
     error: previewError,
-  } = useImagePreview(imagePath);
+  } = useImagePreview(imagePath, {
+    enabled: Boolean(imagePath) && !isScrubbing,
+  });
 
+  const { thumbnailPath } = useViewportThumbnail(imagePath);
   const { scale, offsetX, offsetY } = useImageTransform(imagePath);
 
-  useViewportSync(viewportRef, preview, imagePath, scale, offsetX, offsetY);
+  useViewportSync(
+    viewportRef,
+    preview,
+    thumbnailPath,
+    imagePath,
+    isScrubbing,
+    scale,
+    offsetX,
+    offsetY,
+  );
 
   useInteractionHandlers(
     viewportRef,
@@ -47,16 +62,7 @@ export function InteractionViewport() {
     !isLoading &&
     !isPreviewLoading &&
     filteredFiles.length === 0 &&
-    fileMetadataList.length > 0;
-
-  useEffect(() => {
-    if (
-      filteredFiles.length > 0 &&
-      (!imagePath || !filteredFiles.some((file) => file.path === imagePath))
-    ) {
-      handleSelectImageByPath(filteredFiles[0].path);
-    }
-  }, [filteredFiles, imagePath, handleSelectImageByPath]);
+    files.length > 0;
 
   return (
     <div
@@ -90,7 +96,7 @@ export function InteractionViewport() {
 
       {showEmptyState && !showFilteredEmpty && (
         <div className="text-center text-sm text-gray-500">
-          {fileMetadataList.length
+          {files.length
             ? "Select an image to view."
             : "No folder selected. Pick a folder to start."}
         </div>

@@ -8,14 +8,14 @@ export function useImageLoader() {
   const handleSelectImage = useCallback(
     (index: number, selectionMode: SelectionMode = "single") => {
       const {
-        fileMetadataList,
+        files,
         selectedIndex,
         selectedPaths,
         selectSingleByIndex,
         toggleSelectionByIndex,
       } = useImageStore.getState();
 
-      if (index < 0 || index >= fileMetadataList.length) {
+      if (index < 0 || index >= files.length) {
         console.warn(`Selected index ${index} is out of bounds.`);
 
         return;
@@ -27,7 +27,7 @@ export function useImageLoader() {
         return;
       }
 
-      const path = fileMetadataList[index]?.path;
+      const path = files[index]?.path;
 
       if (
         selectedIndex === index &&
@@ -45,8 +45,8 @@ export function useImageLoader() {
 
   const handleSelectImageByPath = useCallback(
     (path: string, selectionMode: SelectionMode = "single") => {
-      const { fileMetadataList } = useImageStore.getState();
-      const index = fileMetadataList.findIndex((file) => file.path === path);
+      const { files } = useImageStore.getState();
+      const index = files.findIndex((file) => file.path === path);
 
       if (index === -1) {
         console.warn(`[image-loader] No file found for path ${path}`);

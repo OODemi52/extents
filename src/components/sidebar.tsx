@@ -1,54 +1,13 @@
-import { useEffect, useState } from "react";
-import { Button } from "@heroui/button";
-import { FolderOpenIcon } from "@phosphor-icons/react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Tooltip } from "@heroui/tooltip";
+import { useState } from "react";
 import { Tab, Tabs } from "@heroui/tabs";
 
 import { FileTree } from "@/features/file-browser/components/file-tree";
-import { api } from "@/services/api";
 
-type SidebarProps = {
-  onPickFolder: () => void;
-};
-
-export function Sidebar({ onPickFolder }: SidebarProps) {
+export function Sidebar() {
   const [selectedTab, setSelectedTab] = useState("browse");
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    api.renderer.initRenderer();
-  }, []);
-
-  const handlePickFolder = async () => {
-    onPickFolder();
-    await queryClient.invalidateQueries({ queryKey: ["fileTree"] });
-  };
 
   return (
     <aside className="w-full h-full bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col pl-2 p-2 gap-y-1 overflow-scroll overflow-x-hidden">
-      <div className="flex flex-row gap-3 py-2 px-4 flex-shrink-0">
-        <Tooltip
-          className="border border-zinc-500"
-          closeDelay={0}
-          content="Open Folder"
-          delay={1000}
-          radius="sm"
-          size="sm"
-        >
-          <Button
-            disableRipple
-            isIconOnly
-            className="bg-transparent"
-            color="secondary"
-            hidden={selectedTab !== "browse"}
-            onPress={handlePickFolder}
-          >
-            <FolderOpenIcon size={18} weight="fill" />
-          </Button>
-        </Tooltip>
-      </div>
-
       <Tabs
         aria-label="File Tabs"
         className="flex flex-col min-h-0"

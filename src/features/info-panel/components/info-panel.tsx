@@ -22,7 +22,7 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
 );
 
 export function InfoPanel() {
-  const { fileMetadataList, selectedIndex, selectedPaths } = useImageStore();
+  const { files, selectedIndex, selectedPaths } = useImageStore();
   const entriesByPath = useExifStore((state) => state.entriesByPath);
   const selectionCount = selectedPaths.size;
 
@@ -31,8 +31,8 @@ export function InfoPanel() {
       return null;
     }
 
-    return fileMetadataList[selectedIndex] ?? null;
-  }, [fileMetadataList, selectedIndex]);
+    return files[selectedIndex] ?? null;
+  }, [files, selectedIndex]);
 
   const exifEntry = selectedFile ? entriesByPath[selectedFile.path] : undefined;
 

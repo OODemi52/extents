@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useFilterStore } from "../stores/filter-store";
 
@@ -7,7 +7,7 @@ import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-st
 import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
 import { useImageStore } from "@/store/image-store";
 import { FlagValue, RatingValue } from "@/types/file-annotations";
-import { ImageMetadata } from "@/types/image";
+import { FileMetadata } from "@/types/image";
 import { useImageLoader } from "@/hooks/use-image-loader";
 import { clearRenderer } from "@/services/api/renderer";
 
@@ -16,7 +16,7 @@ type FilterSnapshot = Pick<
   "search" | "rating" | "flags" | "exts" | "size" | "edited" | "sort"
 >;
 
-type AnnotatedImage = ImageMetadata & {
+type AnnotatedImage = FileMetadata & {
   ext: string;
   rating: RatingValue;
   flag: FlagValue;
@@ -26,7 +26,7 @@ type AnnotatedImage = ImageMetadata & {
 };
 
 function buildAnnotatedImages(
-  files: ImageMetadata[],
+  files: FileMetadata[],
   ratings: Record<string, RatingValue>,
   flags: Record<string, FlagValue>,
 ): AnnotatedImage[] {
@@ -47,7 +47,7 @@ export function getFilteredImagesFromState({
   flags,
   filters,
 }: {
-  files: ImageMetadata[];
+  files: FileMetadata[];
   ratings: Record<string, RatingValue>;
   flags: Record<string, FlagValue>;
   filters: FilterSnapshot;
@@ -134,7 +134,7 @@ export function getFilteredPathsFromState({
   flags,
   filters,
 }: {
-  files: ImageMetadata[];
+  files: FileMetadata[];
   ratings: Record<string, RatingValue>;
   flags: Record<string, FlagValue>;
   filters: FilterSnapshot;
@@ -148,13 +148,13 @@ export function getFilteredPathsFromState({
 }
 
 export function getFilteredPaths() {
-  const { fileMetadataList } = useImageStore.getState();
+  const { files } = useImageStore.getState();
   const ratings = useRatingStore.getState().ratings;
   const flags = useFlagStore.getState().flags;
   const filterState = useFilterStore.getState();
 
   return getFilteredPathsFromState({
-    files: fileMetadataList,
+    files: files,
     ratings,
     flags,
     filters: {
@@ -170,7 +170,7 @@ export function getFilteredPaths() {
 }
 
 export function useFilteredPaths() {
-  const { fileMetadataList } = useImageStore();
+  const { files } = useImageStore();
   const ratings = useRatingStore((state) => state.ratings);
   const flags = useFlagStore((state) => state.flags);
   const {
@@ -186,7 +186,7 @@ export function useFilteredPaths() {
   return useMemo(
     () =>
       getFilteredImagesFromState({
-        files: fileMetadataList,
+        files: files,
         ratings,
         flags,
         filters: {
@@ -200,7 +200,7 @@ export function useFilteredPaths() {
         },
       }).map((file) => file.path),
     [
-      fileMetadataList,
+      files,
       ratings,
       flags,
       search,
@@ -215,7 +215,7 @@ export function useFilteredPaths() {
 }
 
 export function useFilteredImages() {
-  const { fileMetadataList, selectedIndex } = useImageStore();
+  const { files, selectedIndex, isLoading } = useImageStore();
   const { handleSelectImageByPath } = useImageLoader();
   const ratings = useRatingStore((state) => state.ratings);
   const flags = useFlagStore((state) => state.flags);
@@ -232,7 +232,7 @@ export function useFilteredImages() {
   const filtered = useMemo(
     () =>
       getFilteredImagesFromState({
-        files: fileMetadataList,
+        files: files,
         ratings,
         flags,
         filters: {
@@ -246,7 +246,7 @@ export function useFilteredImages() {
         },
       }),
     [
-      fileMetadataList,
+      files,
       ratings,
       flags,
       search,
@@ -258,26 +258,46 @@ export function useFilteredImages() {
       sort,
     ],
   );
+  const autoSelectedPathRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!filtered.length) {
       void clearRenderer();
+      autoSelectedPathRef.current = null;
 
       return;
     }
 
     const currentPath =
-      selectedIndex !== null
-        ? (fileMetadataList[selectedIndex]?.path ?? null)
-        : null;
+      selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
+
+    if (
+      currentPath &&
+      autoSelectedPathRef.current &&
+      currentPath !== autoSelectedPathRef.current
+    ) {
+      autoSelectedPathRef.current = null;
+    }
 
     const hasSelected =
       currentPath && filtered.some((file) => file.path === currentPath);
 
     if (!hasSelected) {
       handleSelectImageByPath(filtered[0].path);
+      autoSelectedPathRef.current = filtered[0].path;
+
+      return;
     }
-  }, [filtered, selectedIndex, fileMetadataList, handleSelectImageByPath]);
+
+    if (!isLoading && autoSelectedPathRef.current === currentPath) {
+      const firstPath = filtered[0].path;
+
+      if (currentPath !== firstPath) {
+        handleSelectImageByPath(firstPath);
+        autoSelectedPathRef.current = firstPath;
+      }
+    }
+  }, [filtered, selectedIndex, files, handleSelectImageByPath, isLoading]);
 
   return filtered;
 }

@@ -7,6 +7,7 @@ use exif::{In, Reader, Tag};
 use image::{self, ImageReader, RgbaImage};
 use memmap2::MmapOptions;
 use rawler::imgop::develop::RawDevelop;
+use tokio::sync::Semaphore;
 
 use crate::core::image::orientation::{apply_orientation, resolve_file_orientation};
 
@@ -73,6 +74,33 @@ pub fn decode_derived_image(
     decode_derived_image_buffer(path, &mmap, embedded_preview)
 }
 
+pub fn decode_derived_image_prefetch(
+    path: &str,
+    embedded_preview: EmbeddedPreviewPolicy,
+    raw_fallback_limit: Option<std::sync::Arc<Semaphore>>,
+) -> Result<Option<RgbaImage>> {
+    if matches!(embedded_preview, EmbeddedPreviewPolicy::None) {
+        let is_raw = is_supported_raw_extension(path);
+
+        let mut image = if is_raw {
+            decode_raw_file(path)?
+        } else {
+            decode_raster_file(path)?
+        };
+
+        if let Some(orientation) = resolve_file_orientation(path, is_raw) {
+            image = apply_orientation(image, orientation);
+        }
+
+        return Ok(Some(image));
+    }
+
+    let file = File::open(path)?;
+    let mmap = unsafe { MmapOptions::new().map(&file)? };
+
+    decode_derived_image_prefetch_buffer(path, &mmap, embedded_preview, raw_fallback_limit)
+}
+
 pub fn decode_derived_image_buffer(
     path: &str,
     bytes: &[u8],
@@ -99,6 +127,50 @@ pub fn decode_derived_image_buffer(
     }
 
     Ok(image)
+}
+
+fn decode_derived_image_prefetch_buffer(
+    path: &str,
+    bytes: &[u8],
+    embedded_preview: EmbeddedPreviewPolicy,
+    raw_fallback_limit: Option<std::sync::Arc<Semaphore>>,
+) -> Result<Option<RgbaImage>> {
+    let is_raw = is_supported_raw_extension(path);
+
+    let embedded_result = match embedded_preview {
+        EmbeddedPreviewPolicy::Any => decode_embedded_preview(bytes, None),
+        EmbeddedPreviewPolicy::MinSize(min_size) => decode_embedded_preview(bytes, Some(min_size)),
+        EmbeddedPreviewPolicy::None => None,
+    };
+
+    let image = if let Some(image_result) = embedded_result {
+        Some(image_result?)
+    } else if is_raw {
+        if let Some(semaphore) = raw_fallback_limit {
+            let _permit = match semaphore.try_acquire_owned() {
+                Ok(permit) => permit,
+                Err(_) => return Ok(None),
+            };
+
+            Some(decode_raw_file(path)?)
+        } else {
+            Some(decode_raw_file(path)?)
+        }
+    } else {
+        Some(decode_raster_buffer(bytes)?)
+    };
+
+    if let Some(image) = image {
+        let image = if let Some(orientation) = resolve_file_orientation(path, is_raw) {
+            apply_orientation(image, orientation)
+        } else {
+            image
+        };
+
+        Ok(Some(image))
+    } else {
+        Ok(None)
+    }
 }
 
 fn decode_raster_file(path: &str) -> Result<RgbaImage> {
