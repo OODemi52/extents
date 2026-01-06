@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 
 import { useImagePreview } from "../hooks/use-image-preview";
 import { useViewportThumbnail } from "../hooks/use-viewport-thumbnail";
@@ -12,16 +12,19 @@ import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
 
 export function InteractionViewport() {
-  const { files, selectedIndex, isLoading } = useImageStore();
+  const { files, selectedIndex, isLoading, setSelectedIndex } = useImageStore();
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const filteredFiles = useFilteredImages();
-
   const viewportRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (files.length > 0 && selectedIndex === null) {
+      setSelectedIndex(0);
+    }
+  }, [files, selectedIndex, setSelectedIndex]);
+
   const selected = selectedIndex !== null ? files[selectedIndex] : null;
-
   const imagePath = selected?.path || null;
-
   const isScrubbing = useImageStore((state) => state.isScrubbing);
 
   const {
@@ -33,7 +36,6 @@ export function InteractionViewport() {
   });
 
   const { thumbnailPath } = useViewportThumbnail(imagePath);
-
   const { scale, offsetX, offsetY } = useImageTransform(imagePath);
 
   useViewportSync(

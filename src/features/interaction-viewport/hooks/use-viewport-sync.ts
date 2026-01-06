@@ -5,7 +5,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { api } from "@/services/api";
 
 const VIEWPORT_DEBOUNCE_MS = 100;
-const FULL_DECODE_DEBOUNCE_MS = 200; // Add debounce for full decode
+const FULL_DECODE_DEBOUNCE_MS = 150;
 
 export function useViewportSync(
   viewportRef: React.RefObject<HTMLDivElement>,
@@ -28,13 +28,11 @@ export function useViewportSync(
   const scrubbingRef = useRef(isScrubbing);
   const viewportTimeoutRef = useRef<number | null>(null);
   const transformTimeoutRef = useRef<number | null>(null);
-  const fullDecodeTimeoutRef = useRef<number | null>(null); // NEW: timeout for full decode
+  const fullDecodeTimeoutRef = useRef<number | null>(null);
   const lastTransformRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
 
   const updateViewport = useCallback(() => {
-    if (!viewportRef.current) {
-      return;
-    }
+    if (!viewportRef.current) return;
 
     if (viewportTimeoutRef.current !== null) {
       clearTimeout(viewportTimeoutRef.current);
@@ -73,9 +71,12 @@ export function useViewportSync(
       return;
     }
 
-    if (lastLoadKeyRef.current === imagePath) return;
+    const proxyPath = thumbnailPath ?? preview?.path ?? null;
+    const loadKey = `${imagePath}|${proxyPath || "none"}`;
 
-    lastLoadKeyRef.current = imagePath;
+    if (lastLoadKeyRef.current === loadKey) return;
+
+    lastLoadKeyRef.current = loadKey;
     lastSwapPathRef.current = null;
     activeImagePathRef.current = imagePath;
     setRequestId(null);
@@ -85,7 +86,6 @@ export function useViewportSync(
       viewportRef.current.getBoundingClientRect();
 
     const devicePixelRatio = window.devicePixelRatio;
-    const proxyPath = thumbnailPath ?? preview?.path ?? null;
 
     if (proxyPath) {
       lastSwapPathRef.current = proxyPath;
@@ -107,9 +107,7 @@ export function useViewportSync(
           deferFullImageLoad: shouldDeferFull,
         })
         .then((nextRequestId) => {
-          if (activeImagePathRef.current !== imagePath) {
-            return;
-          }
+          if (activeImagePathRef.current !== imagePath) return;
 
           setRequestId(nextRequestId);
           updateViewport();
@@ -121,9 +119,9 @@ export function useViewportSync(
             };
           }
         })
-        .catch((error) =>
-          console.error("[useViewportSync] load_image failed:", error),
-        );
+        .catch((error) => {
+          console.error("[ViewportSync] load_image failed:", error);
+        });
     });
 
     return () => {
@@ -140,20 +138,18 @@ export function useViewportSync(
     preview?.path,
   ]);
 
-  // NEW: Debounced full decode trigger
+  // Scrubbing / full decode
   useEffect(() => {
     scrubbingRef.current = isScrubbing;
 
-    // Clear any pending full decode timeout
     if (fullDecodeTimeoutRef.current !== null) {
       clearTimeout(fullDecodeTimeoutRef.current);
+
       fullDecodeTimeoutRef.current = null;
     }
 
-    // If still scrubbing, don't start decode
     if (isScrubbing) return;
 
-    // Wait a bit before starting full decode to ensure scrubbing has truly stopped
     fullDecodeTimeoutRef.current = window.setTimeout(() => {
       const pending = pendingFullRequestRef.current;
 
@@ -183,11 +179,13 @@ export function useViewportSync(
     return () => {
       if (fullDecodeTimeoutRef.current !== null) {
         clearTimeout(fullDecodeTimeoutRef.current);
+
         fullDecodeTimeoutRef.current = null;
       }
     };
   }, [isScrubbing]);
 
+  // Swapping Images (thumb -> preview)
   useEffect(() => {
     if (!requestId) return;
 
@@ -208,6 +206,7 @@ export function useViewportSync(
       );
   }, [preview?.path, requestId, thumbnailPath]);
 
+  // Resize Listeners
   useEffect(() => {
     if (!viewportRef.current) return;
 
@@ -216,7 +215,6 @@ export function useViewportSync(
     };
 
     window.addEventListener("resize", handleWindowResize);
-
     updateViewport();
 
     return () => {
@@ -228,6 +226,7 @@ export function useViewportSync(
     };
   }, [updateViewport, viewportRef]);
 
+  // Image Transform
   useEffect(() => {
     if (!preview) return;
 

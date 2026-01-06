@@ -7,9 +7,6 @@ import { FileMetadata } from "@/types/image";
 import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { api } from "@/services/api";
-import { getFilteredImagesFromState } from "@/features/filter/hooks/use-filtered-files";
-import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
-import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-store";
 
 export function useFolderScanner() {
   const {
@@ -125,22 +122,13 @@ export function useFolderScanner() {
 
           if (isFirstBatch) {
             isFirstBatch = false;
-
             setFiles(payload);
 
-            const ratings = useRatingStore.getState().ratings;
-            const flags = useFlagStore.getState().flags;
-            const filters = useFilterStore.getState();
-            const filtered = getFilteredImagesFromState({
-              files: payload,
-              ratings,
-              flags,
-              filters,
-            });
-
-            if (filtered.length > 0) {
-              selectSingleByIndex(0);
-            }
+            setTimeout(() => {
+              if (payload.length > 0) {
+                selectSingleByIndex(0);
+              }
+            }, 0);
           } else {
             pendingBatch.current.push(...payload);
             schedulePendingBatch();
