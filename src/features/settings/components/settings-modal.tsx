@@ -46,10 +46,8 @@ export function SettingsModal() {
               key="system"
               title={
                 <div className="flex-col justify-start text-start">
-                  <h4 className="tracking-wide text-2xl font-bold text-zinc-400">
-                    System
-                  </h4>
-                  <p className="tracking-wide text-[10px] font-light italic leading-[1.1] text-zinc-400 whitespace-normal break-words">
+                  <h4 className="tracking-wide text-2xl font-bold">System</h4>
+                  <p className=" text-[12px] font-light italic leading-[1.1] text-zinc-400 whitespace-normal break-words">
                     Cache management, storage usage, and internal system
                     settings.
                   </p>
