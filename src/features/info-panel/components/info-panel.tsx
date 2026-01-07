@@ -5,7 +5,6 @@ import { useExifStore } from "@/store/exif-store";
 import { useImageStore } from "@/store/image-store";
 import {
   formatAperture,
-  formatBytes,
   formatDateTaken,
   formatDimensions,
   formatExposureBias,
@@ -13,6 +12,7 @@ import {
   formatGPS,
   formatShutterSpeed,
 } from "@/features/info-panel/utils/formatters";
+import { formatBytes } from "@/lib/formatters";
 
 const InfoRow = ({ label, value }: { label: string; value: string }) => (
   <div className="flex items-center justify-between gap-3 text-xs text-zinc-400">

@@ -22,7 +22,7 @@ impl CacheType {
         match self {
             CacheType::Thumbnail => "thumbnails",
             CacheType::Preview => "previews",
-            CacheType::All => "", // 'All' doesn't have a single sub-directory
+            CacheType::All => "",
         }
     }
 }
@@ -170,15 +170,25 @@ impl CacheManager {
                 .build()
                 .into_iter()
                 .filter_map(Result::ok)
-                .filter(|e| e.file_type().map_or(false, |ft| ft.is_file()))
-                .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("jpg"))
-                .filter_map(|e| e.metadata().ok())
-                .map(|m| m.len())
+                .filter(|entry| {
+                    entry
+                        .file_type()
+                        .map_or(false, |file_type| file_type.is_file())
+                })
+                .filter(|entry| {
+                    entry
+                        .path()
+                        .extension()
+                        .and_then(|os_string| os_string.to_str())
+                        == Some("jpg")
+                })
+                .filter_map(|entry| entry.metadata().ok())
+                .map(|metadata| metadata.len())
                 .sum();
             Ok(total_size)
         })
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|error| error.to_string())?
     }
 
     pub async fn clear_cache(&self, cache_type: CacheType) -> Result<(), String> {
@@ -192,17 +202,17 @@ impl CacheManager {
                 return Ok(());
             }
 
-            if let Err(e) = fs::remove_dir_all(&path_to_clear) {
-                return Err(format!("Failed to clear cache: {}", e));
+            if let Err(error) = fs::remove_dir_all(&path_to_clear) {
+                return Err(format!("Failed to clear cache: {}", error));
             }
 
-            if let Err(e) = fs::create_dir_all(&path_to_clear) {
-                return Err(format!("Failed to recreate cache directory: {}", e));
+            if let Err(error) = fs::create_dir_all(&path_to_clear) {
+                return Err(format!("Failed to recreate cache directory: {}", error));
             }
 
             Ok(())
         })
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|error| error.to_string())?
     }
 }

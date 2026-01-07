@@ -2,6 +2,7 @@ import { FileAnnotation, FlagEntry, RatingEntry } from "./file-annotations";
 import { ImageExifEntry } from "./exif";
 import { HistogramData } from "./histogram";
 import { TreeNode } from "./file-system";
+import { CacheType } from "./settings";
 
 export interface CommandArgs {
   get_home_dir: null;
@@ -34,6 +35,8 @@ export interface CommandArgs {
   set_flags: { entries: FlagEntry[] };
   get_annotations: { paths: string[] };
   get_exif_metadata: { paths: string[] };
+  get_cache_size: { cacheType: CacheType };
+  clear_cache: { cacheType: CacheType };
 }
 
 export interface CommandReturn {
@@ -59,4 +62,6 @@ export interface CommandReturn {
   set_flags: void;
   get_annotations: FileAnnotation[];
   get_exif_metadata: ImageExifEntry[];
+  get_cache_size: number;
+  clear_cache: void;
 }

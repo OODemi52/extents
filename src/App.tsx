@@ -18,10 +18,14 @@ import { TitleBar } from "./components/title-bar";
 import { useFolderScanner } from "./hooks/use-folder-scanner";
 import { useAnnotations } from "./hooks/use-annotations";
 import { useExifMetadata } from "./hooks/use-exif-metadata";
+import { SettingsModal } from "./features/settings/components/settings-modal";
+import { useCacheWatcher } from "./features/settings/hooks/use-cache-watcher";
 
 function App() {
   useAnnotations();
   useExifMetadata();
+  useCacheWatcher();
+
   const {
     activeLayout,
     panels,
@@ -119,6 +123,7 @@ function App() {
           <BottomToolbar />
         </div>
       </div>
+      <SettingsModal />
     </div>
   );
 }
