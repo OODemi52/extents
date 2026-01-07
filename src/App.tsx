@@ -19,12 +19,12 @@ import { useFolderScanner } from "./hooks/use-folder-scanner";
 import { useAnnotations } from "./hooks/use-annotations";
 import { useExifMetadata } from "./hooks/use-exif-metadata";
 import { SettingsModal } from "./features/settings/components/settings-modal";
-import { useCacheWatcher } from "./features/settings/hooks/use-cache-watcher";
+import { useCacheSize } from "./features/settings/hooks/use-cache-size";
 
 function App() {
   useAnnotations();
   useExifMetadata();
-  useCacheWatcher();
+  useCacheSize();
 
   const {
     activeLayout,
