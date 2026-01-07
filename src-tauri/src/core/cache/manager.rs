@@ -1,5 +1,7 @@
+use ignore::WalkBuilder;
 use rayon::ThreadPool;
 use rayon::ThreadPoolBuilder;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -8,10 +10,11 @@ use std::time::SystemTime;
 use tauri::Manager;
 use tokio::sync::{watch, Semaphore};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Deserialize)]
 pub enum CacheType {
     Thumbnail,
     Preview,
+    All,
 }
 
 impl CacheType {
@@ -19,6 +22,7 @@ impl CacheType {
         match self {
             CacheType::Thumbnail => "thumbnails",
             CacheType::Preview => "previews",
+            CacheType::All => "", // 'All' doesn't have a single sub-directory
         }
     }
 }
@@ -150,5 +154,55 @@ impl CacheManager {
 
     pub fn raw_prefetch_limiter(&self) -> Arc<Semaphore> {
         Arc::clone(&self.raw_prefetch_limiter)
+    }
+
+    pub async fn get_cache_size(&self, cache_type: CacheType) -> Result<u64, String> {
+        let path = match cache_type {
+            CacheType::All => self.base_cache_path.clone(),
+            _ => self.base_cache_path.join(cache_type.sub_directory()),
+        };
+
+        tauri::async_runtime::spawn_blocking(move || {
+            if !path.exists() {
+                return Ok(0);
+            }
+            let total_size = WalkBuilder::new(path)
+                .build()
+                .into_iter()
+                .filter_map(Result::ok)
+                .filter(|e| e.file_type().map_or(false, |ft| ft.is_file()))
+                .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("jpg"))
+                .filter_map(|e| e.metadata().ok())
+                .map(|m| m.len())
+                .sum();
+            Ok(total_size)
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+
+    pub async fn clear_cache(&self, cache_type: CacheType) -> Result<(), String> {
+        let path_to_clear = match cache_type {
+            CacheType::All => self.base_cache_path.clone(),
+            _ => self.base_cache_path.join(cache_type.sub_directory()),
+        };
+
+        tauri::async_runtime::spawn_blocking(move || {
+            if !path_to_clear.exists() {
+                return Ok(());
+            }
+
+            if let Err(e) = fs::remove_dir_all(&path_to_clear) {
+                return Err(format!("Failed to clear cache: {}", e));
+            }
+
+            if let Err(e) = fs::create_dir_all(&path_to_clear) {
+                return Err(format!("Failed to recreate cache directory: {}", e));
+            }
+
+            Ok(())
+        })
+        .await
+        .map_err(|e| e.to_string())?
     }
 }

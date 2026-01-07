@@ -3,10 +3,10 @@ pub mod core;
 pub mod renderer;
 pub mod state;
 
-use crate::core::cache::manager::CacheManager;
+use crate::core::cache::manager::{CacheManager, CacheType};
 use crate::core::db::connection::DbConnection;
 use crate::state::AppState;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -37,7 +37,7 @@ pub fn run() {
             app.manage(state);
 
             let app_state = app.state::<AppState>();
-
+            
             let renderer = app_state.renderer.clone();
 
             window.on_window_event(move |event| {
@@ -46,6 +46,14 @@ pub fn run() {
                     if let Some(renderer) = renderer_lock.as_mut() {
                         renderer.resize(size.width, size.height);
                     }
+                }
+            });
+
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let cache_manager = app_handle.state::<CacheManager>();
+                if let Ok(size) = cache_manager.get_cache_size(CacheType::All).await {
+                    app_handle.emit("cache-size-updated", size).unwrap();
                 }
             });
 
@@ -86,6 +94,9 @@ pub fn run() {
             commands::annotations::get_annotations,
             // Exif Commands
             commands::exif::get_exif_metadata,
+            // Settings Commands
+            commands::settings::get_cache_size,
+            commands::settings::clear_cache,
         ])
         // Running the application
         .run(tauri::generate_context!())
