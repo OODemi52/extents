@@ -9,6 +9,8 @@ import {
   createShowAll,
 } from "./standard";
 
+import { useSettingsStore } from "@/features/settings/store/settings-store";
+
 export async function createAboutSubmenu() {
   const separator = await createSeparator();
   const services = await createServices();
@@ -27,7 +29,9 @@ export async function createAboutSubmenu() {
     id: "settings",
     text: "Settings...",
     accelerator: "CmdOrCtrl+,",
-    enabled: false,
+    action: () => {
+      useSettingsStore.getState().openSettingsModal();
+    },
   });
 
   const updates = await MenuItem.new({
