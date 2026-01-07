@@ -3,6 +3,44 @@
 version = 3
 
 [[package]]
+name = "Extents"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "blake3",
+ "bytemuck",
+ "dirs",
+ "env_logger",
+ "fast_image_resize",
+ "ignore",
+ "image",
+ "imagesize",
+ "kamadak-exif",
+ "log",
+ "memmap2",
+ "pollster",
+ "rawler",
+ "rayon",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-log",
+ "tauri-plugin-single-instance",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-log",
+ "tracing-subscriber",
+ "unicase",
+ "wgpu",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1385,44 +1423,6 @@ dependencies = [
  "rayon-core",
  "smallvec",
  "zune-inflate",
-]
-
-[[package]]
-name = "extents"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base64 0.22.1",
- "blake3",
- "bytemuck",
- "dirs",
- "env_logger",
- "fast_image_resize",
- "ignore",
- "image",
- "imagesize",
- "kamadak-exif",
- "log",
- "memmap2",
- "pollster",
- "rawler",
- "rayon",
- "rusqlite",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-log",
- "tauri-plugin-single-instance",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-log",
- "tracing-subscriber",
- "unicase",
- "wgpu",
 ]
 
 [[package]]
