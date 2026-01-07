@@ -19,7 +19,7 @@ import { useFolderScanner } from "./hooks/use-folder-scanner";
 import { useAnnotations } from "./hooks/use-annotations";
 import { useExifMetadata } from "./hooks/use-exif-metadata";
 import { SettingsModal } from "./features/settings/components/settings-modal";
-import { useCacheSize } from "./features/settings/hooks/use-cache-size";
+import { useCacheSize } from "./features/settings/system/hooks/use-cache-size";
 
 function App() {
   useAnnotations();

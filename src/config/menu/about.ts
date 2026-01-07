@@ -9,7 +9,7 @@ import {
   createShowAll,
 } from "./standard";
 
-import { useSettingsStore } from "@/features/settings/store/settings-store";
+import { useSettingsStore } from "@/features/settings/stores/settings-store";
 
 export async function createAboutSubmenu() {
   const separator = await createSeparator();

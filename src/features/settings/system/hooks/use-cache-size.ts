@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 
+import { useCacheStore } from "../stores/cache-store";
+
 import { api } from "@/services/api";
-import { useSettingsStore } from "@/features/settings/store/settings-store";
 import { CacheType } from "@/types/settings";
 
 export function useCacheSize() {
-  const setCacheSize = useSettingsStore((state) => state.setCacheSize);
+  const setCacheSize = useCacheStore((state) => state.setCacheSize);
 
   useEffect(() => {
     const getCacheSize = async () => {
