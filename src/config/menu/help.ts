@@ -46,23 +46,6 @@ export async function createHelpSubmenu() {
     enabled: false,
   });
 
-  const cacheCalculate = await MenuItem.new({
-    id: "help.cache.calculate",
-    text: "Calculate Cache Size...",
-    enabled: false,
-  });
-
-  const cacheClear = await MenuItem.new({
-    id: "help.cache.clear",
-    text: "Clear Cache...",
-    enabled: false,
-  });
-
-  const cacheSubmenu = await Submenu.new({
-    text: "Cache",
-    items: [cacheCalculate, cacheClear],
-  });
-
   const acknowledgements = await MenuItem.new({
     id: "help.acknowledgements",
     text: "Acknowledgements",
@@ -79,7 +62,6 @@ export async function createHelpSubmenu() {
       separator,
       systemInfo,
       resourceUtilization,
-      cacheSubmenu,
       separator,
       acknowledgements,
     ],
