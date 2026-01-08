@@ -1,7 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 
-import { useBackgroundThumbnailPrefetch } from "../hooks/use-background-thumbnail-prefetch";
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
 import { useScrubbing } from "../hooks/use-scrubbing";
 
@@ -46,8 +45,6 @@ export function Filmstrip() {
     () => filteredFiles.map((file) => file.path),
     [filteredFiles],
   );
-
-  useBackgroundThumbnailPrefetch(filteredPaths, filmstripRef, true);
 
   const virtualizer = useVirtualizer({
     horizontal: true,

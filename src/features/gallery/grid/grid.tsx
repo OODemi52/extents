@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
-import { useBackgroundThumbnailPrefetch } from "../hooks/use-background-thumbnail-prefetch";
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
 import { useScrubbing } from "../hooks/use-scrubbing";
 
@@ -51,8 +50,6 @@ export function ThumbnailGrid() {
     () => filteredFiles.map((file) => file.path),
     [filteredFiles],
   );
-
-  useBackgroundThumbnailPrefetch(filteredPaths, containerRef, hasBaseImages);
 
   const updateWidth = useCallback((width: number) => {
     const resizeStep = isSidebarResizingRef.current ? 1 : 1;
