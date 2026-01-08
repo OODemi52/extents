@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Release Please
-        uses: google-github-actions/release-please-action@v4
+        uses: googleapis/release-please-action@v4
         with:
-          config-file: release-please-config.json
+          config-file: release-please.json
           manifest-file: .release-please-manifest.json
