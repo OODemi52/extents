@@ -158,8 +158,7 @@ fn spawn_full_image_load(
     );
 
     let join_handle = async_runtime::spawn(async move {
-        let decode_result =
-            async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
+        let decode_result = async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
 
         match decode_result {
             Ok(Ok((rgba, width, height))) => {
@@ -222,8 +221,7 @@ pub async fn swap_requested_texture(
     );
     let renderer_handle = state.renderer.clone();
 
-    let decode_result =
-        async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
+    let decode_result = async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
 
     match decode_result {
         Ok(Ok((raw, width, height))) => {

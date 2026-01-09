@@ -124,7 +124,6 @@ pub fn prefetch_thumbnails(paths: Vec<String>, app_handle: tauri::AppHandle) -> 
                 }
             });
         });
-
     });
 
     Ok(())
