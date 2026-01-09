@@ -51,7 +51,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: "nightly-${{ steps.sha.outputs.short }}"
-          releaseName: "Nightly Build (${{ steps.sha.outputs.short }})"
+          releaseName: "Extents Nightly Build (${{ steps.sha.outputs.short }})"
           releaseBody: |
             **Nightly Build** - Unstable development version
 

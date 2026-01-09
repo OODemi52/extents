@@ -2,10 +2,11 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "package-name": "extents",
+      "package-name": "Extents",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
+      "release-title-pattern": "Release v${version} – ${package-name}",
       "extra-files": ["src-tauri/Cargo.toml", "src-tauri/tauri.conf.json"]
     }
   }
