@@ -10,12 +10,10 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
-    "macOSPrivateApi": true,
     "windows": [
       {
         "hiddenTitle": true,
         "title": "Extents",
-        "transparent": true,
         "label": "main",
         "titleBarStyle": "Overlay",
         "width": 1280,
