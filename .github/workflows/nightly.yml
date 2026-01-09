@@ -1,21 +1,24 @@
-name: Release Build
+name: Nightly Build
 
 on:
-  release:
-    types: [created]
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  build-tauri:
+  nightly:
     strategy:
       fail-fast: false
       matrix:
         platform: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -25,33 +28,34 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install Rust dependencies for Tauri (Linux only)
+      - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libwebkit2gtk-4.0-dev \
+            libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
             librsvg2-dev \
-            patchelf \
-            libglib2.0-dev \
-            libgirepository1.0-dev \
-            pkg-config \
-            build-essential
+            patchelf
+
+      - name: Get short SHA
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Install frontend dependencies
-        run: npm install
-
-      - name: Build frontend
-        run: npm run build
+        run: npm ci
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Extents v${{ github.ref_name }}"
-          releaseBody: "See assets attached for this release."
+          tagName: "nightly-${{ steps.sha.outputs.short }}"
+          releaseName: "Nightly Build (${{ steps.sha.outputs.short }})"
+          releaseBody: |
+            **Nightly Build** - Unstable development version
+
+            Commit: ${{ github.sha }}
+            Built: ${{ github.event.head_commit.timestamp }}
           releaseDraft: false
-          prerelease: false
+          prerelease: true

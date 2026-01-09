@@ -3,18 +3,10 @@
     ".": {
       "release-type": "node",
       "package-name": "extents",
-      "extra-files": [
-        {
-          "type": "toml",
-          "path": "src-tauri/Cargo.toml",
-          "version-field": "package.version"
-        },
-        {
-          "type": "json",
-          "path": "src-tauri/tauri.conf.json",
-          "jsonpath": "$.package.version"
-        }
-      ]
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "extra-files": ["src-tauri/Cargo.toml", "src-tauri/tauri.conf.json"]
     }
   }
 }

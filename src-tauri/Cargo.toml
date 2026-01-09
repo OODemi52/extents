@@ -24,7 +24,7 @@ pollster = "0.3"
 wgpu = "26.0.1"
 env_logger = "0.10"
 log = "0.4"
-tauri = { version = "2.6.2", features = [ "macos-private-api", "protocol-asset"] }
+tauri = { version = "2.6.2", features = [ "protocol-asset"] }
 tauri-plugin-log = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
