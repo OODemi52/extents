@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.2](https://github.com/OODemi52/extents/compare/Extents-v0.0.1...Extents-v0.0.2) (2026-01-10)
+
+
+### Bug Fixes
+
+* Bundle rusqlite into build ([4768066](https://github.com/OODemi52/extents/commit/47680662c10a2c14a9313f68ae523fe62a6db4ce))
+* Reintroduced the window transparency config option ([9310e2c](https://github.com/OODemi52/extents/commit/9310e2c799ca554b6d27771bd59eada0372dbb49))
+
 ## 0.0.1 (2026-01-09)
 
 
