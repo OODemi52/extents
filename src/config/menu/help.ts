@@ -1,4 +1,5 @@
 import { MenuItem, Submenu } from "@tauri-apps/api/menu";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { createSeparator } from "./standard";
 
@@ -20,13 +21,19 @@ export async function createHelpSubmenu() {
   const reportBug = await MenuItem.new({
     id: "help.support.reportBug",
     text: "Report a Bug...",
-    enabled: false,
+    action: async () =>
+      await openUrl(
+        "https://github.com/OODemi52/extents/issues/new?template=bug-report.md",
+      ),
   });
 
   const requestFeature = await MenuItem.new({
     id: "help.support.requestFeature",
     text: "Request a Feature...",
-    enabled: false,
+    action: async () =>
+      await openUrl(
+        "https://github.com/OODemi52/extents/issues/new?template=feature-request.md",
+      ),
   });
 
   const feedbackSubmenu = await Submenu.new({
