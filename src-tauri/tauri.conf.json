@@ -10,11 +10,12 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "hiddenTitle": true,
         "title": "Extents",
-        "label": "main",
+        "transparent": true,
         "titleBarStyle": "Overlay",
         "width": 1280,
         "height": 800,
@@ -29,10 +30,7 @@
       "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost",
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "$CACHE/**",
-          "$RESOURCE/**"
-        ]
+        "scope": ["$CACHE/**", "$RESOURCE/**"]
       }
     }
   },
@@ -46,9 +44,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "mac-assets/Assets.car"
-    ],
+    "resources": ["mac-assets/Assets.car"],
     "macOS": {
       "bundleName": "Extents",
       "files": {
