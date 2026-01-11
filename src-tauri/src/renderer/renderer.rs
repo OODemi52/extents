@@ -37,6 +37,7 @@ pub struct Renderer<'a> {
     pub viewport: Mutex<Viewport>,
     pub render_state: RenderState,
     pub last_render: Instant,
+    has_image: bool,
 }
 
 impl<'a> Renderer<'a> {
@@ -85,6 +86,7 @@ impl<'a> Renderer<'a> {
             pending_load: None,
             request_counter: 0,
             active_request_id: None,
+            has_image: false,
         };
 
         renderer.update_vertices();
@@ -169,6 +171,8 @@ impl<'a> Renderer<'a> {
     pub fn update_texture(&mut self, rgba: &[u8], width: u32, height: u32) {
         info!("[Renderer] Updating texture ({}x{})", width, height);
 
+        self.has_image = true;
+
         self.texture_manager.update(
             &self.context.device,
             &self.context.queue,
@@ -193,23 +197,8 @@ impl<'a> Renderer<'a> {
 
         self.active_request_id = None;
 
-        self.texture_manager = TextureManager::new(&self.context.device, &self.context.queue);
+        self.has_image = false;
 
-        self.bind_group = self.pipeline.create_bind_group(
-            &self.context.device,
-            self.texture_manager.view(),
-            self.transform_buffer.as_entire_binding(),
-        );
-
-        self.pending_scale = 1.0;
-        self.pending_offset_x = 0.0;
-        self.pending_offset_y = 0.0;
-        self.checkerboard_enabled = 0.0;
-        self.fit_scale = 1.0;
-        self.vertex_scale_x = 1.0;
-        self.vertex_scale_y = 1.0;
-
-        self.update_vertices();
         self.render();
     }
 
@@ -293,6 +282,7 @@ impl<'a> Renderer<'a> {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
+                        // Need to change here to make backgorund of renderer customizeable
                         load: wgpu::LoadOp::Clear(wgpu::Color {
                             r: 0.01,
                             g: 0.01,
@@ -317,13 +307,15 @@ impl<'a> Renderer<'a> {
                 1.0,
             );
 
-            render_pass.set_pipeline(&self.pipeline.pipeline);
+            if self.has_image {
+                render_pass.set_pipeline(&self.pipeline.pipeline);
 
-            render_pass.set_bind_group(0, &self.bind_group, &[]);
+                render_pass.set_bind_group(0, &self.bind_group, &[]);
 
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice());
+                render_pass.set_vertex_buffer(0, self.vertex_buffer.slice());
 
-            render_pass.draw(0..6, 0..1);
+                render_pass.draw(0..6, 0..1);
+            }
         }
 
         self.context.queue.submit(std::iter::once(encoder.finish()));
