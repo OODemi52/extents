@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/OODemi52/extents/compare/Extents-v0.0.2...Extents-v0.0.3) (2026-01-11)
+
+
+### Bug Fixes
+
+* Renderer now clears to a dark gray screen instead of a transparent one ([8f29c18](https://github.com/OODemi52/extents/commit/8f29c184988b6861f3cada63921ca04a74c6337b))
+
 ## [0.0.2](https://github.com/OODemi52/extents/compare/Extents-v0.0.1...Extents-v0.0.2) (2026-01-10)
 
 
