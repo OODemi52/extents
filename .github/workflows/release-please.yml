@@ -23,6 +23,66 @@ jobs:
           config-file: release-please.json
           manifest-file: .release-please-manifest.json
 
+  compose-release-notes:
+    name: Compose Release Notes
+    needs: [release-please, build]
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Compose Release Notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          sleep 15
+
+          RELEASE_DATA=$(gh release view "$TAG_NAME" --json assets,body)
+          ASSETS=$(echo "$RELEASE_DATA" | jq '.assets')
+          CHANGELOG=$(echo "$RELEASE_DATA" | jq -r '.body')
+
+          TABLE="| Platform | Package Type | Download |\n|---|---|---|\n"
+
+          NSIS_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith("-setup.exe"))) | .[0].url')
+          if [ "$NSIS_URL" != "null" ]; then
+            TABLE="${TABLE}| Windows (x64) | Installer | [exe]($NSIS_URL) |\n"
+          fi
+
+          MSI_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith(".msi"))) | .[0].url')
+          if [ "$MSI_URL" != "null" ]; then
+            TABLE="${TABLE}| Windows (x64) | MSI Installer | [msi]($MSI_URL) |\n"
+          fi
+
+          UNIVERSAL_DMG_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith("_universal.dmg"))) | .[0].url')
+          if [ "$UNIVERSAL_DMG_URL" != "null" ]; then
+            TABLE="${TABLE}| macOS | Universal | [dmg]($UNIVERSAL_DMG_URL) |\n"
+          fi
+
+          APPIMAGE_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | test("\\.appimage$"; "i"))) | .[0].url')
+          if [ "$APPIMAGE_URL" != "null" ]; then
+            TABLE="${TABLE}| Linux | AppImage | [AppImage]($APPIMAGE_URL) |\n"
+          fi
+
+          DEB_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith(".deb"))) | .[0].url')
+          if [ "$DEB_URL" != "null" ]; then
+              TABLE="${TABLE}| Linux (Debian/Ubuntu) | Package | [deb]($DEB_URL) |\n"
+          fi
+
+          RPM_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith(".rpm"))) | .[0].url')
+          if [ "$RPM_URL" != "null" ]; then
+            TABLE="${TABLE}| Linux (Fedora/CentOS) | Package | [rpm]($RPM_URL) |\n"
+          fi
+
+          TEMPLATE=$(cat .github/RELEASE_TEMPLATE/release.md)
+          VERSION_SUBST_TEMPLATE="${TEMPLATE//\$\{version\}/$TAG_NAME}"
+          ASSET_TABLE_SUBST_TEMPLATE="${VERSION_SUBST_TEMPLATE//\$\{asset_table\}/$TABLE}"
+
+          FINAL_BODY=$(echo -e "$ASSET_TABLE_SUBST_TEMPLATE\n\n$CHANGELOG")
+
+          gh release edit "$TAG_NAME" --notes "$FINAL_BODY"
+
   build:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
@@ -64,6 +124,5 @@ jobs:
         with:
           tagName: ${{ needs.release-please.outputs.tag_name }}
           releaseName: "Extents ${{ needs.release-please.outputs.tag_name }}"
-          releaseBody: "See CHANGELOG.md for details"
           releaseDraft: false
           prerelease: false

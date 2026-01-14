@@ -15,6 +15,8 @@ jobs:
       matrix:
         platform: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
+    outputs:
+      sha: ${{ steps.sha.outputs.short }}
 
     steps:
       - name: Checkout code
@@ -38,8 +40,13 @@ jobs:
             librsvg2-dev \
             patchelf
 
+      - name: Install WebView2 (Windows)
+        if: matrix.platform == 'windows-latest'
+        uses: microsoft/setup-webview2@v1
+
       - name: Get short SHA
         id: sha
+        shell: bash
         run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Install frontend dependencies
@@ -52,10 +59,64 @@ jobs:
         with:
           tagName: "nightly-${{ steps.sha.outputs.short }}"
           releaseName: "Extents Nightly Build (${{ steps.sha.outputs.short }})"
-          releaseBody: |
-            **Nightly Build** - Unstable development version
-
-            Commit: ${{ github.sha }}
-            Built: ${{ github.event.head_commit.timestamp }}
           releaseDraft: false
           prerelease: true
+
+  compose-release-notes:
+    name: Compose Release Notes
+    needs: nightly
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Compose Release Notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: "nightly-${{ needs.nightly.outputs.sha }}"
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          sleep 15
+
+          ASSETS=$(gh release view "$TAG_NAME" --json assets -q .assets)
+
+          TABLE="| Platform | Package Type | Download |\n|---|---|---|\n"
+
+          NSIS_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith("-setup.exe"))) | .[0].url')
+          if [ "$NSIS_URL" != "null" ]; then
+            TABLE="${TABLE}| Windows (x64) | Installer | [exe]($NSIS_URL) |\n"
+          fi
+
+          MSI_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith(".msi"))) | .[0].url')
+          if [ "$MSI_URL" != "null" ]; then
+            TABLE="${TABLE}| Windows (x64) | MSI Installer | [msi]($MSI_URL) |\n"
+          fi
+
+          UNIVERSAL_DMG_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith("_universal.dmg"))) | .[0].url')
+          if [ "$UNIVERSAL_DMG_URL" != "null" ]; then
+            TABLE="${TABLE}| macOS | Universal | [dmg]($UNIVERSAL_DMG_URL) |\n"
+          fi
+
+          APPIMAGE_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | test("\\.appimage$"; "i"))) | .[0].url')
+          if [ "$APPIMAGE_URL" != "null" ]; then
+            TABLE="${TABLE}| Linux | AppImage | [AppImage]($APPIMAGE_URL) |\n"
+          fi
+
+          DEB_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith(".deb"))) | .[0].url')
+          if [ "$DEB_URL" != "null" ]; then
+            TABLE="${TABLE}| Linux (Debian/Ubuntu) | Package | [deb]($DEB_URL) |\n"
+          fi
+
+          RPM_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith(".rpm"))) | .[0].url')
+          if [ "$RPM_URL" != "null" ]; then
+            TABLE="${TABLE}| Linux (Fedora/CentOS) | Package | [rpm]($RPM_URL) |\n"
+          fi
+
+          TEMPLATE=$(cat .github/RELEASE_TEMPLATE/nightly.md)
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          SHA_SUBST_TEMPLATE="${TEMPLATE//\$\{sha\}/$COMMIT_SHA}"
+          TIMESTAMP_SUBST_TEMPLATE="${SHA_SUBST_TEMPLATE//\$\{timestamp\}/$TIMESTAMP}"
+          FINAL_BODY="${TIMESTAMP_SUBST_TEMPLATE//\$\{asset_table\}/$TABLE}"
+
+          gh release edit "$TAG_NAME" --notes "$FINAL_BODY"
