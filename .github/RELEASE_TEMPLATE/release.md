@@ -1,5 +1,3 @@
-## Extents - v${version}
-
 <div align="center">
 <b><u>Quick Downloads</u></b>
 

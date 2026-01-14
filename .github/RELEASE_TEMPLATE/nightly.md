@@ -1,5 +1,3 @@
-# Extents - Nightly Build (${sha})
-
 ### ⚠️ Disclaimer
 
 This is an ***unstable***, automated build of the application. It is not intended for production use and may contain bugs or incomplete features.
