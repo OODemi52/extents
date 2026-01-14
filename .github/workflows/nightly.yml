@@ -40,10 +40,6 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - name: Install WebView2 (Windows)
-        if: matrix.platform == 'windows-latest'
-        uses: microsoft/setup-webview2@v1
-
       - name: Get short SHA
         id: sha
         shell: bash
