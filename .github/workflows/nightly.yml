@@ -68,10 +68,10 @@ jobs:
           - name: windows-x86_64
             runner: windows-latest
             target: x86_64-pc-windows-msvc
-            bundles: msi
+            bundles: msi,nsis
             artifact_os: windows
             artifact_arch: x86_64
-            expected_exts: msi
+            expected_exts: msi exe
           - name: linux-x86_64
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -121,7 +121,8 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
             librsvg2-dev \
-            patchelf
+            patchelf \
+            xdg-utils
 
       - name: Install frontend dependencies
         run: npm ci
@@ -211,6 +212,7 @@ jobs:
 
           add_row "macOS (Apple Silicon)" "DMG" "Extents-macos-arm64-nightly-${SHORT_SHA}.dmg"
           add_row "macOS (Intel)" "DMG" "Extents-macos-x86_64-nightly-${SHORT_SHA}.dmg"
+          add_row "Windows (x64)" "Installer (EXE)" "Extents-windows-x86_64-nightly-${SHORT_SHA}.exe"
           add_row "Windows (x64)" "MSI Installer" "Extents-windows-x86_64-nightly-${SHORT_SHA}.msi"
 
           add_row "Linux (x86_64)" "AppImage" "Extents-linux-x86_64-nightly-${SHORT_SHA}.AppImage"
