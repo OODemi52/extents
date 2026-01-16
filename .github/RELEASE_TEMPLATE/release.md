@@ -1,7 +1,18 @@
 <div align="center">
 <b><u>Quick Downloads</u></b>
 
+<table>
+  <thead>
+    <tr>
+      <th>Platform</th>
+      <th>Package Type</th>
+      <th>Download</th>
+    </tr>
+  </thead>
+  <tbody>
 ${asset_table}
+  </tbody>
+</table>
 </div>
 
 ---

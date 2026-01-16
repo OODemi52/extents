@@ -9,29 +9,112 @@ permissions:
   contents: write
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.tag.outputs.short_sha }}
+      tag_name: ${{ steps.tag.outputs.tag_name }}
+      release_id: ${{ steps.release.outputs.release_id }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Compute nightly tag
+        id: tag
+        shell: bash
+        run: |
+          short_sha=$(git rev-parse --short HEAD)
+          echo "short_sha=$short_sha" >> $GITHUB_OUTPUT
+          echo "tag_name=nightly-$short_sha" >> $GITHUB_OUTPUT
+
+      - name: Ensure nightly release exists
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.tag.outputs.tag_name }}
+        run: |
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists."
+          else
+            gh release create "$TAG_NAME" \
+              --title "Extents - Nightly Build ($TAG_NAME)" \
+              --notes "Automated nightly build." \
+              --prerelease \
+              --target "${{ github.sha }}"
+          fi
+          release_id=$(gh release view "$TAG_NAME" --json id -q .id)
+          echo "release_id=$release_id" >> $GITHUB_OUTPUT
+
   nightly:
+    needs: prepare
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
-    outputs:
-      sha: ${{ steps.sha.outputs.short }}
+        include:
+          - name: macos-arm64
+            runner: macos-latest
+            target: aarch64-apple-darwin
+            bundles: dmg
+            artifact_os: macos
+            artifact_arch: arm64
+            expected_exts: dmg
+          - name: macos-x86_64
+            runner: macos-latest
+            target: x86_64-apple-darwin
+            bundles: dmg
+            artifact_os: macos
+            artifact_arch: x86_64
+            expected_exts: dmg
+          - name: windows-x86_64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: msi
+            artifact_os: windows
+            artifact_arch: x86_64
+            expected_exts: msi
+          - name: linux-x86_64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bundles: appimage,deb,rpm
+            artifact_os: linux
+            artifact_arch: x86_64
+            expected_exts: AppImage deb rpm
+          # Use GitHub-hosted ARM runners to avoid AppImage cross-compilation limitations.
+          - name: linux-aarch64
+            runner: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            bundles: appimage,deb,rpm
+            artifact_os: linux
+            artifact_arch: aarch64
+            expected_exts: AppImage deb rpm
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Log build target
+        run: echo "Building ${{ matrix.name }} on ${{ matrix.runner }} (${{ matrix.target }})"
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-latest'
+        if: startsWith(matrix.runner, 'ubuntu')
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -39,11 +122,6 @@ jobs:
             libappindicator3-dev \
             librsvg2-dev \
             patchelf
-
-      - name: Get short SHA
-        id: sha
-        shell: bash
-        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Install frontend dependencies
         run: npm ci
@@ -53,14 +131,49 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: "nightly-${{ steps.sha.outputs.short }}"
-          releaseName: "Extents - Nightly Build (${{ steps.sha.outputs.short }})"
+          tagName: ${{ needs.prepare.outputs.tag_name }}
+          releaseId: ${{ needs.prepare.outputs.release_id }}
           releaseDraft: false
           prerelease: true
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          assetNamePattern: Extents-${{ matrix.artifact_os }}-${{ matrix.artifact_arch }}-nightly-${{ needs.prepare.outputs.short_sha }}[ext]
+
+      - name: Verify bundle outputs
+        shell: bash
+        env:
+          BUNDLE_DIR: src-tauri/target/${{ matrix.target }}/release/bundle
+          EXPECTED_EXTS: ${{ matrix.expected_exts }}
+        run: |
+          set -euo pipefail
+          if [ ! -d "$BUNDLE_DIR" ]; then
+            echo "Bundle directory not found: $BUNDLE_DIR"
+            exit 1
+          fi
+          missing=0
+          for ext in $EXPECTED_EXTS; do
+            if ! find "$BUNDLE_DIR" -type f -iname "*.${ext}" -print -quit | grep -q .; then
+              echo "Missing *.$ext bundle in $BUNDLE_DIR"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Extents-${{ matrix.artifact_os }}-${{ matrix.artifact_arch }}-nightly-${{ needs.prepare.outputs.short_sha }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.msi
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.AppImage
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.deb
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.rpm
 
   compose-release-notes:
     name: Compose Release Notes
-    needs: nightly
+    needs: [prepare, nightly]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -69,50 +182,50 @@ jobs:
       - name: Compose Release Notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: "nightly-${{ needs.nightly.outputs.sha }}"
-          COMMIT_SHA: ${{ github.sha }}
         run: |
           sleep 15
 
+          SHORT_SHA="${{ needs.prepare.outputs.short_sha }}"
+          TAG_NAME="${{ needs.prepare.outputs.tag_name }}"
+          COMMIT_SHA="${{ github.sha }}"
+
           ASSETS=$(gh release view "$TAG_NAME" --json assets -q .assets)
 
-          TABLE="| Platform | Package Type | Download |\n|---|---|---|\n"
+          asset_url() {
+            local name="$1"
+            echo "$ASSETS" | jq -r --arg name "$name" 'map(select(.name == $name)) | .[0].browser_download_url // empty'
+          }
 
-          NSIS_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith("-setup.exe"))) | .[0].url')
-          if [ "$NSIS_URL" != "null" ]; then
-            TABLE="${TABLE}| Windows (x64) | Installer | [exe]($NSIS_URL) |\n"
-          fi
+          add_row() {
+            local platform="$1"
+            local kind="$2"
+            local asset="$3"
+            local url
+            url=$(asset_url "$asset")
+            if [ -n "$url" ]; then
+              ROWS="${ROWS}    <tr><td>${platform}</td><td>${kind}</td><td><a href=\"${url}\">download</a></td></tr>"$'\n'
+            fi
+          }
 
-          MSI_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith(".msi"))) | .[0].url')
-          if [ "$MSI_URL" != "null" ]; then
-            TABLE="${TABLE}| Windows (x64) | MSI Installer | [msi]($MSI_URL) |\n"
-          fi
+          ROWS=""
 
-          UNIVERSAL_DMG_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith("_universal.dmg"))) | .[0].url')
-          if [ "$UNIVERSAL_DMG_URL" != "null" ]; then
-            TABLE="${TABLE}| macOS | Universal | [dmg]($UNIVERSAL_DMG_URL) |\n"
-          fi
+          add_row "macOS (Apple Silicon)" "DMG" "Extents-macos-arm64-nightly-${SHORT_SHA}.dmg"
+          add_row "macOS (Intel)" "DMG" "Extents-macos-x86_64-nightly-${SHORT_SHA}.dmg"
+          add_row "Windows (x64)" "MSI Installer" "Extents-windows-x86_64-nightly-${SHORT_SHA}.msi"
 
-          APPIMAGE_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | test("\\.appimage$"; "i"))) | .[0].url')
-          if [ "$APPIMAGE_URL" != "null" ]; then
-            TABLE="${TABLE}| Linux | AppImage | [AppImage]($APPIMAGE_URL) |\n"
-          fi
+          add_row "Linux (x86_64)" "AppImage" "Extents-linux-x86_64-nightly-${SHORT_SHA}.AppImage"
+          add_row "Linux (x86_64)" "deb" "Extents-linux-x86_64-nightly-${SHORT_SHA}.deb"
+          add_row "Linux (x86_64)" "rpm" "Extents-linux-x86_64-nightly-${SHORT_SHA}.rpm"
 
-          DEB_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith(".deb"))) | .[0].url')
-          if [ "$DEB_URL" != "null" ]; then
-            TABLE="${TABLE}| Linux (Debian/Ubuntu) | Package | [deb]($DEB_URL) |\n"
-          fi
-
-          RPM_URL=$(echo "$ASSETS" | jq -r 'map(select(.name | endswith(".rpm"))) | .[0].url')
-          if [ "$RPM_URL" != "null" ]; then
-            TABLE="${TABLE}| Linux (Fedora/CentOS) | Package | [rpm]($RPM_URL) |\n"
-          fi
+          add_row "Linux (ARM64)" "AppImage" "Extents-linux-aarch64-nightly-${SHORT_SHA}.AppImage"
+          add_row "Linux (ARM64)" "deb" "Extents-linux-aarch64-nightly-${SHORT_SHA}.deb"
+          add_row "Linux (ARM64)" "rpm" "Extents-linux-aarch64-nightly-${SHORT_SHA}.rpm"
 
           TEMPLATE=$(cat .github/RELEASE_TEMPLATE/nightly.md)
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
           SHA_SUBST_TEMPLATE="${TEMPLATE//\$\{sha\}/$COMMIT_SHA}"
           TIMESTAMP_SUBST_TEMPLATE="${SHA_SUBST_TEMPLATE//\$\{timestamp\}/$TIMESTAMP}"
-          FINAL_BODY="${TIMESTAMP_SUBST_TEMPLATE//\$\{asset_table\}/$TABLE}"
+          FINAL_BODY="${TIMESTAMP_SUBST_TEMPLATE//\$\{asset_table\}/$ROWS}"
 
           gh release edit "$TAG_NAME" --notes "$FINAL_BODY"
