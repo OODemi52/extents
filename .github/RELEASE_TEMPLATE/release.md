@@ -5,7 +5,6 @@
   <thead>
     <tr>
       <th>Platform</th>
-      <th>Package Type</th>
       <th>Download</th>
     </tr>
   </thead>

@@ -13,7 +13,6 @@ This is an ***unstable***, automated build of the application. It is not intende
   <thead>
     <tr>
       <th>Platform</th>
-      <th>Package Type</th>
       <th>Download</th>
     </tr>
   </thead>

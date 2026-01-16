@@ -57,24 +57,25 @@ jobs:
             local url
             url=$(asset_url "$asset")
             if [ -n "$url" ]; then
-              ROWS="${ROWS}    <tr><td>${platform}</td><td>${kind}</td><td><a href=\"${url}\">download</a></td></tr>"$'\n'
+              ROWS="${ROWS}    <tr><td>${platform}</td><td><a href=\"${url}\">${kind}</a></td></tr>"$'\n'
             fi
           }
 
           ROWS=""
 
-          add_row "macOS (Apple Silicon)" "DMG" "Extents-macos-arm64-${TAG_NAME}.dmg"
-          add_row "macOS (Intel)" "DMG" "Extents-macos-x86_64-${TAG_NAME}.dmg"
-          add_row "Windows (x64)" "Installer (EXE)" "Extents-windows-x86_64-${TAG_NAME}.exe"
-          add_row "Windows (x64)" "MSI Installer" "Extents-windows-x86_64-${TAG_NAME}.msi"
+          add_row "macOS (Apple Silicon)" ".dmg" "Extents-macos-arm64-${TAG_NAME}.dmg"
+          add_row "macOS (Intel)" ".dmg" "Extents-macos-x86_64-${TAG_NAME}.dmg"
+          add_row "Windows (x64)" ".exe" "Extents-windows-x86_64-${TAG_NAME}.exe"
+          add_row "Windows (x64)" ".msi" "Extents-windows-x86_64-${TAG_NAME}.msi"
 
-          add_row "Linux (x86_64)" "AppImage" "Extents-linux-x86_64-${TAG_NAME}.AppImage"
-          add_row "Linux (x86_64)" "deb" "Extents-linux-x86_64-${TAG_NAME}.deb"
-          add_row "Linux (x86_64)" "rpm" "Extents-linux-x86_64-${TAG_NAME}.rpm"
+          add_row "Linux (x86_64)" ".AppImage" "Extents-linux-x86_64-${TAG_NAME}.AppImage"
+          add_row "Linux (ARM64)" ".AppImage" "Extents-linux-aarch64-${TAG_NAME}.AppImage"
 
-          add_row "Linux (ARM64)" "AppImage" "Extents-linux-aarch64-${TAG_NAME}.AppImage"
-          add_row "Linux (ARM64)" "deb" "Extents-linux-aarch64-${TAG_NAME}.deb"
-          add_row "Linux (ARM64)" "rpm" "Extents-linux-aarch64-${TAG_NAME}.rpm"
+          add_row "Linux (x86_64)" ".deb" "Extents-linux-x86_64-${TAG_NAME}.deb"
+          add_row "Linux (ARM64)" ".deb" "Extents-linux-aarch64-${TAG_NAME}.deb"
+
+          add_row "Linux (x86_64)" ".rpm" "Extents-linux-x86_64-${TAG_NAME}.rpm"
+          add_row "Linux (ARM64)" ".rpm" "Extents-linux-aarch64-${TAG_NAME}.rpm"
 
           TEMPLATE=$(cat .github/RELEASE_TEMPLATE/release.md)
           VERSION_SUBST_TEMPLATE="${TEMPLATE//\$\{version\}/$TAG_NAME}"
@@ -119,7 +120,6 @@ jobs:
             artifact_os: linux
             artifact_arch: x86_64
             expected_exts: AppImage deb rpm
-          # Use GitHub-hosted ARM runners to avoid AppImage cross-compilation limitations.
           - name: linux-aarch64
             runner: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
