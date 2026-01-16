@@ -194,7 +194,9 @@ jobs:
 
           asset_url() {
             local name="$1"
-            echo "$ASSETS" | jq -r --arg name "$name" 'map(select(.name == $name)) | .[0].browser_download_url // empty'
+            if echo "$ASSETS" | jq -e --arg name "$name" 'any(.name == $name)' >/dev/null; then
+              echo "https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/${name}"
+            fi
           }
 
           add_row() {
