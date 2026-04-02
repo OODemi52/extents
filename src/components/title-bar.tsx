@@ -56,7 +56,7 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
         >
           <Button
             disableRipple
-            className="h-auto min-h-0 px-2 py-1 text-left bg-transparent hover:bg-white/5"
+            className="h-auto min-h-0 py-2 pr-8 text-left border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] hover:bg-[rgba(50,50,50,0.99)] rounded-[17px] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
             radius="sm"
             size="sm"
             onPress={onPickFolder}
@@ -64,8 +64,8 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
             <div className="flex items-start gap-2">
               <FolderOpenIcon
                 className="text-zinc-400 shrink-0"
-                size={32}
-                weight="duotone"
+                size={24}
+                weight="fill"
               />
               <span className="flex flex-col leading-tight text-left">
                 <span className="max-w-[160px] truncate text-xs font-semibold text-zinc-100 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
@@ -91,7 +91,7 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
       </div>
 
       <div className="flex items-center space-x-2 max-w-3xl flex-1">
-        <ButtonGroup>
+        <ButtonGroup className="border h-10 border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-[17px] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]">
           <ToolbarIconButton
             isDisabled
             icon={<ArrowLeftIcon size={20} />}
@@ -99,6 +99,7 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
             tooltip="Back"
             onPress={() => console.log("back")}
           />
+          <hr className="border border-zinc-700/70 h-2/5" />
           <ToolbarIconButton
             isDisabled
             icon={<ArrowRightIcon size={20} />}
@@ -111,6 +112,7 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
         <FilterSearchInput />
 
         <ToolbarIconButton
+          className="border h-10 w-10 border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] hover:bg-[rgba(50,50,50,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
           icon={<FunnelIcon size={20} weight="duotone" />}
           isActive={isFilterOpen}
           tooltip={isFilterOpen ? "Hide filters" : "Show filters"}
