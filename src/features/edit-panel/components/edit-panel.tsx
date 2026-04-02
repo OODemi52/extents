@@ -35,7 +35,8 @@ export function EditPanel() {
   };
 
   return (
-    <aside className="h-full bg-zinc-900/99 border border-white/15 rounded-xl flex flex-col p-2">
+    <aside className="h-full border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-3xl flex flex-col p-2">
+      <div className="pointer-events-none w-10/12 mx-auto absolute inset-x-0 top-0 z-20 h-px bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.08),rgba(255,255,255,0))]" />
       <Card className="w-full h-32 mb-2 bg-zinc-800 flex-shrink-0 p-2">
         <Histogram />
       </Card>
