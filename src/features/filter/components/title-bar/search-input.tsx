@@ -165,7 +165,8 @@ export function FilterSearchInput() {
     <Input
       className="flex-1 px-4"
       classNames={{
-        inputWrapper: "items-center",
+        inputWrapper:
+          "items-center border-2 border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-2xl",
         innerWrapper: "items-center gap-2",
       }}
       endContent={
