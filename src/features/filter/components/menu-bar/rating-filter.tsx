@@ -52,13 +52,8 @@ export function RatingFilter() {
   };
 
   return (
-    <Card className="flex flex-row items-center gap-x-2 p-[6px] rounded-lg bg-zinc-800 border-2 border-zinc-700">
-      <Button
-        isIconOnly
-        radius="full"
-        size="sm"
-        onPress={handleToggleOperation}
-      >
+    <Card className="flex flex-row items-center gap-x-2 p-[6px] rounded-[16px] border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]">
+      <Button isIconOnly size="sm" onPress={handleToggleOperation}>
         {renderOperationIcon()}
       </Button>
       <ButtonGroup className="gap-0">

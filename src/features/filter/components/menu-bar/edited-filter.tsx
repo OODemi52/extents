@@ -35,12 +35,15 @@ export function EditedFilter() {
   return (
     <Select
       className="max-w-24"
+      classNames={{
+        trigger:
+          "rounded-[16px] border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
+      }}
       items={options}
       label="Edited"
       placeholder="Edited"
       selectedKeys={selectedKeys}
       size="sm"
-      variant="faded"
       onSelectionChange={(keys) => {
         const next = Array.from(keys).at(0) ?? null;
 
