@@ -99,7 +99,7 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
             tooltip="Back"
             onPress={() => console.log("back")}
           />
-          <hr className="border border-zinc-700/70 h-2/5" />
+          <hr className="border w-px border-zinc-400/10 h-1/2" />
           <ToolbarIconButton
             isDisabled
             icon={<ArrowRightIcon size={20} />}
