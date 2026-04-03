@@ -54,10 +54,6 @@ impl TransformBuffer {
         queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[self.uniforms]));
     }
 
-    pub fn get(&self) -> &TransformUniforms {
-        &self.uniforms
-    }
-
     pub fn as_entire_binding(&self) -> wgpu::BindingResource {
         self.buffer.as_entire_binding()
     }
