@@ -22,11 +22,12 @@ export function ToolbarIconButton({
 }: ToolbarIconButtonProps) {
   return (
     <Tooltip
-      className="border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] hover:bg-[rgba(50,50,50,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
+      className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] hover:bg-[rgba(50,50,50,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
       closeDelay={0}
       content={tooltip}
       delay={500}
-      offset={-10}
+      offset={0}
+      radius="sm"
       size="sm"
     >
       <Button

@@ -88,6 +88,7 @@ export function BottomToolbar() {
       >
         <div className="flex items-center gap-2 pr-2">
           <ToolbarIconButton
+            className="mr-1 border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
             icon={<SidebarSimpleIcon size={16} />}
             isActive={panels.sidebar}
             tooltip="File Browser"
@@ -95,6 +96,7 @@ export function BottomToolbar() {
           />
           {isDetailLayout && selectionCount > 0 ? (
             <ToolbarIconButton
+              className="mr-1 border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
               icon={<FilmStripIcon size={16} />}
               isActive={panels.filmstrip}
               tooltip="Filmstrip"
@@ -105,8 +107,8 @@ export function BottomToolbar() {
             aria-label="View selector"
             classNames={{
               tabList:
-                "rounded-md bg-zinc-800/70 p-[1px] border border-zinc-700",
-              tab: "h-6 w-6 p-0 text-zinc-300  data-[disabled=true]:text-zinc-500",
+                "border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-xl drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
+              tab: "h-6 w-6 p-0 text-zinc-300 data-[disabled=true]:text-zinc-500",
               cursor: "rounded-sm bg-blue-500/20",
               tabContent: "group-data-[selected=true]:text-blue-500",
             }}
@@ -120,7 +122,7 @@ export function BottomToolbar() {
               aria-label="Grid view"
               title={
                 <Tooltip
-                  className="border border-zinc-500"
+                  className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] hover:bg-[rgba(50,50,50,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
                   closeDelay={0}
                   content="Grid"
                   delay={500}
@@ -139,7 +141,7 @@ export function BottomToolbar() {
               aria-label="Detail view"
               title={
                 <Tooltip
-                  className="border border-zinc-500"
+                  className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] hover:bg-[rgba(50,50,50,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
                   closeDelay={0}
                   content="Detail"
                   delay={500}
@@ -159,7 +161,7 @@ export function BottomToolbar() {
               aria-label="Compare view"
               title={
                 <Tooltip
-                  className="border border-zinc-500"
+                  className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] hover:bg-[rgba(50,50,50,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
                   closeDelay={0}
                   content="Compare"
                   delay={500}
@@ -179,7 +181,7 @@ export function BottomToolbar() {
 
         <div className="flex items-center justify-end">
           {isDetailLayout ? (
-            <div className="flex items-center">
+            <div className="flex items-center border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-xl drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]">
               <ToolbarIconButton
                 icon={<SparkleIcon size={16} />}
                 isActive={activeEditTab === "ai" && panels.editPanel}
@@ -217,6 +219,7 @@ export function BottomToolbar() {
             </div>
           ) : null}
           <ToolbarIconButton
+            className="ml-1 border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
             icon={<InfoIcon size={16} />}
             isActive={panels.infoPanel}
             tooltip="Info Panel"
