@@ -66,7 +66,7 @@ export const GridItem = memo(
         disableRipple
         isPressable
         aria-selected={isSelected}
-        className={`group relative m-1 h-full w-full overflow-hidden rounded-md bg-zinc-800 p-0 focus:outline-none ${
+        className={`group relative m-1 h-full w-full overflow-hidden p-0 focus:outline-none rounded-[16px] border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] hover:bg-[rgba(50,50,50,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] ${
           isSelected ? "ring-2 ring-blue-500" : ""
         }`}
         role="option"
