@@ -40,7 +40,7 @@ export function InfoPanel() {
 
   if (!selectedFile) {
     return (
-      <aside className="h-full border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-3xl flex flex-col p-4">
+      <aside className="h-full border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] rounded-3xl flex flex-col p-4">
         <div className="pointer-events-none w-10/12 mx-auto absolute inset-x-0 top-0 z-20 h-px bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.08),rgba(255,255,255,0))]" />
         <div className="text-sm text-zinc-300 mb-2">Info</div>
         <div className="text-sm text-zinc-500">
@@ -58,7 +58,7 @@ export function InfoPanel() {
     .join(" ");
 
   return (
-    <Card className="h-full border border-white/5 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-3xl flex flex-col p-4 gap-4 overflow-y-auto">
+    <Card className="h-full border border-white/5 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] rounded-3xl flex flex-col p-4 gap-4 overflow-y-auto">
       <div className="text-sm text-zinc-300">Info</div>
       <div>
         <div className="text-sm text-zinc-300 mb-2">File</div>

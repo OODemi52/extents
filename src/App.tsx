@@ -42,8 +42,9 @@ function App() {
 
   return (
     <div
-      className={`flex h-screen flex-col ${activeLayout === "thumbnails" ? "bg-[#191919]" : ""}`}
+      className={`flex h-screen flex-col shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] ${activeLayout === "thumbnails" ? "bg-[#191919]" : ""}`}
     >
+      <div className="pointer-events-none w-10/12 mx-auto absolute inset-x-0 top-0 z-20 h-px bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.1),rgba(255,255,255,0))]" />
       <TitleBar onPickFolder={() => openFolder(null, "picker")} />
       <div className="flex-1 overflow-hidden">
         <div className="flex h-full flex-col">
