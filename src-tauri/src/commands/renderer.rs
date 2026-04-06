@@ -133,6 +133,7 @@ pub fn start_full_image_load(
     Ok(())
 }
 
+// Should be move out of command file
 fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
     let (raw, width, height) = decode_full_image(path)?;
 
@@ -145,6 +146,7 @@ fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
     Ok(())
 }
 
+// Should be move out of command file
 fn spawn_full_image_load(
     path: String,
     request_id: u64,
