@@ -7,6 +7,7 @@ use image::{imageops, RgbaImage};
 use rawler::decoders::RawDecodeParams;
 use rawler::rawsource::RawSource;
 
+/// Image orientation expressed as transform semantics rather than raw EXIF tag values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Orientation {
     Normal,
@@ -19,6 +20,10 @@ pub enum Orientation {
     Rotate270,
 }
 
+/// Maps a raw EXIF orientation value from to an orientation transform.
+///
+/// Returns `None` when the value indicates no transform is needed or is not a
+/// supported EXIF orientation.
 fn orientation_from_exif(value: u32) -> Option<Orientation> {
     match value {
         1 => None,
@@ -33,7 +38,12 @@ fn orientation_from_exif(value: u32) -> Option<Orientation> {
     }
 }
 
-pub fn resolve_file_orientation(path: &str, is_raw: bool) -> Option<u32> {
+/// Resolves the orientation transform that should be applied to an image file.
+///
+/// For RAW files, RAW metadata is preferred and EXIF container metadata is used
+/// as a fallback. Returns `None` when no orientation transform is needed or no
+/// valid orientation metadata is present.
+pub fn resolve_file_orientation(path: &str, is_raw: bool) -> Option<Orientation> {
     let orientation = if is_raw {
         read_orientation_from_raw_metadata(path)
             .or_else(|| read_orientation_from_file_container(path))
@@ -42,24 +52,26 @@ pub fn resolve_file_orientation(path: &str, is_raw: bool) -> Option<u32> {
     };
 
     match orientation {
-        Some(value @ 2..=8) => Some(value),
-        _ => None,
+        Some(value) => orientation_from_exif(value),
+        None => None,
     }
 }
 
-pub fn apply_orientation(image: RgbaImage, orientation: u32) -> RgbaImage {
+/// Applies an orientation transform to an RGBA image buffer.
+pub fn apply_orientation(image: RgbaImage, orientation: Orientation) -> RgbaImage {
     match orientation {
-        2 => imageops::flip_horizontal(&image),
-        3 => imageops::rotate180(&image),
-        4 => imageops::flip_vertical(&image),
-        5 => imageops::rotate270(&imageops::flip_horizontal(&image)),
-        6 => imageops::rotate90(&image),
-        7 => imageops::rotate90(&imageops::flip_horizontal(&image)),
-        8 => imageops::rotate270(&image),
-        _ => image,
+        Orientation::Normal => image,
+        Orientation::FlipHorizontal => imageops::flip_horizontal(&image),
+        Orientation::Rotate180 => imageops::rotate180(&image),
+        Orientation::FlipVertical => imageops::flip_vertical(&image),
+        Orientation::Transpose => imageops::rotate270(&imageops::flip_horizontal(&image)),
+        Orientation::Rotate90 => imageops::rotate90(&image),
+        Orientation::Transverse => imageops::rotate90(&imageops::flip_horizontal(&image)),
+        Orientation::Rotate270 => imageops::rotate270(&image),
     }
 }
 
+/// Reads the raw numeric orientation value from RAW metadata, if present.
 fn read_orientation_from_raw_metadata(path: &str) -> Option<u32> {
     let rawfile = RawSource::new(Path::new(path)).ok()?;
 
@@ -72,6 +84,7 @@ fn read_orientation_from_raw_metadata(path: &str) -> Option<u32> {
     metadata.exif.orientation.map(|value| value as u32)
 }
 
+/// Reads the raw numeric EXIF orientation value from the file container, if present.
 fn read_orientation_from_file_container(path: &str) -> Option<u32> {
     let file = File::open(path).ok()?;
     let mut reader = BufReader::new(file);
