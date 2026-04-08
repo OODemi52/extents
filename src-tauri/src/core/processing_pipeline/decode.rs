@@ -20,7 +20,6 @@ pub(super) enum DecodedSourceImage {
 /// The raster payload contains decoded RGBA pixels together with the metadata
 /// needed to normalize the image into the pipeline working representation.
 pub(super) struct DecodedRasterImage {
-    pub(super) dimensions: ImageDimensions,
     pub(super) pixels: RgbaImage,
     pub(super) orientation: Option<Orientation>,
     pub(super) icc_profile: Option<Vec<u8>>,
@@ -76,12 +75,9 @@ fn decode_raster_source(path: &str) -> Result<DecodedRasterImage> {
         Err(error) => return Err(error),
     };
 
-    let (width, height) = pixels.dimensions();
-    let dimensions = ImageDimensions::new(width, height)?;
     let orientation = resolve_file_orientation(path, false);
 
     Ok(DecodedRasterImage {
-        dimensions,
         pixels,
         orientation,
         icc_profile: None,
