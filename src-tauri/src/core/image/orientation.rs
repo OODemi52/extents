@@ -7,6 +7,32 @@ use image::{imageops, RgbaImage};
 use rawler::decoders::RawDecodeParams;
 use rawler::rawsource::RawSource;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Orientation {
+    Normal,
+    FlipHorizontal,
+    Rotate180,
+    FlipVertical,
+    Transpose,
+    Rotate90,
+    Transverse,
+    Rotate270,
+}
+
+fn orientation_from_exif(value: u32) -> Option<Orientation> {
+    match value {
+        1 => None,
+        2 => Some(Orientation::FlipHorizontal),
+        3 => Some(Orientation::Rotate180),
+        4 => Some(Orientation::FlipVertical),
+        5 => Some(Orientation::Transpose),
+        6 => Some(Orientation::Rotate90),
+        7 => Some(Orientation::Transverse),
+        8 => Some(Orientation::Rotate270),
+        _ => None,
+    }
+}
+
 pub fn resolve_file_orientation(path: &str, is_raw: bool) -> Option<u32> {
     let orientation = if is_raw {
         read_orientation_from_raw_metadata(path)
