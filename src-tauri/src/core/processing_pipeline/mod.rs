@@ -1,4 +1,5 @@
 mod decode;
+mod display;
 mod ingest;
 mod normalize;
 pub mod types;
