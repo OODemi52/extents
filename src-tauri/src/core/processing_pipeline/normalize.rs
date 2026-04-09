@@ -35,7 +35,10 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
 
     let (width, height) = pixels.dimensions();
 
-    let dimensions = ImageDimensions::new(width, height)?;
+    let dimensions = match ImageDimensions::new(width, height) {
+        Ok(dimensions) => dimensions,
+        Err(error) => return Err(error),
+    };
 
     let pixel_count = match dimensions.pixel_count() {
         Ok(pixel_count) => pixel_count,
@@ -100,7 +103,8 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
 ///
 /// RAW normalization currently uses rawler development steps through calibration,
 /// but omits the final sRGB gamma step. This is a transitional path and may still
-/// compress highlights before the app's own tone-mapping stage.
+/// compress highlights before the app's own tone-mapping stage. RAW orientation
+/// is currently detected during decode but not yet applied to the developed float buffer.
 fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage> {
     let DecodedRawImage {
         raw_image,
@@ -130,7 +134,7 @@ fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage
         Err(error) => return Err(anyhow!("raw intermediate develop failed: {error}")),
     };
 
-    // Only accepting the Three color for right now
+    // Only the three-channel developed RGB intermediate is supported for now.
     let developed_rgb_pixels = match developed_raw_image {
         Intermediate::ThreeColor(developed_rgb_pixels) => developed_rgb_pixels,
         Intermediate::Monochrome(_) => {
@@ -155,7 +159,10 @@ fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage
         Err(_) => return Err(anyhow!("raw intermediate height exceeds u32")),
     };
 
-    let dimensions = ImageDimensions::new(width, height)?;
+    let dimensions = match ImageDimensions::new(width, height) {
+        Ok(dimensions) => dimensions,
+        Err(error) => return Err(error),
+    };
 
     let pixel_count = match dimensions.pixel_count() {
         Ok(pixel_count) => pixel_count,
