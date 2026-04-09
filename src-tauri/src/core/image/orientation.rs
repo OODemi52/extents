@@ -71,6 +71,20 @@ pub fn apply_orientation(image: RgbaImage, orientation: Orientation) -> RgbaImag
     }
 }
 
+/// Maps a rawler orientation value to the app's shared orientation type.
+pub fn resolve_raw_orientation(orientation: rawler::Orientation) -> Option<Orientation> {
+    match orientation {
+        rawler::Orientation::Normal | rawler::Orientation::Unknown => None,
+        rawler::Orientation::HorizontalFlip => Some(Orientation::FlipHorizontal),
+        rawler::Orientation::Rotate180 => Some(Orientation::Rotate180),
+        rawler::Orientation::VerticalFlip => Some(Orientation::FlipVertical),
+        rawler::Orientation::Transpose => Some(Orientation::Transpose),
+        rawler::Orientation::Rotate90 => Some(Orientation::Rotate90),
+        rawler::Orientation::Transverse => Some(Orientation::Transverse),
+        rawler::Orientation::Rotate270 => Some(Orientation::Rotate270),
+    }
+}
+
 /// Reads the raw numeric orientation value from RAW metadata, if present.
 fn read_orientation_from_raw_metadata(path: &str) -> Option<u32> {
     let rawfile = RawSource::new(Path::new(path)).ok()?;
