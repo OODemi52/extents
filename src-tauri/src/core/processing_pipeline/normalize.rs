@@ -26,7 +26,7 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
     let DecodedRasterImage {
         mut pixels,
         orientation,
-        icc_profile: _,
+        _icc_profile: _,
     } = raster;
 
     if let Some(orientation) = orientation {
