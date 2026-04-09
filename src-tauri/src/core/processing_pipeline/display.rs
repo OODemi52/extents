@@ -20,14 +20,6 @@ struct ToneMappedPixel {
     blue: f32,
 }
 
-/// A tone-mapped display-domain image prior to final packing for renderer upload.
-#[derive(Debug, Clone)]
-struct ToneMappedImage {
-    dimensions: ImageDimensions,
-    pixels: Vec<ToneMappedPixel>,
-    alpha: Option<Vec<f32>>,
-}
-
 /// A renderer-facing display image ready for upload or presentation.
 #[derive(Debug, Clone)]
 pub enum DisplayImage {
@@ -42,22 +34,14 @@ pub fn render_for_display(
     image: &ProcessingPipelineImage,
     mode: DisplayMode,
 ) -> Result<DisplayImage> {
-    let tone_mapped_image = match tone_map_for_display(image, mode) {
-        Ok(tone_mapped_image) => tone_mapped_image,
-        Err(error) => return Err(error),
-    };
-
     match mode {
-        DisplayMode::Sdr => pack_sdr_display_image(tone_mapped_image),
+        DisplayMode::Sdr => render_sdr_display_image(image),
         DisplayMode::_Hdr => todo!(),
     }
 }
 
-/// Converts a canonical processing-pipeline image into a tone-mapped display-domain image.
-fn tone_map_for_display(
-    image: &ProcessingPipelineImage,
-    mode: DisplayMode,
-) -> Result<ToneMappedImage> {
+/// Renders a canonical processing-pipeline image into an SDR display image.
+fn render_sdr_display_image(image: &ProcessingPipelineImage) -> Result<DisplayImage> {
     let dimensions = *image.dimensions();
 
     let pixel_count = match dimensions.pixel_count() {
@@ -65,36 +49,25 @@ fn tone_map_for_display(
         Err(error) => return Err(error),
     };
 
-    let mut tone_mapped_pixels = Vec::with_capacity(pixel_count);
+    let mut rgba = Vec::with_capacity(pixel_count * 4);
+    let alpha_samples = image.alpha().map(|alpha_plane| alpha_plane.samples());
 
-    let alpha_samples = match image.alpha() {
-        Some(alpha_plane) => Some(alpha_plane.samples().to_vec()),
-        None => None,
-    };
-
-    match mode {
-        DisplayMode::Sdr => match image.display_render_intent() {
-            DisplayRenderIntent::DirectSdr => {
-                for pixel in image.color().pixels() {
-                    let display_pixel = map_raster_pixel_to_sdr_display(*pixel);
-                    tone_mapped_pixels.push(display_pixel);
-                }
+    match image.display_render_intent() {
+        DisplayRenderIntent::DirectSdr => {
+            for (index, pixel) in image.color().pixels().iter().enumerate() {
+                let display_pixel = map_raster_pixel_to_sdr_display(*pixel);
+                push_sdr_pixel(&mut rgba, display_pixel, alpha_samples, index);
             }
-            DisplayRenderIntent::ToneMapToSdr => {
-                for pixel in image.color().pixels() {
-                    let display_pixel = map_scene_pixel_to_sdr_display(*pixel);
-                    tone_mapped_pixels.push(display_pixel);
-                }
+        }
+        DisplayRenderIntent::ToneMapToSdr => {
+            for (index, pixel) in image.color().pixels().iter().enumerate() {
+                let display_pixel = map_scene_pixel_to_sdr_display(*pixel);
+                push_sdr_pixel(&mut rgba, display_pixel, alpha_samples, index);
             }
-        },
-        DisplayMode::_Hdr => todo!(),
+        }
     }
 
-    Ok(ToneMappedImage {
-        dimensions,
-        pixels: tone_mapped_pixels,
-        alpha: alpha_samples,
-    })
+    Ok(DisplayImage::Rgba8Srgb { dimensions, rgba })
 }
 
 /// Maps a scene-referred working pixel into the SDR display domain.
@@ -148,38 +121,23 @@ fn linear_rec2020_to_linear_srgb(pixel: RgbPixel) -> ToneMappedPixel {
     }
 }
 
-/// Packs a tone-mapped SDR image into an RGBA8 sRGB display image.
-fn pack_sdr_display_image(image: ToneMappedImage) -> Result<DisplayImage> {
-    let ToneMappedImage {
-        dimensions,
-        pixels,
-        alpha,
-    } = image;
+/// Packs one SDR display-domain pixel and optional alpha sample into the output buffer.
+fn push_sdr_pixel(
+    rgba: &mut Vec<u8>,
+    pixel: ToneMappedPixel,
+    alpha_samples: Option<&[f32]>,
+    index: usize,
+) {
+    rgba.push(linear_to_srgb8(pixel.red));
+    rgba.push(linear_to_srgb8(pixel.green));
+    rgba.push(linear_to_srgb8(pixel.blue));
 
-    let pixel_count = match dimensions.pixel_count() {
-        Ok(pixel_count) => pixel_count,
-        Err(error) => return Err(error),
+    let alpha_u8 = match alpha_samples {
+        Some(alpha_samples) => normalized_f32_to_u8(clamp_unit_f32(alpha_samples[index])),
+        None => 255,
     };
 
-    let mut rgba = Vec::with_capacity(pixel_count * 4);
-
-    for (index, pixel) in pixels.iter().enumerate() {
-        let red = linear_to_srgb8(pixel.red);
-        let green = linear_to_srgb8(pixel.green);
-        let blue = linear_to_srgb8(pixel.blue);
-
-        let alpha_u8 = match &alpha {
-            Some(alpha_samples) => normalized_f32_to_u8(clamp_unit_f32(alpha_samples[index])),
-            None => 255,
-        };
-
-        rgba.push(red);
-        rgba.push(green);
-        rgba.push(blue);
-        rgba.push(alpha_u8);
-    }
-
-    Ok(DisplayImage::Rgba8Srgb { dimensions, rgba })
+    rgba.push(alpha_u8);
 }
 
 /// Clamps a float value into the display-safe range `0.0..=1.0`.
@@ -202,6 +160,6 @@ fn _map_pixel_to_hdr_display(_pixel: RgbPixel) -> ToneMappedPixel {
     todo!()
 }
 
-fn _pack_hdr_display_image(_image: ToneMappedImage) -> Result<DisplayImage> {
+fn _pack_hdr_display_image(_image: &ProcessingPipelineImage) -> Result<DisplayImage> {
     todo!()
 }
