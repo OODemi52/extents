@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use rawler::imgop::develop::{Intermediate, ProcessingStep, RawDevelop};
 
 use super::decode::{DecodedRasterImage, DecodedRawImage, DecodedSourceImage};
+use super::luts::srgb_u8_to_linear;
 use crate::core::image::orientation::apply_orientation;
 use crate::core::processing_pipeline::types::{
     AlphaPlane, DisplayRenderIntent, ImageDimensions, ProcessingPipelineImage, RgbPixel,
@@ -52,9 +53,9 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
     let mut alpha_samples: Option<Vec<f32>> = None;
 
     for rgba in pixels.pixels() {
-        let red = srgb_to_linear(u8_to_normalized_f32(rgba[0]));
-        let green = srgb_to_linear(u8_to_normalized_f32(rgba[1]));
-        let blue = srgb_to_linear(u8_to_normalized_f32(rgba[2]));
+        let red = srgb_u8_to_linear(rgba[0]);
+        let green = srgb_u8_to_linear(rgba[1]);
+        let blue = srgb_u8_to_linear(rgba[2]);
 
         let linear_srgb_pixel = RgbPixel { red, green, blue };
 
@@ -207,15 +208,6 @@ fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage
 /// Converts an 8-bit channel value into a normalized `f32` in the range `0.0..=1.0`.
 fn u8_to_normalized_f32(value: u8) -> f32 {
     value as f32 / 255.0
-}
-
-/// Converts a normalized sRGB channel value to linear light.
-fn srgb_to_linear(channel: f32) -> f32 {
-    if channel <= 0.04045 {
-        channel / 12.92
-    } else {
-        ((channel + 0.055) / 1.055).powf(2.4)
-    }
 }
 
 /// Converts a linear sRGB pixel to the linear Rec.2020 working space.

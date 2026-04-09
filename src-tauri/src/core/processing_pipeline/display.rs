@@ -3,6 +3,8 @@ use crate::core::processing_pipeline::types::{
 };
 use anyhow::Result;
 
+use super::luts::linear_to_srgb8;
+
 /// Target display rendering mode for pipeline output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DisplayMode {
@@ -162,9 +164,9 @@ fn pack_sdr_display_image(image: ToneMappedImage) -> Result<DisplayImage> {
     let mut rgba = Vec::with_capacity(pixel_count * 4);
 
     for (index, pixel) in pixels.iter().enumerate() {
-        let red = normalized_f32_to_u8(linear_to_srgb(clamp_unit_f32(pixel.red)));
-        let green = normalized_f32_to_u8(linear_to_srgb(clamp_unit_f32(pixel.green)));
-        let blue = normalized_f32_to_u8(linear_to_srgb(clamp_unit_f32(pixel.blue)));
+        let red = linear_to_srgb8(pixel.red);
+        let green = linear_to_srgb8(pixel.green);
+        let blue = linear_to_srgb8(pixel.blue);
 
         let alpha_u8 = match &alpha {
             Some(alpha_samples) => normalized_f32_to_u8(clamp_unit_f32(alpha_samples[index])),
@@ -188,15 +190,6 @@ fn clamp_unit_f32(value: f32) -> f32 {
         1.0
     } else {
         value
-    }
-}
-
-/// Encodes a linear sRGB channel value with the sRGB transfer function.
-fn linear_to_srgb(channel: f32) -> f32 {
-    if channel <= 0.003_130_8 {
-        channel * 12.92
-    } else {
-        (1.055 * channel.powf(1.0 / 2.4)) - 0.055
     }
 }
 

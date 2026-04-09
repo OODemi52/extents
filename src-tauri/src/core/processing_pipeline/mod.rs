@@ -1,6 +1,7 @@
 mod decode;
 mod display;
 mod ingest;
+mod luts;
 mod normalize;
 pub mod types;
 
