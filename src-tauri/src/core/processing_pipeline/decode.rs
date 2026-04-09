@@ -3,7 +3,9 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use image::RgbaImage;
 
-use crate::core::image::orientation::{resolve_file_orientation, Orientation};
+use crate::core::image::orientation::{
+    resolve_file_orientation, resolve_raw_orientation, Orientation,
+};
 
 /// A decoded source image prior to normalization into canonical pipeline state.
 ///
@@ -31,6 +33,7 @@ pub(super) struct DecodedRasterImage {
 /// display-oriented output contract.
 pub(super) struct DecodedRawImage {
     pub(super) raw_image: rawler::RawImage,
+    pub(super) orientation: Option<Orientation>,
 }
 
 pub(super) fn decode_source_from_path(path: &str) -> Result<DecodedSourceImage> {
@@ -102,7 +105,12 @@ fn decode_raw_source(path: &str) -> Result<DecodedRawImage> {
         Err(error) => return Err(error),
     };
 
-    Ok(DecodedRawImage { raw_image })
+    let orientation = resolve_raw_orientation(raw_image.orientation);
+
+    Ok(DecodedRawImage {
+        raw_image,
+        orientation,
+    })
 }
 
 /// Decodes a RAW file into rawler's decoded RAW image representation.
