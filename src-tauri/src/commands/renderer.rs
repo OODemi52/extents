@@ -1,4 +1,6 @@
-use crate::core::image::decode_full_image;
+use crate::core::processing_pipeline::{
+    ingest_from_path, render_for_display, DisplayImage, DisplayMode,
+};
 use crate::renderer::{RenderState, Renderer};
 use crate::state::AppState;
 use anyhow::Result;
@@ -135,15 +137,33 @@ pub fn start_full_image_load(
 
 // Should be move out of command file
 fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
-    let (raw, width, height) = decode_full_image(path)?;
+    let display_image = match display_image_from_path(path) {
+        Ok(display_image) => display_image,
+        Err(error) => return Err(error),
+    };
 
-    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
-
-    renderer.display_checkboard(has_alpha);
-
-    renderer.update_texture(&raw, width, height);
+    apply_display_image(renderer, display_image);
 
     Ok(())
+}
+
+fn display_image_from_path(path: &str) -> Result<DisplayImage> {
+    let processing_pipeline_image = match ingest_from_path(path) {
+        Ok(processing_pipeline_image) => processing_pipeline_image,
+        Err(error) => return Err(error),
+    };
+
+    render_for_display(&processing_pipeline_image, DisplayMode::Sdr)
+}
+
+fn apply_display_image(renderer: &mut Renderer, display_image: DisplayImage) {
+    match display_image {
+        DisplayImage::Rgba8Srgb { dimensions, rgba } => {
+            let has_alpha = rgba.chunks_exact(4).any(|pixel| pixel[3] < 255);
+            renderer.display_checkboard(has_alpha);
+            renderer.update_texture(&rgba, dimensions.width(), dimensions.height());
+        }
+    }
 }
 
 // Should be move out of command file
@@ -160,21 +180,16 @@ fn spawn_full_image_load(
     );
 
     let join_handle = async_runtime::spawn(async move {
-        let decode_result = async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
+        let display_result = async_runtime::spawn_blocking(move || display_image_from_path(&path)).await;
 
-        match decode_result {
-            Ok(Ok((rgba, width, height))) => {
+        match display_result {
+            Ok(Ok(display_image)) => {
                 let mut renderer_lock = renderer_for_task.lock().unwrap();
 
                 if let Some(renderer) = renderer_lock.as_mut() {
                     if renderer.is_request_active(request_id) {
-                        let has_alpha = rgba.chunks_exact(4).any(|pixel| pixel[3] < 255);
-
-                        renderer.display_checkboard(has_alpha);
-                        renderer.update_texture(&rgba, width, height);
-
+                        apply_display_image(renderer, display_image);
                         renderer.render();
-
                         renderer.complete_image_request(request_id);
                     }
                 }
@@ -223,17 +238,14 @@ pub async fn swap_requested_texture(
     );
     let renderer_handle = state.renderer.clone();
 
-    let decode_result = async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
+    let display_result = async_runtime::spawn_blocking(move || display_image_from_path(&path)).await;
 
-    match decode_result {
-        Ok(Ok((raw, width, height))) => {
+    match display_result {
+        Ok(Ok(display_image)) => {
             let mut renderer_lock = renderer_handle.lock().unwrap();
             if let Some(renderer) = renderer_lock.as_mut() {
                 if renderer.is_request_active(request_id) {
-                    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
-
-                    renderer.display_checkboard(has_alpha);
-                    renderer.update_texture(&raw, width, height);
+                    apply_display_image(renderer, display_image);
                     renderer.render();
                 }
             }
