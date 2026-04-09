@@ -1,12 +1,14 @@
 use crate::core::processing_pipeline::types::{ImageDimensions, ProcessingPipelineImage, RgbPixel};
 use anyhow::Result;
 
+/// Target display rendering mode for pipeline output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DisplayMode {
     Sdr,
     _Hdr,
 }
 
+/// A single display-domain float RGB pixel after tone mapping and output conversion.
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct ToneMappedPixel {
     red: f32,
@@ -14,6 +16,7 @@ struct ToneMappedPixel {
     blue: f32,
 }
 
+/// A tone-mapped display-domain image prior to final packing for renderer upload.
 #[derive(Debug, Clone)]
 struct ToneMappedImage {
     dimensions: ImageDimensions,
@@ -21,6 +24,7 @@ struct ToneMappedImage {
     alpha: Option<Vec<f32>>,
 }
 
+/// A renderer-facing display image ready for upload or presentation.
 #[derive(Debug, Clone)]
 pub enum DisplayImage {
     Rgba8Srgb {
@@ -29,6 +33,7 @@ pub enum DisplayImage {
     },
 }
 
+/// Renders a canonical processing-pipeline image into a display image for presentation.
 pub fn render_for_display(
     image: &ProcessingPipelineImage,
     mode: DisplayMode,
@@ -44,6 +49,7 @@ pub fn render_for_display(
     }
 }
 
+/// Converts a canonical processing-pipeline image into a tone-mapped display-domain image.
 fn tone_map_for_display(
     image: &ProcessingPipelineImage,
     mode: DisplayMode,
@@ -79,6 +85,7 @@ fn tone_map_for_display(
     })
 }
 
+/// Maps a scene-referred working pixel into the SDR display domain.
 fn map_pixel_to_sdr_display(pixel: RgbPixel) -> ToneMappedPixel {
     let scene_luminance = rec2020_luminance(pixel);
     let mapped_luminance = reinhard_tone_map_luminance(scene_luminance);
@@ -102,14 +109,17 @@ fn map_pixel_to_sdr_display(pixel: RgbPixel) -> ToneMappedPixel {
     linear_rec2020_to_linear_srgb(tone_mapped_pixel)
 }
 
+/// Computes luminance for a linear Rec.2020 pixel.
 fn rec2020_luminance(pixel: RgbPixel) -> f32 {
     (0.2627 * pixel.red) + (0.6780 * pixel.green) + (0.0593 * pixel.blue)
 }
 
+/// Applies a Reinhard tone-mapping curve to a luminance value.
 fn reinhard_tone_map_luminance(luminance: f32) -> f32 {
     luminance / (1.0 + luminance)
 }
 
+/// Converts a linear Rec.2020 pixel to linear sRGB.
 fn linear_rec2020_to_linear_srgb(pixel: RgbPixel) -> ToneMappedPixel {
     ToneMappedPixel {
         red: (1.6605 * pixel.red) + (-0.5876 * pixel.green) + (-0.0728 * pixel.blue),
@@ -118,6 +128,7 @@ fn linear_rec2020_to_linear_srgb(pixel: RgbPixel) -> ToneMappedPixel {
     }
 }
 
+/// Packs a tone-mapped SDR image into an RGBA8 sRGB display image.
 fn pack_sdr_display_image(image: ToneMappedImage) -> Result<DisplayImage> {
     let ToneMappedImage {
         dimensions,
@@ -151,6 +162,7 @@ fn pack_sdr_display_image(image: ToneMappedImage) -> Result<DisplayImage> {
     Ok(DisplayImage::Rgba8Srgb { dimensions, rgba })
 }
 
+/// Clamps a float value into the display-safe range `0.0..=1.0`.
 fn clamp_unit_f32(value: f32) -> f32 {
     if value < 0.0 {
         0.0
@@ -161,6 +173,7 @@ fn clamp_unit_f32(value: f32) -> f32 {
     }
 }
 
+/// Encodes a linear sRGB channel value with the sRGB transfer function.
 fn linear_to_srgb(channel: f32) -> f32 {
     if channel <= 0.003_130_8 {
         channel * 12.92
@@ -169,6 +182,7 @@ fn linear_to_srgb(channel: f32) -> f32 {
     }
 }
 
+/// Converts a normalized float channel value into an 8-bit display value.
 fn normalized_f32_to_u8(value: f32) -> u8 {
     (value * 255.0).round() as u8
 }
