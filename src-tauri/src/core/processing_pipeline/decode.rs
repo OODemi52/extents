@@ -4,7 +4,6 @@ use anyhow::{Context, Result};
 use image::RgbaImage;
 
 use crate::core::image::orientation::{resolve_file_orientation, Orientation};
-use crate::core::processing_pipeline::types::ImageDimensions;
 
 /// A decoded source image prior to normalization into canonical pipeline state.
 ///
