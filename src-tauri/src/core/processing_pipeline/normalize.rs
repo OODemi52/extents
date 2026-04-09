@@ -4,7 +4,8 @@ use rawler::imgop::develop::{Intermediate, ProcessingStep, RawDevelop};
 use super::decode::{DecodedRasterImage, DecodedRawImage, DecodedSourceImage};
 use crate::core::image::orientation::apply_orientation;
 use crate::core::processing_pipeline::types::{
-    AlphaPlane, ImageDimensions, ProcessingPipelineImage, RgbPixel, WorkingImage,
+    AlphaPlane, DisplayRenderIntent, ImageDimensions, ProcessingPipelineImage, RgbPixel,
+    WorkingImage,
 };
 
 /// Normalizes a decoded source image into the canonical processing-pipeline representation.
@@ -21,7 +22,8 @@ pub(super) fn normalize_decoded_source(
 ///
 /// Raster normalization currently assumes sRGB source encoding and defers ICC
 /// profile handling. Orientation is applied before constructing the canonical
-/// working image and optional alpha plane.
+/// working image and optional alpha plane. Raster images are currently tagged
+/// for direct SDR display without scene-style tone mapping.
 fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipelineImage> {
     let DecodedRasterImage {
         mut pixels,
@@ -91,10 +93,11 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
         None => None,
     };
 
-    let image = match ProcessingPipelineImage::new(working_image, alpha) {
-        Ok(image) => image,
-        Err(error) => return Err(error),
-    };
+    let image =
+        match ProcessingPipelineImage::new(working_image, alpha, DisplayRenderIntent::DirectSdr) {
+            Ok(image) => image,
+            Err(error) => return Err(error),
+        };
 
     Ok(image)
 }
@@ -103,8 +106,9 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
 ///
 /// RAW normalization currently uses rawler development steps through calibration,
 /// but omits the final sRGB gamma step. This is a transitional path and may still
-/// compress highlights before the app's own tone-mapping stage. RAW orientation
-/// is currently detected during decode but not yet applied to the developed float buffer.
+/// compress highlights before the app's own tone-mapping stage. RAW images are
+/// currently tagged for SDR display with tone mapping, and RAW orientation is
+/// detected during decode but not yet applied to the developed float buffer.
 fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage> {
     let DecodedRawImage {
         raw_image,
@@ -188,7 +192,11 @@ fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage
         Err(error) => return Err(error),
     };
 
-    let image = match ProcessingPipelineImage::new(working_image, None) {
+    let image = match ProcessingPipelineImage::new(
+        working_image,
+        None,
+        DisplayRenderIntent::ToneMapToSdr,
+    ) {
         Ok(image) => image,
         Err(error) => return Err(error),
     };

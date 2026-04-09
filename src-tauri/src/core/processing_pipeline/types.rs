@@ -169,6 +169,7 @@ impl AlphaPlane {
 pub struct ProcessingPipelineImage {
     color: WorkingImage,
     alpha: Option<AlphaPlane>,
+    display_render_intent: DisplayRenderIntent,
 }
 
 impl ProcessingPipelineImage {
@@ -176,7 +177,11 @@ impl ProcessingPipelineImage {
     ///
     /// Returns an error if the alpha plane dimensions do not match the working
     /// image dimensions.
-    pub fn new(color: WorkingImage, alpha: Option<AlphaPlane>) -> Result<Self> {
+    pub fn new(
+        color: WorkingImage,
+        alpha: Option<AlphaPlane>,
+        display_render_intent: DisplayRenderIntent,
+    ) -> Result<Self> {
         if let Some(alpha_plane) = &alpha {
             if alpha_plane.dimensions() != color.dimensions() {
                 bail!(
@@ -189,7 +194,11 @@ impl ProcessingPipelineImage {
             }
         }
 
-        Ok(Self { color, alpha })
+        Ok(Self {
+            color,
+            alpha,
+            display_render_intent,
+        })
     }
 
     /// Returns the working color image.
@@ -218,8 +227,22 @@ impl ProcessingPipelineImage {
         }
     }
 
+    /// Returns the display rendering intent for this pipeline image.
+    pub fn display_render_intent(&self) -> DisplayRenderIntent {
+        self.display_render_intent
+    }
+
     /// Returns the working image's dimensions.
     pub fn dimensions(&self) -> &ImageDimensions {
         self.color.dimensions()
     }
+}
+
+/// Controls how a processing-pipeline image should be rendered for display.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DisplayRenderIntent {
+    /// Render directly to SDR without scene-style tone mapping
+    DirectSdr,
+    /// Tone map scene-referred content into SDR display range.
+    ToneMapToSdr,
 }

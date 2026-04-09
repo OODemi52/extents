@@ -1,4 +1,6 @@
-use crate::core::processing_pipeline::types::{ImageDimensions, ProcessingPipelineImage, RgbPixel};
+use crate::core::processing_pipeline::types::{
+    DisplayRenderIntent, ImageDimensions, ProcessingPipelineImage, RgbPixel,
+};
 use anyhow::Result;
 
 /// Target display rendering mode for pipeline output.
@@ -69,12 +71,20 @@ fn tone_map_for_display(
     };
 
     match mode {
-        DisplayMode::Sdr => {
-            for pixel in image.color().pixels() {
-                let tone_mapped_pixel = map_pixel_to_sdr_display(*pixel);
-                tone_mapped_pixels.push(tone_mapped_pixel);
+        DisplayMode::Sdr => match image.display_render_intent() {
+            DisplayRenderIntent::DirectSdr => {
+                for pixel in image.color().pixels() {
+                    let display_pixel = map_raster_pixel_to_sdr_display(*pixel);
+                    tone_mapped_pixels.push(display_pixel);
+                }
             }
-        }
+            DisplayRenderIntent::ToneMapToSdr => {
+                for pixel in image.color().pixels() {
+                    let display_pixel = map_scene_pixel_to_sdr_display(*pixel);
+                    tone_mapped_pixels.push(display_pixel);
+                }
+            }
+        },
         DisplayMode::_Hdr => todo!(),
     }
 
@@ -86,7 +96,10 @@ fn tone_map_for_display(
 }
 
 /// Maps a scene-referred working pixel into the SDR display domain.
-fn map_pixel_to_sdr_display(pixel: RgbPixel) -> ToneMappedPixel {
+///
+/// This path applies luminance-based tone mapping before converting the pixel
+/// from linear Rec.2020 to linear sRGB.
+fn map_scene_pixel_to_sdr_display(pixel: RgbPixel) -> ToneMappedPixel {
     let scene_luminance = rec2020_luminance(pixel);
     let mapped_luminance = reinhard_tone_map_luminance(scene_luminance);
 
@@ -107,6 +120,11 @@ fn map_pixel_to_sdr_display(pixel: RgbPixel) -> ToneMappedPixel {
     };
 
     linear_rec2020_to_linear_srgb(tone_mapped_pixel)
+}
+
+/// Maps a raster-derived working pixel directly into the SDR display domain.
+fn map_raster_pixel_to_sdr_display(pixel: RgbPixel) -> ToneMappedPixel {
+    linear_rec2020_to_linear_srgb(pixel)
 }
 
 /// Computes luminance for a linear Rec.2020 pixel.
