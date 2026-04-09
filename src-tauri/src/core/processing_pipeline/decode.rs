@@ -23,7 +23,7 @@ pub(super) enum DecodedSourceImage {
 pub(super) struct DecodedRasterImage {
     pub(super) pixels: RgbaImage,
     pub(super) orientation: Option<Orientation>,
-    pub(super) icc_profile: Option<Vec<u8>>,
+    pub(super) _icc_profile: Option<Vec<u8>>,
 }
 
 /// A decoded RAW image prior to normalization.
@@ -82,7 +82,7 @@ fn decode_raster_source(path: &str) -> Result<DecodedRasterImage> {
     Ok(DecodedRasterImage {
         pixels,
         orientation,
-        icc_profile: None,
+        _icc_profile: None,
     })
 }
 
