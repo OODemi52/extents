@@ -1,4 +1,5 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use rawler::imgop::develop::{Intermediate, ProcessingStep, RawDevelop};
 
 use super::decode::{DecodedRasterImage, DecodedRawImage, DecodedSourceImage};
 use crate::core::image::orientation::apply_orientation;
@@ -95,8 +96,97 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
     Ok(image)
 }
 
+/// Normalizes a decoded RAW image into canonical pipeline state.
+///
+/// RAW normalization currently uses rawler development steps through calibration,
+/// but omits the final sRGB gamma step. This is a transitional path and may still
+/// compress highlights before the app's own tone-mapping stage.
 fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage> {
-    todo!()
+    let DecodedRawImage {
+        raw_image,
+        orientation,
+    } = raw;
+
+    if let Some(orientation) = orientation {
+        return Err(anyhow!(
+            "raw orientation normalization is not implemented yet: {:?}",
+            orientation
+        ));
+    }
+
+    let raw_develop_pipeline = RawDevelop {
+        steps: vec![
+            ProcessingStep::Rescale,
+            ProcessingStep::Demosaic,
+            ProcessingStep::CropActiveArea,
+            ProcessingStep::WhiteBalance,
+            ProcessingStep::Calibrate, // Need to investigate so that we can ensure we're not clipping highlights unneccesarily
+            ProcessingStep::CropDefault,
+        ],
+    };
+
+    let developed_raw_image = match raw_develop_pipeline.develop_intermediate(&raw_image) {
+        Ok(developed_raw_image) => developed_raw_image,
+        Err(error) => return Err(anyhow!("raw intermediate develop failed: {error}")),
+    };
+
+    // Only accepting the Three color for right now
+    let developed_rgb_pixels = match developed_raw_image {
+        Intermediate::ThreeColor(developed_rgb_pixels) => developed_rgb_pixels,
+        Intermediate::Monochrome(_) => {
+            return Err(anyhow!(
+                "raw normalization produced a monochrome intermediate, which is not supported yet"
+            ));
+        }
+        Intermediate::FourColor(_) => {
+            return Err(anyhow!(
+                "raw normalization produced a four-color intermediate, which is not supported yet"
+            ));
+        }
+    };
+
+    let width = match u32::try_from(developed_rgb_pixels.width) {
+        Ok(width) => width,
+        Err(_) => return Err(anyhow!("raw intermediate width exceeds u32")),
+    };
+
+    let height = match u32::try_from(developed_rgb_pixels.height) {
+        Ok(height) => height,
+        Err(_) => return Err(anyhow!("raw intermediate height exceeds u32")),
+    };
+
+    let dimensions = ImageDimensions::new(width, height)?;
+
+    let pixel_count = match dimensions.pixel_count() {
+        Ok(pixel_count) => pixel_count,
+        Err(error) => return Err(error),
+    };
+
+    let mut working_pixels = Vec::with_capacity(pixel_count);
+
+    for rgb in developed_rgb_pixels.pixels() {
+        let red = rgb[0];
+        let green = rgb[1];
+        let blue = rgb[2];
+
+        let linear_srgb_pixel = RgbPixel { red, green, blue };
+
+        let working_pixel = linear_srgb_to_linear_rec2020(linear_srgb_pixel);
+
+        working_pixels.push(working_pixel);
+    }
+
+    let working_image = match WorkingImage::new(dimensions, working_pixels) {
+        Ok(working_image) => working_image,
+        Err(error) => return Err(error),
+    };
+
+    let image = match ProcessingPipelineImage::new(working_image, None) {
+        Ok(image) => image,
+        Err(error) => return Err(error),
+    };
+
+    Ok(image)
 }
 
 /// Converts an 8-bit channel value into a normalized `f32` in the range `0.0..=1.0`.
