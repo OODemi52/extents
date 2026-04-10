@@ -1,5 +1,5 @@
 use crate::core::processing_pipeline::{
-    ingest_from_path, render_for_display, DisplayImage, DisplayMode,
+    apply_adjustment, ingest_from_path, render_for_display, DisplayImage, DisplayMode, EditRecipe,
 };
 use crate::renderer::{RenderState, Renderer};
 use crate::state::AppState;
@@ -153,7 +153,14 @@ fn display_image_from_path(path: &str) -> Result<DisplayImage> {
         Err(error) => return Err(error),
     };
 
-    render_for_display(&processing_pipeline_image, DisplayMode::Sdr)
+    let recipe = EditRecipe::default();
+
+    let adjusted_image = match apply_adjustment(&processing_pipeline_image, &recipe) {
+        Ok(adjusted_image) => adjusted_image,
+        Err(error) => return Err(error),
+    };
+
+    render_for_display(&adjusted_image, DisplayMode::Sdr)
 }
 
 fn apply_display_image(renderer: &mut Renderer, display_image: DisplayImage) {
@@ -180,7 +187,8 @@ fn spawn_full_image_load(
     );
 
     let join_handle = async_runtime::spawn(async move {
-        let display_result = async_runtime::spawn_blocking(move || display_image_from_path(&path)).await;
+        let display_result =
+            async_runtime::spawn_blocking(move || display_image_from_path(&path)).await;
 
         match display_result {
             Ok(Ok(display_image)) => {
@@ -238,7 +246,8 @@ pub async fn swap_requested_texture(
     );
     let renderer_handle = state.renderer.clone();
 
-    let display_result = async_runtime::spawn_blocking(move || display_image_from_path(&path)).await;
+    let display_result =
+        async_runtime::spawn_blocking(move || display_image_from_path(&path)).await;
 
     match display_result {
         Ok(Ok(display_image)) => {
