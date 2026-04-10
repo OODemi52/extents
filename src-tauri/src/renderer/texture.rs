@@ -1,3 +1,6 @@
+use bytemuck::cast_slice;
+use half::f16;
+
 pub struct TextureManager {
     current_texture: wgpu::Texture,
     current_view: wgpu::TextureView,
@@ -7,7 +10,8 @@ pub struct TextureManager {
 
 impl TextureManager {
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
-        let (texture, width, height) = Self::create_texture(device, queue, &[25, 25, 25, 0], 1, 1); // Gray colored window bg, consider making customizeable from the client/some setting
+        let (texture, width, height) =
+            Self::create_texture(device, queue, &[0.0, 0.0, 0.0, 0.0], 1, 1);
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -19,15 +23,16 @@ impl TextureManager {
         }
     }
 
+    /// Replaces the current live working-image texture with packed renderer texels.
     pub fn update(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        rgba: &[u8],
+        texels: &[f32],
         width: u32,
         height: u32,
     ) {
-        let (texture, _, _) = Self::create_texture(device, queue, rgba, width, height);
+        let (texture, _, _) = Self::create_texture(device, queue, texels, width, height);
 
         self.current_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -42,13 +47,16 @@ impl TextureManager {
         &self.current_view
     }
 
+    /// Creates a GPU texture for packed working-image texels and uploads its contents.
     fn create_texture(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        rgba: &[u8],
+        texels: &[f32],
         width: u32,
         height: u32,
     ) -> (wgpu::Texture, u32, u32) {
+        let texels_f16 = convert_texels_to_f16(texels);
+
         let size = wgpu::Extent3d {
             width,
             height,
@@ -61,7 +69,7 @@ impl TextureManager {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format: wgpu::TextureFormat::Rgba16Float,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -73,10 +81,10 @@ impl TextureManager {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            rgba,
+            cast_slice(&texels_f16),
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(4 * width),
+                bytes_per_row: Some(8 * width),
                 rows_per_image: Some(height),
             },
             size,
@@ -84,4 +92,14 @@ impl TextureManager {
 
         (texture, width, height)
     }
+}
+
+/// Converts packed working-image texels from `f32` to `f16` for GPU upload.
+///
+/// Currently we do this here in order to seperate concerns; the render get to
+/// decided the data type to convert to, but we need to watch this in case it
+/// cause a hit to perf, then we can move this conversion to where we are
+/// packing the texels instead
+fn convert_texels_to_f16(texels: &[f32]) -> Vec<f16> {
+    texels.iter().map(|value| f16::from_f32(*value)).collect()
 }

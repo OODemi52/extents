@@ -168,7 +168,7 @@ impl<'a> Renderer<'a> {
         self.context.resize(new_width, new_height);
     }
 
-    pub fn update_texture(&mut self, rgba: &[u8], width: u32, height: u32) {
+    pub fn update_texture(&mut self, texels: &[u8], width: u32, height: u32) {
         info!("[Renderer] Updating texture ({}x{})", width, height);
 
         self.has_image = true;
@@ -176,7 +176,7 @@ impl<'a> Renderer<'a> {
         self.texture_manager.update(
             &self.context.device,
             &self.context.queue,
-            rgba,
+            texels,
             width,
             height,
         );
