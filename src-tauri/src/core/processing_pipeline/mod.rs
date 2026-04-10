@@ -1,3 +1,4 @@
+mod adjustments;
 mod decode;
 mod display;
 mod ingest;
