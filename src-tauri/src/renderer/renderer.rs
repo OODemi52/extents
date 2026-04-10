@@ -1,4 +1,5 @@
 use super::context::RenderContext;
+use super::display_params::{DisplayParamsBuffer, DisplayParamsUniforms};
 use super::pipeline::RenderPipeline;
 use super::texture::TextureManager;
 use super::transform::TransformBuffer;
@@ -23,6 +24,7 @@ pub struct Renderer<'a> {
     vertex_buffer: VertexBuffer,
     texture_manager: TextureManager,
     transform_buffer: TransformBuffer,
+    display_params_buffer: DisplayParamsBuffer,
     bind_group: wgpu::BindGroup,
     pending_scale: f32,
     pending_offset_x: f32,
@@ -59,11 +61,13 @@ impl<'a> Renderer<'a> {
         let last_render = Instant::now();
 
         let transform_buffer = TransformBuffer::new(&context.device);
+        let display_params_buffer = DisplayParamsBuffer::new(&context.device);
 
         let bind_group = pipeline.create_bind_group(
             &context.device,
             texture_manager.view(),
             transform_buffer.as_entire_binding(),
+            display_params_buffer.as_entire_binding(),
         );
 
         let mut renderer = Self {
@@ -72,6 +76,7 @@ impl<'a> Renderer<'a> {
             vertex_buffer,
             texture_manager,
             transform_buffer,
+            display_params_buffer,
             bind_group,
             viewport,
             render_state,
@@ -168,7 +173,7 @@ impl<'a> Renderer<'a> {
         self.context.resize(new_width, new_height);
     }
 
-    pub fn update_texture(&mut self, texels: &[u8], width: u32, height: u32) {
+    pub fn update_texture(&mut self, texels: &[f32], width: u32, height: u32) {
         info!("[Renderer] Updating texture ({}x{})", width, height);
 
         self.has_image = true;
@@ -185,9 +190,15 @@ impl<'a> Renderer<'a> {
             &self.context.device,
             self.texture_manager.view(),
             self.transform_buffer.as_entire_binding(),
+            self.display_params_buffer.as_entire_binding(),
         );
 
         self.update_vertices();
+    }
+
+    pub fn update_display_params(&mut self, uniforms: DisplayParamsUniforms) {
+        self.display_params_buffer
+            .update(&self.context.queue, uniforms);
     }
 
     pub fn clear(&mut self) {

@@ -1,7 +1,8 @@
 use crate::core::processing_pipeline::{
-    apply_adjustment, ingest_from_path, render_for_display, DisplayImage, DisplayMode, EditRecipe,
+    build_render_input, ingest_from_path, EditRecipe, RenderInputImage,
 };
-use crate::renderer::{RenderState, Renderer};
+use crate::core::processing_pipeline::types::DisplayRenderIntent;
+use crate::renderer::{DisplayParamsUniforms, RenderState, Renderer};
 use crate::state::AppState;
 use anyhow::Result;
 use log::{error, info, warn};
@@ -137,17 +138,17 @@ pub fn start_full_image_load(
 
 // Should be move out of command file
 fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
-    let display_image = match display_image_from_path(path) {
-        Ok(display_image) => display_image,
+    let (render_input, display_params) = match render_input_from_path(path) {
+        Ok(render_input) => render_input,
         Err(error) => return Err(error),
     };
 
-    apply_display_image(renderer, display_image);
+    apply_render_input(renderer, render_input, display_params);
 
     Ok(())
 }
 
-fn display_image_from_path(path: &str) -> Result<DisplayImage> {
+fn render_input_from_path(path: &str) -> Result<(RenderInputImage, DisplayParamsUniforms)> {
     let processing_pipeline_image = match ingest_from_path(path) {
         Ok(processing_pipeline_image) => processing_pipeline_image,
         Err(error) => return Err(error),
@@ -155,21 +156,38 @@ fn display_image_from_path(path: &str) -> Result<DisplayImage> {
 
     let recipe = EditRecipe::default();
 
-    let adjusted_image = match apply_adjustment(&processing_pipeline_image, &recipe) {
-        Ok(adjusted_image) => adjusted_image,
+    let render_input = match build_render_input(&processing_pipeline_image) {
+        Ok(render_input) => render_input,
         Err(error) => return Err(error),
     };
 
-    render_for_display(&adjusted_image, DisplayMode::Sdr)
+    let display_params = DisplayParamsUniforms {
+        exposure_ev: recipe.exposure_ev,
+        display_render_intent: shader_display_render_intent(render_input.display_render_intent()),
+        _padding: [0, 0],
+    };
+
+    Ok((render_input, display_params))
 }
 
-fn apply_display_image(renderer: &mut Renderer, display_image: DisplayImage) {
-    match display_image {
-        DisplayImage::Rgba8Srgb { dimensions, rgba } => {
-            let has_alpha = rgba.chunks_exact(4).any(|pixel| pixel[3] < 255);
-            renderer.display_checkboard(has_alpha);
-            renderer.update_texture(&rgba, dimensions.width(), dimensions.height());
-        }
+fn apply_render_input(
+    renderer: &mut Renderer,
+    render_input: RenderInputImage,
+    display_params: DisplayParamsUniforms,
+) {
+    renderer.display_checkboard(render_input.has_transparency());
+    renderer.update_display_params(display_params);
+    renderer.update_texture(
+        render_input.texels(),
+        render_input.dimensions().width(),
+        render_input.dimensions().height(),
+    );
+}
+
+fn shader_display_render_intent(intent: DisplayRenderIntent) -> u32 {
+    match intent {
+        DisplayRenderIntent::DirectSdr => 0,
+        DisplayRenderIntent::ToneMapToSdr => 1,
     }
 }
 
@@ -187,16 +205,16 @@ fn spawn_full_image_load(
     );
 
     let join_handle = async_runtime::spawn(async move {
-        let display_result =
-            async_runtime::spawn_blocking(move || display_image_from_path(&path)).await;
+        let render_input_result =
+            async_runtime::spawn_blocking(move || render_input_from_path(&path)).await;
 
-        match display_result {
-            Ok(Ok(display_image)) => {
+        match render_input_result {
+            Ok(Ok((render_input, display_params))) => {
                 let mut renderer_lock = renderer_for_task.lock().unwrap();
 
                 if let Some(renderer) = renderer_lock.as_mut() {
                     if renderer.is_request_active(request_id) {
-                        apply_display_image(renderer, display_image);
+                        apply_render_input(renderer, render_input, display_params);
                         renderer.render();
                         renderer.complete_image_request(request_id);
                     }
@@ -246,15 +264,15 @@ pub async fn swap_requested_texture(
     );
     let renderer_handle = state.renderer.clone();
 
-    let display_result =
-        async_runtime::spawn_blocking(move || display_image_from_path(&path)).await;
+    let render_input_result =
+        async_runtime::spawn_blocking(move || render_input_from_path(&path)).await;
 
-    match display_result {
-        Ok(Ok(display_image)) => {
+    match render_input_result {
+        Ok(Ok((render_input, display_params))) => {
             let mut renderer_lock = renderer_handle.lock().unwrap();
             if let Some(renderer) = renderer_lock.as_mut() {
                 if renderer.is_request_active(request_id) {
-                    apply_display_image(renderer, display_image);
+                    apply_render_input(renderer, render_input, display_params);
                     renderer.render();
                 }
             }

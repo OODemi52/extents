@@ -4,7 +4,7 @@ use rawler::imgop::develop::{Intermediate, ProcessingStep, RawDevelop};
 
 use super::decode::{DecodedRasterImage, DecodedRawImage, DecodedSourceImage};
 use super::luts::srgb_u8_to_linear;
-use crate::core::image::orientation::{apply_orientation, Orientation};
+use crate::core::image::orientation::apply_orientation;
 use crate::core::processing_pipeline::types::{
     AlphaPlane, DisplayRenderIntent, ImageDimensions, ProcessingPipelineImage, RgbPixel,
     WorkingImage,

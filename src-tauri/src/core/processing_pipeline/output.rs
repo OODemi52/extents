@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use super::types::ProcessingPipelineImage;
+use super::types::{DisplayRenderIntent, ProcessingPipelineImage};
 use crate::core::processing_pipeline::types::ImageDimensions;
 
 /// Packed working-image texels prepared for live renderer upload.
@@ -8,6 +8,8 @@ use crate::core::processing_pipeline::types::ImageDimensions;
 pub struct RenderInputImage {
     texels: Vec<f32>,
     dimensions: ImageDimensions,
+    display_render_intent: DisplayRenderIntent,
+    has_transparency: bool,
 }
 
 impl RenderInputImage {
@@ -20,6 +22,16 @@ impl RenderInputImage {
     pub fn dimensions(&self) -> ImageDimensions {
         self.dimensions
     }
+
+    /// Returns the display-render intent associated with this renderer input.
+    pub fn display_render_intent(&self) -> DisplayRenderIntent {
+        self.display_render_intent
+    }
+
+    /// Returns whether any texel in this renderer input contains transparency.
+    pub fn has_transparency(&self) -> bool {
+        self.has_transparency
+    }
 }
 
 /// Builds a renderer-facing working-image upload payload from a canonical pipeline image.
@@ -28,6 +40,7 @@ pub fn build_render_input(image: &ProcessingPipelineImage) -> Result<RenderInput
     let pixel_count = dimensions.pixel_count()?;
 
     let mut texels = Vec::with_capacity(pixel_count * 4);
+    let mut has_transparency = false;
 
     let alpha_samples = image.alpha().map(|alpha| alpha.samples());
 
@@ -41,8 +54,17 @@ pub fn build_render_input(image: &ProcessingPipelineImage) -> Result<RenderInput
             None => 1.0,
         };
 
+        if alpha < 1.0 {
+            has_transparency = true;
+        }
+
         texels.push(alpha);
     }
 
-    Ok(RenderInputImage { dimensions, texels })
+    Ok(RenderInputImage {
+        texels,
+        dimensions,
+        display_render_intent: image.display_render_intent(),
+        has_transparency,
+    })
 }
