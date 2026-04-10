@@ -9,7 +9,9 @@ use memmap2::MmapOptions;
 use rawler::imgop::develop::RawDevelop;
 use tokio::sync::Semaphore;
 
-use crate::core::image::orientation::{apply_orientation, resolve_file_orientation};
+use crate::core::image::orientation::{
+    apply_orientation, resolve_raw_file_orientation, resolve_raster_file_orientation, Orientation,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub enum EmbeddedPreviewPolicy {
@@ -39,8 +41,8 @@ pub fn decode_full_image(path: &str) -> Result<(Vec<u8>, u32, u32)> {
         decode_raster_file(path)?
     };
 
-    if let Some(orientation) = resolve_file_orientation(path, is_raw) {
-        image = apply_orientation(image, orientation);
+    if let Some(orientation) = resolve_image_file_orientation(path, is_raw)? {
+        image = apply_orientation_to_rgba(image, orientation)?;
     }
 
     let (width, height) = image.dimensions();
@@ -61,8 +63,8 @@ pub fn decode_derived_image(
             decode_raster_file(path)?
         };
 
-        if let Some(orientation) = resolve_file_orientation(path, is_raw) {
-            image = apply_orientation(image, orientation);
+        if let Some(orientation) = resolve_image_file_orientation(path, is_raw)? {
+            image = apply_orientation_to_rgba(image, orientation)?;
         }
 
         return Ok(image);
@@ -88,8 +90,8 @@ pub fn decode_derived_image_prefetch(
             decode_raster_file(path)?
         };
 
-        if let Some(orientation) = resolve_file_orientation(path, is_raw) {
-            image = apply_orientation(image, orientation);
+        if let Some(orientation) = resolve_image_file_orientation(path, is_raw)? {
+            image = apply_orientation_to_rgba(image, orientation)?;
         }
 
         return Ok(Some(image));
@@ -122,8 +124,8 @@ pub fn decode_derived_image_buffer(
         decode_raster_buffer(bytes)?
     };
 
-    if let Some(orientation) = resolve_file_orientation(path, is_raw) {
-        image = apply_orientation(image, orientation);
+    if let Some(orientation) = resolve_image_file_orientation(path, is_raw)? {
+        image = apply_orientation_to_rgba(image, orientation)?;
     }
 
     Ok(image)
@@ -161,8 +163,8 @@ fn decode_derived_image_prefetch_buffer(
     };
 
     if let Some(image) = image {
-        let image = if let Some(orientation) = resolve_file_orientation(path, is_raw) {
-            apply_orientation(image, orientation)
+        let image = if let Some(orientation) = resolve_image_file_orientation(path, is_raw)? {
+            apply_orientation_to_rgba(image, orientation)?
         } else {
             image
         };
@@ -184,6 +186,26 @@ fn decode_raster_buffer(bytes: &[u8]) -> Result<RgbaImage> {
     let reader = ImageReader::new(cursor).with_guessed_format()?;
 
     Ok(reader.decode()?.to_rgba8())
+}
+
+fn resolve_image_file_orientation(path: &str, is_raw: bool) -> Result<Option<Orientation>> {
+    if is_raw {
+        resolve_raw_file_orientation(path)
+    } else {
+        resolve_raster_file_orientation(path)
+    }
+}
+
+fn apply_orientation_to_rgba(image: RgbaImage, orientation: Orientation) -> Result<RgbaImage> {
+    let (width, height) = image.dimensions();
+    let pixels: Vec<_> = image.pixels().copied().collect();
+
+    let (oriented_pixels, oriented_width, oriented_height) =
+        apply_orientation(pixels, width, height, orientation)?;
+
+    Ok(RgbaImage::from_fn(oriented_width, oriented_height, |x, y| {
+        oriented_pixels[((y * oriented_width) + x) as usize]
+    }))
 }
 
 fn decode_raw_file(path: &str) -> Result<RgbaImage> {

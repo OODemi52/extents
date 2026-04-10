@@ -1,9 +1,10 @@
 use anyhow::{anyhow, Result};
+use image::RgbaImage;
 use rawler::imgop::develop::{Intermediate, ProcessingStep, RawDevelop};
 
 use super::decode::{DecodedRasterImage, DecodedRawImage, DecodedSourceImage};
 use super::luts::srgb_u8_to_linear;
-use crate::core::image::orientation::apply_orientation;
+use crate::core::image::orientation::{apply_orientation, Orientation};
 use crate::core::processing_pipeline::types::{
     AlphaPlane, DisplayRenderIntent, ImageDimensions, ProcessingPipelineImage, RgbPixel,
     WorkingImage,
@@ -33,7 +34,18 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
     } = raster;
 
     if let Some(orientation) = orientation {
-        pixels = apply_orientation(pixels, orientation);
+        let (width, height) = pixels.dimensions();
+        let rgba_pixels: Vec<_> = pixels.pixels().copied().collect();
+
+        let (oriented_pixels, oriented_width, oriented_height) =
+            match apply_orientation(rgba_pixels, width, height, orientation) {
+                Ok(result) => result,
+                Err(error) => return Err(error),
+            };
+
+        pixels = RgbaImage::from_fn(oriented_width, oriented_height, |x, y| {
+            oriented_pixels[((y * oriented_width) + x) as usize]
+        });
     }
 
     let (width, height) = pixels.dimensions();
@@ -109,19 +121,12 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
 /// but omits the final sRGB gamma step. This is a transitional path and may still
 /// compress highlights before the app's own tone-mapping stage. RAW images are
 /// currently tagged for SDR display with tone mapping, and RAW orientation is
-/// detected during decode but not yet applied to the developed float buffer.
+/// applied after development when constructing the working image.
 fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage> {
     let DecodedRawImage {
         raw_image,
         orientation,
     } = raw;
-
-    if let Some(orientation) = orientation {
-        return Err(anyhow!(
-            "raw orientation normalization is not implemented yet: {:?}",
-            orientation
-        ));
-    }
 
     let raw_develop_pipeline = RawDevelop {
         steps: vec![
@@ -187,6 +192,28 @@ fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage
 
         working_pixels.push(working_pixel);
     }
+
+    let (dimensions, working_pixels) = match orientation {
+        Some(orientation) => {
+            let (oriented_pixels, oriented_width, oriented_height) = match apply_orientation(
+                working_pixels,
+                dimensions.width(),
+                dimensions.height(),
+                orientation,
+            ) {
+                Ok(result) => result,
+                Err(error) => return Err(error),
+            };
+
+            let oriented_dimensions = match ImageDimensions::new(oriented_width, oriented_height) {
+                Ok(oriented_dimensions) => oriented_dimensions,
+                Err(error) => return Err(error),
+            };
+
+            (oriented_dimensions, oriented_pixels)
+        }
+        None => (dimensions, working_pixels),
+    };
 
     let working_image = match WorkingImage::new(dimensions, working_pixels) {
         Ok(working_image) => working_image,
