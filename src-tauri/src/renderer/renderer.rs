@@ -25,6 +25,7 @@ pub struct Renderer<'a> {
     texture_manager: TextureManager,
     transform_buffer: TransformBuffer,
     display_params_buffer: DisplayParamsBuffer,
+    current_display_params: DisplayParamsUniforms,
     bind_group: wgpu::BindGroup,
     pending_scale: f32,
     pending_offset_x: f32,
@@ -62,6 +63,7 @@ impl<'a> Renderer<'a> {
 
         let transform_buffer = TransformBuffer::new(&context.device);
         let display_params_buffer = DisplayParamsBuffer::new(&context.device);
+        let current_display_params = DisplayParamsUniforms::default();
 
         let bind_group = pipeline.create_bind_group(
             &context.device,
@@ -77,6 +79,7 @@ impl<'a> Renderer<'a> {
             texture_manager,
             transform_buffer,
             display_params_buffer,
+            current_display_params,
             bind_group,
             viewport,
             render_state,
@@ -197,6 +200,8 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn update_display_params(&mut self, uniforms: DisplayParamsUniforms) {
+        self.current_display_params = uniforms;
+
         self.display_params_buffer
             .update(&self.context.queue, uniforms);
     }
