@@ -206,6 +206,13 @@ impl<'a> Renderer<'a> {
             .update(&self.context.queue, uniforms);
     }
 
+    // Temp function
+    pub fn update_exposure(&mut self, exposure_ev: f32) {
+        let mut uniforms = self.current_display_params;
+        uniforms.exposure_ev = exposure_ev;
+        self.update_display_params(uniforms);
+    }
+
     pub fn clear(&mut self) {
         if let Some(handle) = self.pending_load.take() {
             handle.abort();
