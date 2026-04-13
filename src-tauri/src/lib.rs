@@ -90,6 +90,8 @@ pub fn run() {
             // Settings Commands
             commands::settings::get_cache_size,
             commands::settings::clear_cache,
+            // Adjustment Commands
+            commands::adjustments::update_exposure,
         ])
         // Running the application
         .run(tauri::generate_context!())

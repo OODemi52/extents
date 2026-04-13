@@ -1,3 +1,4 @@
+pub mod adjustments;
 pub mod annotations;
 pub mod exif;
 pub mod file;

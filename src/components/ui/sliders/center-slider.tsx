@@ -8,6 +8,7 @@ interface CenteredSliderProps {
   trackColor?: string;
   defaultValue?: number;
   color?: SliderProps["color"];
+  onValueChange?: (value: number) => void;
 }
 
 const TRACK_GRADIENTS: Record<string, string> = {
@@ -24,6 +25,7 @@ export function CenteredSlider({
   label,
   defaultValue = 0,
   color,
+  onValueChange,
 }: CenteredSliderProps) {
   const [value, setValue] = useState(defaultValue);
   const hasCustomTrack = Boolean(trackColor);
@@ -74,10 +76,18 @@ export function CenteredSlider({
           : undefined
       }
       value={value}
-      onChange={(nextValue) =>
-        setValue(Array.isArray(nextValue) ? (nextValue[0] ?? 0) : nextValue)
-      }
-      onDoubleClick={() => setValue(0)}
+      onChange={(nextValue) => {
+        const value = Array.isArray(nextValue)
+          ? (nextValue[0] ?? 0)
+          : nextValue;
+
+        setValue(value);
+        onValueChange?.(value);
+      }}
+      onDoubleClick={() => {
+        setValue(0);
+        onValueChange?.(0);
+      }}
     />
   );
 }

@@ -3,6 +3,7 @@ import { SunDimIcon, PaletteIcon } from "@phosphor-icons/react";
 
 import { CenteredSlider } from "@/components/ui/sliders/center-slider";
 import { EDIT_PANEL_ACCORDION_PROPS } from "@/features/edit-panel/utils/accordion";
+import { updateExposure } from "@/services/api/adjustments";
 
 export const BasicAdjustmentsPanel = () => {
   return (
@@ -12,13 +13,18 @@ export const BasicAdjustmentsPanel = () => {
     >
       <AccordionItem
         key="basic-adjustments"
-        isDisabled
         aria-label="Basic Adjustments"
         className="w-full rounded-xl bg-zinc-800"
         startContent={<SunDimIcon />}
         title="Basic Adjustments"
       >
-        <CenteredSlider label="Exposure" range={2} />
+        <CenteredSlider
+          label="Exposure"
+          range={5}
+          onValueChange={(exposureEv) => {
+            void updateExposure({ exposureEv });
+          }}
+        />
         <CenteredSlider label="Contrast" range={2} />
         <CenteredSlider label="Highlights" range={2} />
         <CenteredSlider label="Shadows" range={2} />
