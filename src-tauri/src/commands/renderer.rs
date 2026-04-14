@@ -1,6 +1,7 @@
+use crate::core::editing::EditRecipe;
 use crate::core::processing_pipeline::types::DisplayRenderIntent;
 use crate::core::processing_pipeline::{
-    build_render_input, ingest_from_path, EditRecipe, RenderInputImage,
+    build_render_input, ingest_from_path, RenderInputImage,
 };
 use crate::renderer::{DisplayParamsUniforms, RenderState, Renderer};
 use crate::state::AppState;
