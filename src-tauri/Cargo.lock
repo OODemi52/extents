@@ -33,6 +33,7 @@ dependencies = [
  "tauri-plugin-log",
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
+ "time",
  "tokio",
  "tracing",
  "tracing-appender",
