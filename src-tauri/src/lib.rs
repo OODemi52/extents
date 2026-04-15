@@ -90,6 +90,9 @@ pub fn run() {
             // Settings Commands
             commands::settings::get_cache_size,
             commands::settings::clear_cache,
+            // Sidecar Commands
+            commands::sidecar::load_sidecar,
+            commands::sidecar::save_sidecar,
             // Adjustment Commands
             commands::adjustments::update_exposure,
         ])
