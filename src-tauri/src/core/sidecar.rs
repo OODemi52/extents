@@ -14,7 +14,7 @@ const SIDECAR_EXTENSION: &str = "exts";
 
 /// Versioned app sidecar schema persisted next to an image file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct Sidecar {
+pub struct Sidecar {
     version: u32,
     process_version: u32,
     updated_at: String,
@@ -135,19 +135,42 @@ impl Sidecar {
             recipe: recipe.clone(),
         })
     }
+
+    /// Returns a copy of this sidecar with save-managed metadata refreshed.
+    fn with_save_metadata(&self, image_path: &str) -> Result<Self, SidecarError> {
+        let updated_at = match current_timestamp() {
+            Ok(updated_at) => updated_at,
+            Err(error) => return Err(error),
+        };
+
+        Ok(Self {
+            version: SIDECAR_VERSION,
+            process_version: PROCESS_VERSION,
+            updated_at,
+            app: SidecarAppInfo {
+                name: env!("CARGO_PKG_NAME").to_string(),
+                version: env!("CARGO_PKG_VERSION").to_string(),
+            },
+            source: SidecarSourceInfo {
+                path_hint: image_path.to_string(),
+            },
+            recipe: self.recipe.clone(),
+        })
+    }
+
 }
 
-/// Loads an edit recipe from a sibling `.exts` sidecar file.
+/// Loads a sibling `.exts` sidecar file for an image path.
 ///
-/// If no sidecar exists yet, this returns the default recipe.
-pub fn load_recipe(path: &str) -> Result<EditRecipe, SidecarError> {
+/// If no sidecar exists yet, this returns a default sidecar for the image.
+pub fn load_sidecar(path: &str) -> Result<Sidecar, SidecarError> {
     let sidecar_path = match sidecar_path_for_image(path) {
         Ok(sidecar_path) => sidecar_path,
         Err(error) => return Err(error),
     };
 
     if !sidecar_path.exists() {
-        return Ok(EditRecipe::default());
+        return Sidecar::from_recipe(path, &EditRecipe::default());
     }
 
     let sidecar_json = match fs::read_to_string(&sidecar_path) {
@@ -170,11 +193,11 @@ pub fn load_recipe(path: &str) -> Result<EditRecipe, SidecarError> {
         }
     };
 
-    Ok(sidecar.recipe)
+    Ok(sidecar)
 }
 
-/// Saves an edit recipe to a sibling `.exts` sidecar file using an atomic write.
-pub fn save_recipe(path: &str, recipe: &EditRecipe) -> Result<(), SidecarError> {
+/// Saves a sidecar document to a sibling `.exts` file using an atomic write.
+pub fn save_sidecar(path: &str, sidecar: &Sidecar) -> Result<(), SidecarError> {
     let sidecar_path = match sidecar_path_for_image(path) {
         Ok(sidecar_path) => sidecar_path,
         Err(error) => return Err(error),
@@ -185,7 +208,7 @@ pub fn save_recipe(path: &str, recipe: &EditRecipe) -> Result<(), SidecarError> 
         Err(error) => return Err(error),
     };
 
-    let sidecar = match Sidecar::from_recipe(path, recipe) {
+    let sidecar = match sidecar.with_save_metadata(path) {
         Ok(sidecar) => sidecar,
         Err(error) => return Err(error),
     };
