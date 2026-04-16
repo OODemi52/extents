@@ -4,7 +4,7 @@ import { useActiveSidecarStore } from "@/features/sidecar/store/active-sidecar-s
 
 export function useExposureAdjustment() {
   const sidecar = useActiveSidecarStore((state) => state.sidecar);
-  const replaceSidecar = useActiveSidecarStore((state) => state.replaceSidecar);
+  const setSidecar = useActiveSidecarStore((state) => state.setSidecar);
   const exposureEv = sidecar?.recipe.exposure_ev ?? 0;
 
   const setExposure = useCallback(
@@ -13,7 +13,7 @@ export function useExposureAdjustment() {
         return;
       }
 
-      replaceSidecar({
+      setSidecar({
         ...sidecar,
         recipe: {
           ...sidecar.recipe,
@@ -21,7 +21,7 @@ export function useExposureAdjustment() {
         },
       });
     },
-    [replaceSidecar, sidecar],
+    [setSidecar, sidecar],
   );
 
   return {

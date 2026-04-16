@@ -7,7 +7,7 @@ type ActiveSidecarState = {
   sidecar: Sidecar | null;
   dirty: boolean;
   hydrateSidecar: (imagePath: string, sidecar: Sidecar) => void;
-  replaceSidecar: (sidecar: Sidecar) => void;
+  setSidecar: (sidecar: Sidecar) => void;
   clearSidecar: () => void;
   markDirty: () => void;
   markClean: () => void;
@@ -25,7 +25,7 @@ export const useActiveSidecarStore = create<ActiveSidecarState>((set) => ({
       dirty: false,
     }),
 
-  replaceSidecar: (sidecar) =>
+  setSidecar: (sidecar) =>
     set((state) => {
       if (!state.imagePath) {
         return {};
