@@ -4,6 +4,7 @@ import * as thumbnails from "./thumbnails";
 import * as renderer from "./renderer";
 import * as exif from "./exif";
 import * as settings from "./settings";
+import * as sidecar from "./sidecar";
 
 export const api = {
   fs,
@@ -12,4 +13,5 @@ export const api = {
   renderer,
   exif,
   settings,
+  sidecar,
 };
