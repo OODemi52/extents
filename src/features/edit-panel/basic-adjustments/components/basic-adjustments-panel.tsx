@@ -2,10 +2,12 @@ import { Accordion, AccordionItem } from "@heroui/accordion";
 import { SunDimIcon, PaletteIcon } from "@phosphor-icons/react";
 
 import { CenteredSlider } from "@/components/ui/sliders/center-slider";
+import { useExposureAdjustment } from "@/features/edit-panel/basic-adjustments/hooks/use-exposure-adjustment";
 import { EDIT_PANEL_ACCORDION_PROPS } from "@/features/edit-panel/utils/accordion";
-import { api } from "@/services/api";
 
 export const BasicAdjustmentsPanel = () => {
+  const { exposureEv, setExposure } = useExposureAdjustment();
+
   return (
     <Accordion
       {...EDIT_PANEL_ACCORDION_PROPS}
@@ -19,10 +21,11 @@ export const BasicAdjustmentsPanel = () => {
         title="Basic Adjustments"
       >
         <CenteredSlider
+          defaultValue={exposureEv}
           label="Exposure"
           range={5}
           onValueChange={(exposureEv) => {
-            void api.adjustments.updateExposure({ exposureEv });
+            setExposure(exposureEv);
           }}
         />
         <CenteredSlider label="Contrast" range={2} />

@@ -20,11 +20,13 @@ import { useAnnotations } from "./hooks/use-annotations";
 import { useExifMetadata } from "./hooks/use-exif-metadata";
 import { SettingsModal } from "./features/settings/components/settings-modal";
 import { useCacheSize } from "./features/settings/system/hooks/use-cache-size";
+import { useActiveSidecar } from "./features/sidecar/hooks/use-active-sidecar";
 
 function App() {
   useAnnotations();
   useExifMetadata();
   useCacheSize();
+  useActiveSidecar();
 
   const {
     activeLayout,
