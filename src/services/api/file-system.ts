@@ -1,24 +1,12 @@
+import type { CommandArgs } from "@/types/commands";
+
 import { invokeTauri } from "./_client";
 
-import { TreeNode } from "@/types/file-system";
-
-interface GetChildrenDirArgs {
-  rootDirPath: string | null;
-  scanLevel: number;
-}
-
 export const getChildrenDirPaths = (
-  args: GetChildrenDirArgs,
-): Promise<TreeNode[]> => {
-  return invokeTauri("get_children_dir_paths", args);
-};
+  args: CommandArgs["get_children_dir_paths"],
+) => invokeTauri("get_children_dir_paths", args);
 
-export const getHomeDir = (): Promise<string> => {
-  return invokeTauri("get_home_dir", null);
-};
+export const getHomeDir = () => invokeTauri("get_home_dir", null);
 
-export const startFolderScan = (args: {
-  folderPath: string;
-}): Promise<void> => {
-  return invokeTauri("start_folder_scan", args);
-};
+export const startFolderScan = (args: CommandArgs["start_folder_scan"]) =>
+  invokeTauri("start_folder_scan", args);

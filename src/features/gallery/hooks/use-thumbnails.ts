@@ -95,7 +95,7 @@ export function usePrefetchThumbnails() {
 
       pendingPrefetchPaths.clear();
 
-      api.thumbnails.prefetch(pendingPaths).catch((error) => {
+      api.thumbnails.prefetch({ paths: pendingPaths }).catch((error) => {
         console.error("[usePrefetchThumbnails] batch prefetch failed:", error);
       });
     }, PREFETCH_FLUSH_DELAY_MS);

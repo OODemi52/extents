@@ -3,7 +3,7 @@ import { SunDimIcon, PaletteIcon } from "@phosphor-icons/react";
 
 import { CenteredSlider } from "@/components/ui/sliders/center-slider";
 import { EDIT_PANEL_ACCORDION_PROPS } from "@/features/edit-panel/utils/accordion";
-import { updateExposure } from "@/services/api/adjustments";
+import { api } from "@/services/api";
 
 export const BasicAdjustmentsPanel = () => {
   return (
@@ -22,7 +22,7 @@ export const BasicAdjustmentsPanel = () => {
           label="Exposure"
           range={5}
           onValueChange={(exposureEv) => {
-            void updateExposure({ exposureEv });
+            void api.adjustments.updateExposure({ exposureEv });
           }}
         />
         <CenteredSlider label="Contrast" range={2} />

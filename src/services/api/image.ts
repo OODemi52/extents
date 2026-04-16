@@ -1,16 +1,11 @@
-import type { HistogramData } from "@/types/histogram";
+import type { CommandArgs, CommandReturn } from "@/types/commands";
 
 import { invokeTauri } from "./_client";
 
-import { CommandReturn } from "@/types/commands";
-
 export type PreviewInfo = CommandReturn["prepare_preview"];
-export type { HistogramData };
 
-export const preparePreview = (path: string): Promise<PreviewInfo> => {
-  return invokeTauri("prepare_preview", { path });
-};
+export const preparePreview = (args: CommandArgs["prepare_preview"]) =>
+  invokeTauri("prepare_preview", args);
 
-export const getHistogram = (path: string): Promise<HistogramData> => {
-  return invokeTauri("get_histogram", { path });
-};
+export const getHistogram = (args: CommandArgs["get_histogram"]) =>
+  invokeTauri("get_histogram", args);

@@ -11,7 +11,9 @@ export function useCacheSize() {
   useEffect(() => {
     const getCacheSize = async () => {
       try {
-        const size = await api.settings.getCacheSize(CacheType.All);
+        const size = await api.settings.getCacheSize({
+          cacheType: CacheType.All,
+        });
 
         setCacheSize(size);
       } catch (error) {

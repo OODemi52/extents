@@ -1,11 +1,9 @@
+import type { CommandArgs } from "@/types/commands";
+
 import { invokeTauri } from "./_client";
 
-import { CacheType } from "@/types/settings";
+export const getCacheSize = (args: CommandArgs["get_cache_size"]) =>
+  invokeTauri("get_cache_size", args);
 
-export async function getCacheSize(cacheType: CacheType): Promise<number> {
-  return invokeTauri("get_cache_size", { cacheType });
-}
-
-export async function clearCache(cacheType: CacheType): Promise<void> {
-  return invokeTauri("clear_cache", { cacheType });
-}
+export const clearCache = (args: CommandArgs["clear_cache"]) =>
+  invokeTauri("clear_cache", args);

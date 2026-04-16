@@ -9,7 +9,7 @@ import { useImageStore } from "@/store/image-store";
 import { FlagValue, RatingValue } from "@/types/file-annotations";
 import { FileMetadata } from "@/types/image";
 import { useImageLoader } from "@/hooks/use-image-loader";
-import { clearRenderer } from "@/services/api/renderer";
+import { api } from "@/services/api";
 
 type FilterSnapshot = Pick<
   ReturnType<typeof useFilterStore.getState>,
@@ -262,7 +262,7 @@ export function useFilteredImages() {
 
   useEffect(() => {
     if (!filtered.length) {
-      void clearRenderer();
+      void api.renderer.clearRenderer();
       autoSelectedPathRef.current = null;
 
       return;

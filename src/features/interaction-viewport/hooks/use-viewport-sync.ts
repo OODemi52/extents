@@ -1,8 +1,6 @@
-import type { PreviewInfo } from "@/services/api/image";
-
 import { useEffect, useRef, useCallback, useState } from "react";
 
-import { api } from "@/services/api";
+import { api, type PreviewInfo } from "@/services/api";
 
 const VIEWPORT_DEBOUNCE_MS = 100;
 const FULL_DECODE_DEBOUNCE_MS = 150;

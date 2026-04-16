@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from "react";
 
+import { api } from "@/services/api";
 import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-store";
 import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
 import { useImageStore } from "@/store/image-store";
-import { getAnnotations } from "@/services/api/annotations";
 
 export function useAnnotations() {
   const files = useImageStore((selected) => selected.files);
@@ -16,7 +16,8 @@ export function useAnnotations() {
 
     let cancelled = false;
 
-    getAnnotations(paths)
+    api.annotations
+      .getAnnotations({ paths })
       .then((rows) => {
         if (cancelled) return;
         const flags: Record<string, any> = {};

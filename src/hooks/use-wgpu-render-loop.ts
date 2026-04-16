@@ -39,7 +39,7 @@ export function useWGPURenderLoop() {
         animationFrameId = null;
       }
 
-      api.renderer.setRenderState("paused").catch((err) => {
+      api.renderer.setRenderState({ stateStr: "paused" }).catch((err) => {
         console.error("Failed to pause renderer:", err);
       });
     };
@@ -50,18 +50,18 @@ export function useWGPURenderLoop() {
         animationFrameId = requestAnimationFrame(loop);
       }
 
-      api.renderer.setRenderState("idle").catch((err) => {
+      api.renderer.setRenderState({ stateStr: "idle" }).catch((err) => {
         console.error("Failed to resume renderer:", err);
       });
     };
 
     if (activeLayout === "detail") {
-      api.renderer.setRenderState("idle").catch((err) => {
+      api.renderer.setRenderState({ stateStr: "idle" }).catch((err) => {
         console.error("Failed to resume renderer:", err);
       });
       animationFrameId = requestAnimationFrame(loop);
     } else {
-      api.renderer.setRenderState("paused").catch((err) => {
+      api.renderer.setRenderState({ stateStr: "paused" }).catch((err) => {
         console.error("Failed to pause renderer:", err);
       });
       isActive = false;

@@ -24,7 +24,7 @@ export function useExifMetadata() {
     let cancelled = false;
 
     api.exif
-      .getExifMetadata(paths)
+      .getExifMetadata({ paths })
       .then((rows) => {
         if (cancelled) return;
         setEntries(rows);
