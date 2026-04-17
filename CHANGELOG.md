@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.0.4](https://github.com/OODemi52/extents/compare/Extents-v0.0.3...Extents-v0.0.4) (2026-04-17)
+
+
+### New Features
+
+* add active sidecar state and lifecycle sync on the frontend ([d7073d0](https://github.com/OODemi52/extents/commit/d7073d05c245664e7ef161031c2334621c08ee45))
+* add versioned .exts sidecar loading and atomic recipe save ([b1a695f](https://github.com/OODemi52/extents/commit/b1a695f45421681c33e17645ee6cf3ca5b14a11d))
+* move live image rendering to working-space GPU textures and shader display math ([c26d9a1](https://github.com/OODemi52/extents/commit/c26d9a16ecd01edc6f7ac711a0442f64669518eb))
+* sync entire sidecar state to the renderer through a unified command ([f9aefe2](https://github.com/OODemi52/extents/commit/f9aefe22266730bf57788e770f669d58b2284d47))
+* wire live exposure slider updates through renderer display uniforms ([67d0a5a](https://github.com/OODemi52/extents/commit/67d0a5a09c8b8ec239fd4569f9926c3625a35355))
+
+
+### Bug Fixes
+
+* add live exposure uniform updates to the renderer ([fdcbb84](https://github.com/OODemi52/extents/commit/fdcbb84d5cdccd0a49095d38aea6ae536d6558cc))
+* stop replacing correct display params in renderer with default params ([2fa8fdf](https://github.com/OODemi52/extents/commit/2fa8fdfc5209d2433d81bef8175b1f26d04f1e55))
+
+
+### Performance Improvements
+
+* move processing pipeline LUTs into a shared module and collapse SDR display into one pass ([e193df3](https://github.com/OODemi52/extents/commit/e193df3c71ea4ddcb98452deed4daa64eb0c4c7e))
+* use LUTs for light conversion in normalization and display ([a381e62](https://github.com/OODemi52/extents/commit/a381e62cf8818773137105a334d7ab266bd27266))
+
 ## [0.0.3](https://github.com/OODemi52/extents/compare/Extents-v0.0.2...Extents-v0.0.3) (2026-01-11)
 
 
