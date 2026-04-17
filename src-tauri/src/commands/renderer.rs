@@ -1,9 +1,8 @@
-use crate::core::editing::EditRecipe;
 use crate::core::processing_pipeline::types::DisplayRenderIntent;
 use crate::core::processing_pipeline::{
     build_render_input, ingest_from_path, RenderInputImage,
 };
-use crate::renderer::{DisplayParamsUniforms, RenderState, Renderer};
+use crate::renderer::{RenderState, Renderer};
 use crate::state::AppState;
 use anyhow::Result;
 use log::{error, info, warn};
@@ -139,45 +138,39 @@ pub fn start_full_image_load(
 
 // Should be move out of command file
 fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
-    let (render_input, display_params) = match render_input_from_path(path) {
+    let (render_input, display_render_intent) = match render_input_from_path(path) {
         Ok(render_input) => render_input,
         Err(error) => return Err(error),
     };
 
-    apply_render_input(renderer, render_input, display_params);
+    apply_render_input(renderer, render_input, display_render_intent);
 
     Ok(())
 }
 
-fn render_input_from_path(path: &str) -> Result<(RenderInputImage, DisplayParamsUniforms)> {
+fn render_input_from_path(path: &str) -> Result<(RenderInputImage, u32)> {
     let processing_pipeline_image = match ingest_from_path(path) {
         Ok(processing_pipeline_image) => processing_pipeline_image,
         Err(error) => return Err(error),
     };
-
-    let recipe = EditRecipe::default();
 
     let render_input = match build_render_input(&processing_pipeline_image) {
         Ok(render_input) => render_input,
         Err(error) => return Err(error),
     };
 
-    let display_params = DisplayParamsUniforms {
-        exposure_ev: recipe.exposure_ev,
-        display_render_intent: shader_display_render_intent(render_input.display_render_intent()),
-        _padding: [0, 0],
-    };
+    let display_render_intent = shader_display_render_intent(render_input.display_render_intent());
 
-    Ok((render_input, display_params))
+    Ok((render_input, display_render_intent))
 }
 
 fn apply_render_input(
     renderer: &mut Renderer,
     render_input: RenderInputImage,
-    display_params: DisplayParamsUniforms,
+    display_render_intent: u32,
 ) {
     renderer.display_checkboard(render_input.has_transparency());
-    renderer.update_display_params(display_params);
+    renderer.update_display_render_intent(display_render_intent);
     renderer.update_texture(
         render_input.texels(),
         render_input.dimensions().width(),
@@ -210,12 +203,12 @@ fn spawn_full_image_load(
             async_runtime::spawn_blocking(move || render_input_from_path(&path)).await;
 
         match render_input_result {
-            Ok(Ok((render_input, display_params))) => {
+            Ok(Ok((render_input, display_render_intent))) => {
                 let mut renderer_lock = renderer_for_task.lock().unwrap();
 
                 if let Some(renderer) = renderer_lock.as_mut() {
                     if renderer.is_request_active(request_id) {
-                        apply_render_input(renderer, render_input, display_params);
+                        apply_render_input(renderer, render_input, display_render_intent);
                         renderer.render();
                         renderer.complete_image_request(request_id);
                     }
@@ -269,11 +262,11 @@ pub async fn swap_requested_texture(
         async_runtime::spawn_blocking(move || render_input_from_path(&path)).await;
 
     match render_input_result {
-        Ok(Ok((render_input, display_params))) => {
+        Ok(Ok((render_input, display_render_intent))) => {
             let mut renderer_lock = renderer_handle.lock().unwrap();
             if let Some(renderer) = renderer_lock.as_mut() {
                 if renderer.is_request_active(request_id) {
-                    apply_render_input(renderer, render_input, display_params);
+                    apply_render_input(renderer, render_input, display_render_intent);
                     renderer.render();
                 }
             }

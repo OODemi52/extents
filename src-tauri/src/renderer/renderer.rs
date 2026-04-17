@@ -206,10 +206,16 @@ impl<'a> Renderer<'a> {
             .update(&self.context.queue, uniforms);
     }
 
-    // Temp function
     pub fn update_exposure(&mut self, exposure_ev: f32) {
         let mut uniforms = self.current_display_params;
         uniforms.exposure_ev = exposure_ev;
+        self.update_display_params(uniforms);
+    }
+
+    /// Updates the active display render intent while preserving the current exposure.
+    pub fn update_display_render_intent(&mut self, display_render_intent: u32) {
+        let mut uniforms = self.current_display_params;
+        uniforms.display_render_intent = display_render_intent;
         self.update_display_params(uniforms);
     }
 
