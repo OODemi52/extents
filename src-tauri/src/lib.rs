@@ -90,6 +90,10 @@ pub fn run() {
             // Settings Commands
             commands::settings::get_cache_size,
             commands::settings::clear_cache,
+            // Sidecar Commands
+            commands::sidecar::load_sidecar,
+            commands::sidecar::save_sidecar,
+            commands::sidecar::sync_sidecar,
         ])
         // Running the application
         .run(tauri::generate_context!())

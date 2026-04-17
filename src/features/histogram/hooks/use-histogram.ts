@@ -15,7 +15,7 @@ export function useHistogram() {
         throw new Error("No image selected");
       }
 
-      return api.image.getHistogram(path);
+      return api.image.getHistogram({ path });
     },
     enabled: Boolean(path),
     staleTime: Infinity,

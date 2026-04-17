@@ -16,7 +16,7 @@ export function CacheSettings() {
   const getCacheSize = async () => {
     setIsLoading(true);
     try {
-      const size = await api.settings.getCacheSize(CacheType.All);
+      const size = await api.settings.getCacheSize({ cacheType: CacheType.All });
 
       setCacheSize(size);
     } catch (error) {
@@ -28,7 +28,7 @@ export function CacheSettings() {
 
   const clearCache = async (cacheType: CacheType) => {
     try {
-      await api.settings.clearCache(cacheType);
+      await api.settings.clearCache({ cacheType });
       await getCacheSize();
     } catch (error) {
       console.error("Failed to clear cache", error);

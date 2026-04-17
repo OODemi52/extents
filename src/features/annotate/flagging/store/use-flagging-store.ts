@@ -3,7 +3,7 @@ import type { FlagState, FlagValue } from "@/types/file-annotations";
 import { create } from "zustand";
 
 import { applyOptimisticAnnotationUpdate } from "@/features/annotate/utils/optimistic-annotations";
-import { setFlags as _setFlags } from "@/services/api/annotations";
+import { api } from "@/services/api";
 
 export const useFlagStore = create<FlagState>((set, get) => ({
   flags: {},
@@ -14,7 +14,7 @@ export const useFlagStore = create<FlagState>((set, get) => ({
       getCurrentAnnotationsState: () => get().flags,
       setAnnotations: (next) => set({ flags: next }),
       defaultValue: "unflagged",
-      persistFn: _setFlags,
+      persistFn: (args) => api.annotations.setFlags({ entries: args }),
       label: "flag",
     }),
 

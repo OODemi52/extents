@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use image::RgbaImage;
 
 use crate::core::image::orientation::{
-    resolve_file_orientation, resolve_raw_orientation, Orientation,
+    resolve_raster_file_orientation, resolve_raw_file_orientation, Orientation,
 };
 
 /// A decoded source image prior to normalization into canonical pipeline state.
@@ -77,7 +77,10 @@ fn decode_raster_source(path: &str) -> Result<DecodedRasterImage> {
         Err(error) => return Err(error),
     };
 
-    let orientation = resolve_file_orientation(path, false);
+    let orientation = match resolve_raster_file_orientation(path) {
+        Ok(orientation) => orientation,
+        Err(error) => return Err(error),
+    };
 
     Ok(DecodedRasterImage {
         pixels,
@@ -105,7 +108,10 @@ fn decode_raw_source(path: &str) -> Result<DecodedRawImage> {
         Err(error) => return Err(error),
     };
 
-    let orientation = resolve_raw_orientation(raw_image.orientation);
+    let orientation = match resolve_raw_file_orientation(path) {
+        Ok(orientation) => orientation,
+        Err(error) => return Err(error),
+    };
 
     Ok(DecodedRawImage {
         raw_image,

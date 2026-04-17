@@ -1,4 +1,7 @@
-use crate::core::image::decode_full_image;
+use crate::core::processing_pipeline::types::DisplayRenderIntent;
+use crate::core::processing_pipeline::{
+    build_render_input, ingest_from_path, RenderInputImage,
+};
 use crate::renderer::{RenderState, Renderer};
 use crate::state::AppState;
 use anyhow::Result;
@@ -135,15 +138,51 @@ pub fn start_full_image_load(
 
 // Should be move out of command file
 fn load_texture_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
-    let (raw, width, height) = decode_full_image(path)?;
+    let (render_input, display_render_intent) = match render_input_from_path(path) {
+        Ok(render_input) => render_input,
+        Err(error) => return Err(error),
+    };
 
-    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
-
-    renderer.display_checkboard(has_alpha);
-
-    renderer.update_texture(&raw, width, height);
+    apply_render_input(renderer, render_input, display_render_intent);
 
     Ok(())
+}
+
+fn render_input_from_path(path: &str) -> Result<(RenderInputImage, u32)> {
+    let processing_pipeline_image = match ingest_from_path(path) {
+        Ok(processing_pipeline_image) => processing_pipeline_image,
+        Err(error) => return Err(error),
+    };
+
+    let render_input = match build_render_input(&processing_pipeline_image) {
+        Ok(render_input) => render_input,
+        Err(error) => return Err(error),
+    };
+
+    let display_render_intent = shader_display_render_intent(render_input.display_render_intent());
+
+    Ok((render_input, display_render_intent))
+}
+
+fn apply_render_input(
+    renderer: &mut Renderer,
+    render_input: RenderInputImage,
+    display_render_intent: u32,
+) {
+    renderer.display_checkboard(render_input.has_transparency());
+    renderer.update_display_render_intent(display_render_intent);
+    renderer.update_texture(
+        render_input.texels(),
+        render_input.dimensions().width(),
+        render_input.dimensions().height(),
+    );
+}
+
+fn shader_display_render_intent(intent: DisplayRenderIntent) -> u32 {
+    match intent {
+        DisplayRenderIntent::DirectSdr => 0,
+        DisplayRenderIntent::ToneMapToSdr => 1,
+    }
 }
 
 // Should be move out of command file
@@ -160,21 +199,17 @@ fn spawn_full_image_load(
     );
 
     let join_handle = async_runtime::spawn(async move {
-        let decode_result = async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
+        let render_input_result =
+            async_runtime::spawn_blocking(move || render_input_from_path(&path)).await;
 
-        match decode_result {
-            Ok(Ok((rgba, width, height))) => {
+        match render_input_result {
+            Ok(Ok((render_input, display_render_intent))) => {
                 let mut renderer_lock = renderer_for_task.lock().unwrap();
 
                 if let Some(renderer) = renderer_lock.as_mut() {
                     if renderer.is_request_active(request_id) {
-                        let has_alpha = rgba.chunks_exact(4).any(|pixel| pixel[3] < 255);
-
-                        renderer.display_checkboard(has_alpha);
-                        renderer.update_texture(&rgba, width, height);
-
+                        apply_render_input(renderer, render_input, display_render_intent);
                         renderer.render();
-
                         renderer.complete_image_request(request_id);
                     }
                 }
@@ -223,17 +258,15 @@ pub async fn swap_requested_texture(
     );
     let renderer_handle = state.renderer.clone();
 
-    let decode_result = async_runtime::spawn_blocking(move || decode_full_image(&path)).await;
+    let render_input_result =
+        async_runtime::spawn_blocking(move || render_input_from_path(&path)).await;
 
-    match decode_result {
-        Ok(Ok((raw, width, height))) => {
+    match render_input_result {
+        Ok(Ok((render_input, display_render_intent))) => {
             let mut renderer_lock = renderer_handle.lock().unwrap();
             if let Some(renderer) = renderer_lock.as_mut() {
                 if renderer.is_request_active(request_id) {
-                    let has_alpha = raw.chunks_exact(4).any(|pixel| pixel[3] < 255);
-
-                    renderer.display_checkboard(has_alpha);
-                    renderer.update_texture(&raw, width, height);
+                    apply_render_input(renderer, render_input, display_render_intent);
                     renderer.render();
                 }
             }

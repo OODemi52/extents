@@ -3,6 +3,7 @@ import { ImageExifEntry } from "./exif";
 import { HistogramData } from "./histogram";
 import { TreeNode } from "./file-system";
 import { CacheType } from "./settings";
+import { Sidecar } from "./sidecar";
 
 export interface CommandArgs {
   get_home_dir: null;
@@ -37,6 +38,9 @@ export interface CommandArgs {
   get_exif_metadata: { paths: string[] };
   get_cache_size: { cacheType: CacheType };
   clear_cache: { cacheType: CacheType };
+  load_sidecar: { path: string };
+  save_sidecar: { path: string; sidecar: Sidecar };
+  sync_sidecar: { sidecar: Sidecar };
 }
 
 export interface CommandReturn {
@@ -64,4 +68,7 @@ export interface CommandReturn {
   get_exif_metadata: ImageExifEntry[];
   get_cache_size: number;
   clear_cache: void;
+  load_sidecar: Sidecar;
+  save_sidecar: void;
+  sync_sidecar: void;
 }

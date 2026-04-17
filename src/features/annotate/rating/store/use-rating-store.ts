@@ -3,7 +3,7 @@ import type { RatingState, RatingValue } from "@/types/file-annotations";
 import { create } from "zustand";
 
 import { applyOptimisticAnnotationUpdate } from "@/features/annotate/utils/optimistic-annotations";
-import { setRatings as _setRatings } from "@/services/api/annotations";
+import { api } from "@/services/api";
 
 export const useRatingStore = create<RatingState>((set, get) => ({
   ratings: {},
@@ -14,7 +14,7 @@ export const useRatingStore = create<RatingState>((set, get) => ({
       getCurrentAnnotationsState: () => get().ratings,
       setAnnotations: (next) => set({ ratings: next }),
       defaultValue: 0,
-      persistFn: _setRatings,
+      persistFn: (args) => api.annotations.setRatings({ entries: args }),
       label: "rating",
     }),
 

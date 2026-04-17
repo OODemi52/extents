@@ -1,9 +1,6 @@
+import type { CommandArgs } from "@/types/commands";
+
 import { invokeTauri } from "./_client";
 
-import { ImageExifEntry } from "@/types/exif";
-
-export async function getExifMetadata(
-  paths: string[],
-): Promise<ImageExifEntry[]> {
-  return invokeTauri("get_exif_metadata", { paths });
-}
+export const getExifMetadata = (args: CommandArgs["get_exif_metadata"]) =>
+  invokeTauri("get_exif_metadata", args);

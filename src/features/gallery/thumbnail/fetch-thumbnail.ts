@@ -10,7 +10,7 @@ export type ThumbnailPayload = {
 export async function fetchThumbnail(
   imagePath: string,
 ): Promise<ThumbnailPayload> {
-  const path = await api.thumbnails.get(imagePath);
+  const path = await api.thumbnails.get({ path: imagePath });
 
   return {
     path,

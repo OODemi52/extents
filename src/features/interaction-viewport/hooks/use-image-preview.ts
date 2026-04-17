@@ -1,8 +1,6 @@
-import type { PreviewInfo } from "@/services/api/image";
-
 import { useQuery } from "@tanstack/react-query";
 
-import { api } from "@/services/api";
+import { api, type PreviewInfo } from "@/services/api";
 
 type UseImagePreviewOptions = {
   enabled?: boolean;
@@ -19,7 +17,7 @@ export function useImagePreview(
       if (!path) {
         throw new Error("No image path provided");
       }
-      const result = await api.image.preparePreview(path);
+      const result = await api.image.preparePreview({ path });
 
       return result;
     },

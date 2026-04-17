@@ -6,35 +6,34 @@ export type RenderState = CommandArgs["set_render_state"]["stateStr"];
 
 export const initRenderer = () => invokeTauri("init_renderer", null);
 
-export const setRenderState = (state: RenderState) =>
-  invokeTauri("set_render_state", { stateStr: state });
+export const setRenderState = (args: CommandArgs["set_render_state"]) =>
+  invokeTauri("set_render_state", args);
 
-export const syncViewport = (viewport: CommandArgs["update_viewport"]) =>
-  invokeTauri("update_viewport", viewport);
+export const syncViewport = (args: CommandArgs["update_viewport"]) =>
+  invokeTauri("update_viewport", args);
 
-export const loadImage = (payload: CommandArgs["load_image"]) =>
-  invokeTauri("load_image", payload);
+export const loadImage = (args: CommandArgs["load_image"]) =>
+  invokeTauri("load_image", args);
 
 export const startFullImageLoad = (
-  payload: CommandArgs["start_full_image_load"],
-) => invokeTauri("start_full_image_load", payload);
+  args: CommandArgs["start_full_image_load"],
+) => invokeTauri("start_full_image_load", args);
 
 export const swapRequestedTexture = (
-  payload: CommandArgs["swap_requested_texture"],
-) => invokeTauri("swap_requested_texture", payload);
+  args: CommandArgs["swap_requested_texture"],
+) => invokeTauri("swap_requested_texture", args);
 
-export const updateTransform = (payload: CommandArgs["update_transform"]) =>
-  invokeTauri("update_transform", payload);
+export const updateTransform = (args: CommandArgs["update_transform"]) =>
+  invokeTauri("update_transform", args);
 
-export const resizeSurface = (payload: CommandArgs["resize_surface"]) =>
-  invokeTauri("resize_surface", payload);
+export const resizeSurface = (args: CommandArgs["resize_surface"]) =>
+  invokeTauri("resize_surface", args);
+
+export const prefetch = (args: CommandArgs["prefetch_thumbnails"]) =>
+  invokeTauri("prefetch_thumbnails", args);
 
 export const renderFrame = () => invokeTauri("render_frame", null);
 
 export const shouldRenderFrame = () => invokeTauri("should_render_frame", null);
-
-export const prefetch = (paths: string[]): Promise<void> => {
-  return invokeTauri("prefetch_thumbnails", { paths });
-};
 
 export const clearRenderer = () => invokeTauri("clear_renderer", null);

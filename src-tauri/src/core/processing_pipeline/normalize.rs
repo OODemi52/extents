@@ -1,10 +1,13 @@
 use anyhow::{anyhow, Result};
+use image::RgbaImage;
 use rawler::imgop::develop::{Intermediate, ProcessingStep, RawDevelop};
 
 use super::decode::{DecodedRasterImage, DecodedRawImage, DecodedSourceImage};
+use super::luts::srgb_u8_to_linear;
 use crate::core::image::orientation::apply_orientation;
 use crate::core::processing_pipeline::types::{
-    AlphaPlane, ImageDimensions, ProcessingPipelineImage, RgbPixel, WorkingImage,
+    AlphaPlane, DisplayRenderIntent, ImageDimensions, ProcessingPipelineImage, RgbPixel,
+    WorkingImage,
 };
 
 /// Normalizes a decoded source image into the canonical processing-pipeline representation.
@@ -21,7 +24,8 @@ pub(super) fn normalize_decoded_source(
 ///
 /// Raster normalization currently assumes sRGB source encoding and defers ICC
 /// profile handling. Orientation is applied before constructing the canonical
-/// working image and optional alpha plane.
+/// working image and optional alpha plane. Raster images are currently tagged
+/// for direct SDR display without scene-style tone mapping.
 fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipelineImage> {
     let DecodedRasterImage {
         mut pixels,
@@ -30,7 +34,18 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
     } = raster;
 
     if let Some(orientation) = orientation {
-        pixels = apply_orientation(pixels, orientation);
+        let (width, height) = pixels.dimensions();
+        let rgba_pixels: Vec<_> = pixels.pixels().copied().collect();
+
+        let (oriented_pixels, oriented_width, oriented_height) =
+            match apply_orientation(rgba_pixels, width, height, orientation) {
+                Ok(result) => result,
+                Err(error) => return Err(error),
+            };
+
+        pixels = RgbaImage::from_fn(oriented_width, oriented_height, |x, y| {
+            oriented_pixels[((y * oriented_width) + x) as usize]
+        });
     }
 
     let (width, height) = pixels.dimensions();
@@ -50,9 +65,9 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
     let mut alpha_samples: Option<Vec<f32>> = None;
 
     for rgba in pixels.pixels() {
-        let red = srgb_to_linear(u8_to_normalized_f32(rgba[0]));
-        let green = srgb_to_linear(u8_to_normalized_f32(rgba[1]));
-        let blue = srgb_to_linear(u8_to_normalized_f32(rgba[2]));
+        let red = srgb_u8_to_linear(rgba[0]);
+        let green = srgb_u8_to_linear(rgba[1]);
+        let blue = srgb_u8_to_linear(rgba[2]);
 
         let linear_srgb_pixel = RgbPixel { red, green, blue };
 
@@ -91,10 +106,11 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
         None => None,
     };
 
-    let image = match ProcessingPipelineImage::new(working_image, alpha) {
-        Ok(image) => image,
-        Err(error) => return Err(error),
-    };
+    let image =
+        match ProcessingPipelineImage::new(working_image, alpha, DisplayRenderIntent::DirectSdr) {
+            Ok(image) => image,
+            Err(error) => return Err(error),
+        };
 
     Ok(image)
 }
@@ -103,20 +119,14 @@ fn normalize_decoded_raster(raster: DecodedRasterImage) -> Result<ProcessingPipe
 ///
 /// RAW normalization currently uses rawler development steps through calibration,
 /// but omits the final sRGB gamma step. This is a transitional path and may still
-/// compress highlights before the app's own tone-mapping stage. RAW orientation
-/// is currently detected during decode but not yet applied to the developed float buffer.
+/// compress highlights before the app's own tone-mapping stage. RAW images are
+/// currently tagged for SDR display with tone mapping, and RAW orientation is
+/// applied after development when constructing the working image.
 fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage> {
     let DecodedRawImage {
         raw_image,
         orientation,
     } = raw;
-
-    if let Some(orientation) = orientation {
-        return Err(anyhow!(
-            "raw orientation normalization is not implemented yet: {:?}",
-            orientation
-        ));
-    }
 
     let raw_develop_pipeline = RawDevelop {
         steps: vec![
@@ -183,12 +193,38 @@ fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage
         working_pixels.push(working_pixel);
     }
 
+    let (dimensions, working_pixels) = match orientation {
+        Some(orientation) => {
+            let (oriented_pixels, oriented_width, oriented_height) = match apply_orientation(
+                working_pixels,
+                dimensions.width(),
+                dimensions.height(),
+                orientation,
+            ) {
+                Ok(result) => result,
+                Err(error) => return Err(error),
+            };
+
+            let oriented_dimensions = match ImageDimensions::new(oriented_width, oriented_height) {
+                Ok(oriented_dimensions) => oriented_dimensions,
+                Err(error) => return Err(error),
+            };
+
+            (oriented_dimensions, oriented_pixels)
+        }
+        None => (dimensions, working_pixels),
+    };
+
     let working_image = match WorkingImage::new(dimensions, working_pixels) {
         Ok(working_image) => working_image,
         Err(error) => return Err(error),
     };
 
-    let image = match ProcessingPipelineImage::new(working_image, None) {
+    let image = match ProcessingPipelineImage::new(
+        working_image,
+        None,
+        DisplayRenderIntent::ToneMapToSdr,
+    ) {
         Ok(image) => image,
         Err(error) => return Err(error),
     };
@@ -199,15 +235,6 @@ fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage
 /// Converts an 8-bit channel value into a normalized `f32` in the range `0.0..=1.0`.
 fn u8_to_normalized_f32(value: u8) -> f32 {
     value as f32 / 255.0
-}
-
-/// Converts a normalized sRGB channel value to linear light.
-fn srgb_to_linear(channel: f32) -> f32 {
-    if channel <= 0.04045 {
-        channel / 12.92
-    } else {
-        ((channel + 0.055) / 1.055).powf(2.4)
-    }
 }
 
 /// Converts a linear sRGB pixel to the linear Rec.2020 working space.
