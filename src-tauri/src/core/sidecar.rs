@@ -114,6 +114,11 @@ impl Error for SidecarError {
 }
 
 impl Sidecar {
+    /// Returns the persisted edit recipe embedded in this sidecar document.
+    pub fn recipe(&self) -> &EditRecipe {
+        &self.recipe
+    }
+
     /// Builds a persisted sidecar wrapper from an image path and in-memory recipe.
     fn from_recipe(image_path: &str, recipe: &EditRecipe) -> Result<Self, SidecarError> {
         let updated_at = match current_timestamp() {

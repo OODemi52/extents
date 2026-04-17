@@ -7,3 +7,6 @@ export const loadSidecar = (args: CommandArgs["load_sidecar"]) =>
 
 export const saveSidecar = (args: CommandArgs["save_sidecar"]) =>
   invokeTauri("save_sidecar", args);
+
+export const syncSidecar = (args: CommandArgs["sync_sidecar"]) =>
+  invokeTauri("sync_sidecar", args);

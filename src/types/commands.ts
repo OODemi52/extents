@@ -41,6 +41,7 @@ export interface CommandArgs {
   clear_cache: { cacheType: CacheType };
   load_sidecar: { path: string };
   save_sidecar: { path: string; sidecar: Sidecar };
+  sync_sidecar: { sidecar: Sidecar };
 }
 
 export interface CommandReturn {
@@ -71,4 +72,5 @@ export interface CommandReturn {
   clear_cache: void;
   load_sidecar: Sidecar;
   save_sidecar: void;
+  sync_sidecar: void;
 }

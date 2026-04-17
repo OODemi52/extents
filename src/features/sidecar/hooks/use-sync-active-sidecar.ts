@@ -5,19 +5,17 @@ import { useActiveSidecarStore } from "../store/active-sidecar-store";
 import { api } from "@/services/api";
 
 export function useSyncActiveSidecar() {
-  const exposureEv = useActiveSidecarStore(
-    (state) => state.sidecar?.recipe.exposure_ev ?? null,
-  );
+  const sidecar = useActiveSidecarStore((state) => state.sidecar);
 
   useEffect(() => {
-    if (exposureEv === null) {
+    if (sidecar === null) {
       return;
     }
 
-    api.adjustments
-      .updateExposure({ exposureEv })
+    api.sidecar
+      .syncSidecar({ sidecar })
       .catch((error) =>
-        console.error("[active-sidecar] Failed to sync exposure:", error),
+        console.error("[active-sidecar] Failed to sync active sidecar:", error),
       );
-  }, [exposureEv]);
+  }, [sidecar]);
 }
