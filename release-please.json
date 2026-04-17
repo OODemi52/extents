@@ -5,7 +5,7 @@
       "package-name": "Extents",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": false,
       "pull-request-title-pattern": "Release v${version} – Extents",
       "extra-files": ["src-tauri/Cargo.toml", "src-tauri/tauri.conf.json"],
       "changelog-sections": [
