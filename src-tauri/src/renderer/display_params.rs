@@ -1,3 +1,4 @@
+use crate::core::editing::EditRecipe;
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
@@ -17,6 +18,18 @@ impl Default for DisplayParamsUniforms {
         Self {
             exposure_ev: 0.0,
             display_render_intent: 0,
+            _padding: [0, 0],
+        }
+    }
+}
+
+impl DisplayParamsUniforms {
+    /// Builds a shader-facing display-parameter snapshot from the current recipe
+    /// and the image-derived display render intent.
+    pub fn from_recipe_and_intent(recipe: &EditRecipe, display_render_intent: u32) -> Self {
+        Self {
+            exposure_ev: recipe.exposure_ev,
+            display_render_intent,
             _padding: [0, 0],
         }
     }

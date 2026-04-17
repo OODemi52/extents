@@ -206,10 +206,9 @@ impl<'a> Renderer<'a> {
             .update(&self.context.queue, uniforms);
     }
 
-    pub fn update_exposure(&mut self, exposure_ev: f32) {
-        let mut uniforms = self.current_display_params;
-        uniforms.exposure_ev = exposure_ev;
-        self.update_display_params(uniforms);
+    /// Returns the currently active shader display-render intent.
+    pub fn current_display_render_intent(&self) -> u32 {
+        self.current_display_params.display_render_intent
     }
 
     /// Updates the active display render intent while preserving the current exposure.
