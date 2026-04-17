@@ -94,8 +94,6 @@ pub fn run() {
             commands::sidecar::load_sidecar,
             commands::sidecar::save_sidecar,
             commands::sidecar::sync_sidecar,
-            // Adjustment Commands
-            commands::adjustments::update_exposure,
         ])
         // Running the application
         .run(tauri::generate_context!())

@@ -28,7 +28,6 @@ export interface CommandArgs {
   swap_requested_texture: { path: string; requestId: number };
   update_viewport: { x: number; y: number; width: number; height: number };
   update_transform: { scale: number; offsetX: number; offsetY: number };
-  update_exposure: { exposureEv: number };
   render_frame: null;
   should_render_frame: null;
   set_render_state: { stateStr: "active" | "idle" | "paused" };
@@ -59,7 +58,6 @@ export interface CommandReturn {
   swap_requested_texture: void;
   update_viewport: void;
   update_transform: void;
-  update_exposure: void;
   render_frame: void;
   should_render_frame: boolean;
   set_render_state: void;

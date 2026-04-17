@@ -1,4 +1,3 @@
-import * as adjustments from "./adjustments";
 import * as annotations from "./annotations";
 import * as fs from "./file-system";
 import * as image from "./image";
@@ -11,7 +10,6 @@ import * as sidecar from "./sidecar";
 export type { PreviewInfo } from "./image";
 
 export const api = {
-  adjustments,
   annotations,
   fs,
   image,
