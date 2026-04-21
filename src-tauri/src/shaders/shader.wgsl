@@ -9,7 +9,7 @@ struct VertexOutput {
   @location(0) texture_coordinates: vec2<f32>,
 };
 
-// ---------- Uniform for Transform (matches Rust's TransformUniforms) ----------
+// ---------- Uniforms ----------
 struct Transform {
   scale: vec2<f32>,
   offset: vec2<f32>,
@@ -28,20 +28,6 @@ var<uniform> uTransform: Transform;
 @group(0) @binding(3)
 var<uniform> uDisplayParams: DisplayParams;
 
-// ---------- Vertex Shader ----------
-@vertex
-fn vs_main(model: VertexInput) -> VertexOutput {
-  var output: VertexOutput;
-
-  // Zoom (scale) and pan (offset) applied to XY.
-  let transformed = model.position.xy * uTransform.scale + uTransform.offset;
-
-  output.clip_position = vec4<f32>(transformed, model.position.z, 1.0);
-  output.texture_coordinates = model.texture_coordinates;
-
-  return output;
-}
-
 // ---------- Texture Bindings ----------
 @group(0) @binding(0)
 var imageTexture: texture_2d<f32>;
@@ -50,6 +36,27 @@ var imageTexture: texture_2d<f32>;
 @group(0) @binding(1)
 var imageSampler: sampler;
 
+// ---------- Constants ----------
+const DISPLAY_INTENT_DIRECT_SDR: u32 = 0u;
+const DISPLAY_INTENT_TONEMAP_TO_SDR: u32 = 1u;
+const CHECKERBOARD_TILE_SIZE: f32 = 4.0;
+const CHECKERBOARD_DARK_TILE: vec3<f32> = vec3<f32>(0.50, 0.50, 0.50);
+const CHECKERBOARD_LIGHT_TILE: vec3<f32> = vec3<f32>(0.85, 0.85, 0.85);
+
+// ---------- Vertex Shader ----------
+@vertex
+fn vs_main(model: VertexInput) -> VertexOutput {
+  var output: VertexOutput;
+
+  let transformed = model.position.xy * uTransform.scale + uTransform.offset;
+
+  output.clip_position = vec4<f32>(transformed, model.position.z, 1.0);
+  output.texture_coordinates = model.texture_coordinates;
+
+  return output;
+}
+
+// ---------- Working-Space Utility Math ----------
 fn rec2020_luminance(color: vec3<f32>) -> f32 {
   return dot(color, vec3<f32>(0.2627, 0.6780, 0.0593));
 }
@@ -70,6 +77,7 @@ fn apply_exposure(color: vec3<f32>, exposure_ev: f32) -> vec3<f32> {
   return color * exp2(exposure_ev);
 }
 
+// ---------- Display-Transform Paths ----------
 fn tone_map_scene_color(color: vec3<f32>) -> vec3<f32> {
   let scene_luminance = rec2020_luminance(color);
 
@@ -83,18 +91,37 @@ fn tone_map_scene_color(color: vec3<f32>) -> vec3<f32> {
   return color * scale;
 }
 
-fn map_working_color_to_display(color: vec3<f32>, display_render_intent: u32) -> vec3<f32> {
-  var display_domain = color;
+fn apply_direct_sdr_display_transform(color: vec3<f32>) -> vec3<f32> {
+  return color;
+}
 
-  if (display_render_intent == 1u) {
-    display_domain = tone_map_scene_color(color);
+fn apply_scene_to_sdr_display_transform(color: vec3<f32>) -> vec3<f32> {
+  return tone_map_scene_color(color);
+}
+
+fn apply_display_transform(color: vec3<f32>, display_render_intent: u32) -> vec3<f32> {
+  if (display_render_intent == DISPLAY_INTENT_TONEMAP_TO_SDR) {
+    return apply_scene_to_sdr_display_transform(color);
   }
 
-  return clamp(
-    linear_rec2020_to_linear_srgb(display_domain),
-    vec3<f32>(0.0, 0.0, 0.0),
-    vec3<f32>(1.0, 1.0, 1.0)
-  );
+  return apply_direct_sdr_display_transform(color);
+}
+
+// ---------- Output Conversion ----------
+fn working_to_output_linear_srgb(color: vec3<f32>) -> vec3<f32> {
+  return linear_rec2020_to_linear_srgb(color);
+}
+
+fn clamp_output_linear_srgb(color: vec3<f32>) -> vec3<f32> {
+  return clamp(color, vec3<f32>(0.0, 0.0, 0.0), vec3<f32>(1.0, 1.0, 1.0));
+}
+
+// ---------- Checkerboard ----------
+fn checkerboard_tile_color(texture_element: vec2<f32>) -> vec3<f32> {
+  let checkerboard = vec2<u32>(floor((texture_element * uTransform.scale) / CHECKERBOARD_TILE_SIZE));
+  let is_dark_tile = ((checkerboard.x + checkerboard.y) % 2u) == 0u;
+
+  return select(CHECKERBOARD_LIGHT_TILE, CHECKERBOARD_DARK_TILE, is_dark_tile);
 }
 
 // ---------- Fragment Shader ----------
@@ -103,18 +130,12 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
   let texture_sample = textureSample(imageTexture, imageSampler, input.texture_coordinates);
   let texture_size = vec2<f32>(textureDimensions(imageTexture, 0));
   let texture_element = input.texture_coordinates * texture_size;
-  let working_color = apply_exposure(texture_sample.rgb, uDisplayParams.exposure_ev);
-  let display_color =
-    map_working_color_to_display(working_color, uDisplayParams.display_render_intent);
-
-  let checkboard_tile_size = 4.0; // Pixels
-  let checkboard = vec2<u32>(floor((texture_element * uTransform.scale) / checkboard_tile_size));
-
-  let dark_tile = vec3<f32>(0.50, 0.50, 0.50);
-  let light_tile = vec3<f32>(0.85, 0.85, 0.85);
-  let is_dark_tile = ((checkboard.x + checkboard.y) % 2u) == 0u;
-
-  let tile_checker = select(light_tile, dark_tile, is_dark_tile);
+  let exposed_working_color = apply_exposure(texture_sample.rgb, uDisplayParams.exposure_ev);
+  let display_domain_color =
+    apply_display_transform(exposed_working_color, uDisplayParams.display_render_intent);
+  let output_linear_srgb = working_to_output_linear_srgb(display_domain_color);
+  let display_color = clamp_output_linear_srgb(output_linear_srgb);
+  let tile_checker = checkerboard_tile_color(texture_element);
 
   if (uTransform.display_checkerboard.x < 0.5) {
     return vec4<f32>(display_color, 1.0);
