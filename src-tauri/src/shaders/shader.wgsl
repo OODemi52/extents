@@ -42,6 +42,7 @@ const DISPLAY_INTENT_TONEMAP_TO_SDR: u32 = 1u;
 const CHECKERBOARD_TILE_SIZE: f32 = 4.0;
 const CHECKERBOARD_DARK_TILE: vec3<f32> = vec3<f32>(0.50, 0.50, 0.50);
 const CHECKERBOARD_LIGHT_TILE: vec3<f32> = vec3<f32>(0.85, 0.85, 0.85);
+const OUTPUT_LINEAR_SRGB_SOFT_CLIP_KNEE_START: f32 = 0.90;
 
 // ---------- Vertex Shader ----------
 @vertex
@@ -91,6 +92,17 @@ fn tone_map_scene_color(color: vec3<f32>) -> vec3<f32> {
   return color * scale;
 }
 
+fn apply_soft_knee_to_luminance(luminance: f32, knee_start: f32) -> f32 {
+  if (luminance <= knee_start) {
+    return luminance;
+  }
+
+  let delta = luminance - knee_start;
+  let remaining_headroom = 1.0 - knee_start;
+
+  return knee_start + ((remaining_headroom * delta) / (delta + remaining_headroom));
+}
+
 fn apply_direct_sdr_display_transform(color: vec3<f32>) -> vec3<f32> {
   return color;
 }
@@ -112,8 +124,24 @@ fn working_to_output_linear_srgb(color: vec3<f32>) -> vec3<f32> {
   return linear_rec2020_to_linear_srgb(color);
 }
 
-fn clamp_output_linear_srgb(color: vec3<f32>) -> vec3<f32> {
-  return clamp(color, vec3<f32>(0.0, 0.0, 0.0), vec3<f32>(1.0, 1.0, 1.0));
+fn soft_clip_output_linear_srgb(color: vec3<f32>) -> vec3<f32> {
+  let peak = max(color.r, max(color.g, color.b));
+
+  if (peak <= 1.0) {
+    return color;
+  }
+
+  let mapped_peak =
+    apply_soft_knee_to_luminance(peak, OUTPUT_LINEAR_SRGB_SOFT_CLIP_KNEE_START);
+  let scale = mapped_peak / peak;
+
+  return color * scale;
+}
+
+fn map_output_linear_srgb_to_display_range(color: vec3<f32>) -> vec3<f32> {
+  let softly_clipped = soft_clip_output_linear_srgb(color);
+
+  return clamp(softly_clipped, vec3<f32>(0.0, 0.0, 0.0), vec3<f32>(1.0, 1.0, 1.0));
 }
 
 // ---------- Checkerboard ----------
@@ -134,7 +162,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
   let display_domain_color =
     apply_display_transform(exposed_working_color, uDisplayParams.display_render_intent);
   let output_linear_srgb = working_to_output_linear_srgb(display_domain_color);
-  let display_color = clamp_output_linear_srgb(output_linear_srgb);
+  let display_color = map_output_linear_srgb_to_display_range(output_linear_srgb);
   let tile_checker = checkerboard_tile_color(texture_element);
 
   if (uTransform.display_checkerboard.x < 0.5) {
