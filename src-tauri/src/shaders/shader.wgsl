@@ -19,7 +19,8 @@ struct Transform {
 struct DisplayParams {
   exposure_ev: f32,
   display_render_intent: u32,
-  _padding: vec2<u32>,
+  debug_view: u32,
+  _padding: u32,
 };
 
 @group(0) @binding(2)
@@ -39,10 +40,29 @@ var imageSampler: sampler;
 // ---------- Constants ----------
 const DISPLAY_INTENT_DIRECT_SDR: u32 = 0u;
 const DISPLAY_INTENT_TONEMAP_TO_SDR: u32 = 1u;
+const DEBUG_VIEW_FINAL_DISPLAY: u32 = 0u;
+const DEBUG_VIEW_WORKING_LUMINANCE: u32 = 1u;
+const DEBUG_VIEW_EXPOSED_LUMINANCE: u32 = 2u;
+const DEBUG_VIEW_TONE_MAPPED_LUMINANCE: u32 = 3u;
+const DEBUG_VIEW_OUTPUT_LINEAR_SRGB_LUMINANCE: u32 = 4u;
+const DEBUG_VIEW_OUT_OF_RANGE_MASK: u32 = 5u;
+const DEBUG_VIEW_WORKING_RGB_CHANNELS: u32 = 6u;
+const DEBUG_VIEW_EXPOSED_RGB_CHANNELS: u32 = 7u;
+const DEBUG_VIEW_DISPLAY_DOMAIN_RGB_CHANNELS: u32 = 8u;
+const DEBUG_VIEW_OUTPUT_LINEAR_SRGB_COLOR: u32 = 9u;
+const DEBUG_VIEW_FINAL_DISPLAY_NO_TONE_MAP: u32 = 10u;
+const DEBUG_VIEW_FINAL_DISPLAY_WITH_OUTPUT_SOFT_CLIP: u32 = 11u;
 const CHECKERBOARD_TILE_SIZE: f32 = 4.0;
 const CHECKERBOARD_DARK_TILE: vec3<f32> = vec3<f32>(0.50, 0.50, 0.50);
 const CHECKERBOARD_LIGHT_TILE: vec3<f32> = vec3<f32>(0.85, 0.85, 0.85);
 const OUTPUT_LINEAR_SRGB_SOFT_CLIP_KNEE_START: f32 = 0.90;
+const HABLE_A: f32 = 0.15;
+const HABLE_B: f32 = 0.50;
+const HABLE_C: f32 = 0.10;
+const HABLE_D: f32 = 0.20;
+const HABLE_E: f32 = 0.02;
+const HABLE_F: f32 = 0.30;
+const HABLE_WHITE_POINT: f32 = 11.2;
 
 // ---------- Vertex Shader ----------
 @vertex
@@ -62,8 +82,14 @@ fn rec2020_luminance(color: vec3<f32>) -> f32 {
   return dot(color, vec3<f32>(0.2627, 0.6780, 0.0593));
 }
 
-fn reinhard_tone_map_luminance(luminance: f32) -> f32 {
-  return luminance / (1.0 + luminance);
+fn hable_tone_map_luminance(luminance: f32) -> f32 {
+  return ((luminance * (HABLE_A * luminance + (HABLE_C * HABLE_B))) + (HABLE_D * HABLE_E)) /
+      ((luminance * (HABLE_A * luminance + HABLE_B)) + (HABLE_D * HABLE_F)) -
+    (HABLE_E / HABLE_F);
+}
+
+fn linear_srgb_luminance(color: vec3<f32>) -> f32 {
+  return dot(color, vec3<f32>(0.2126, 0.7152, 0.0722));
 }
 
 fn linear_rec2020_to_linear_srgb(color: vec3<f32>) -> vec3<f32> {
@@ -86,7 +112,8 @@ fn tone_map_scene_color(color: vec3<f32>) -> vec3<f32> {
     return vec3<f32>(0.0, 0.0, 0.0);
   }
 
-  let mapped_luminance = reinhard_tone_map_luminance(scene_luminance);
+  let white_scale = 1.0 / hable_tone_map_luminance(HABLE_WHITE_POINT);
+  let mapped_luminance = hable_tone_map_luminance(scene_luminance) * white_scale;
   let scale = mapped_luminance / scene_luminance;
 
   return color * scale;
@@ -101,6 +128,16 @@ fn apply_soft_knee_to_luminance(luminance: f32, knee_start: f32) -> f32 {
   let remaining_headroom = 1.0 - knee_start;
 
   return knee_start + ((remaining_headroom * delta) / (delta + remaining_headroom));
+}
+
+fn grayscale_from_luminance(luminance: f32) -> vec3<f32> {
+  let clamped_luminance = max(luminance, 0.0);
+
+  return vec3<f32>(clamped_luminance, clamped_luminance, clamped_luminance);
+}
+
+fn debug_stage_rgb_channels(color: vec3<f32>) -> vec3<f32> {
+  return clamp(color, vec3<f32>(0.0, 0.0, 0.0), vec3<f32>(1.0, 1.0, 1.0));
 }
 
 fn apply_direct_sdr_display_transform(color: vec3<f32>) -> vec3<f32> {
@@ -139,9 +176,81 @@ fn soft_clip_output_linear_srgb(color: vec3<f32>) -> vec3<f32> {
 }
 
 fn map_output_linear_srgb_to_display_range(color: vec3<f32>) -> vec3<f32> {
-  let softly_clipped = soft_clip_output_linear_srgb(color);
+  return clamp_output_linear_srgb_to_display_range(color);
+}
 
-  return clamp(softly_clipped, vec3<f32>(0.0, 0.0, 0.0), vec3<f32>(1.0, 1.0, 1.0));
+fn clamp_output_linear_srgb_to_display_range(color: vec3<f32>) -> vec3<f32> {
+  return clamp(color, vec3<f32>(0.0, 0.0, 0.0), vec3<f32>(1.0, 1.0, 1.0));
+}
+
+fn output_linear_srgb_out_of_range_mask(color: vec3<f32>) -> vec3<f32> {
+  let over_range = max(color - vec3<f32>(1.0, 1.0, 1.0), vec3<f32>(0.0, 0.0, 0.0));
+  let under_range = max(-color, vec3<f32>(0.0, 0.0, 0.0));
+  let over_strength = min(1.0, max(over_range.r, max(over_range.g, over_range.b)));
+  let under_strength = min(1.0, max(under_range.r, max(under_range.g, under_range.b)));
+
+  return vec3<f32>(over_strength, 0.0, under_strength);
+}
+
+fn debug_view_color(
+  working_color: vec3<f32>,
+  exposed_working_color: vec3<f32>,
+  display_domain_color: vec3<f32>,
+  output_linear_srgb: vec3<f32>,
+  final_display_color: vec3<f32>,
+  final_display_no_tone_map: vec3<f32>,
+  final_display_with_output_soft_clip: vec3<f32>,
+  debug_view: u32,
+) -> vec3<f32> {
+  if (debug_view == DEBUG_VIEW_WORKING_LUMINANCE) {
+    return grayscale_from_luminance(rec2020_luminance(working_color));
+  }
+
+  if (debug_view == DEBUG_VIEW_EXPOSED_LUMINANCE) {
+    return grayscale_from_luminance(rec2020_luminance(exposed_working_color));
+  }
+
+  if (debug_view == DEBUG_VIEW_TONE_MAPPED_LUMINANCE) {
+    return grayscale_from_luminance(rec2020_luminance(display_domain_color));
+  }
+
+  if (debug_view == DEBUG_VIEW_OUTPUT_LINEAR_SRGB_LUMINANCE) {
+    return grayscale_from_luminance(linear_srgb_luminance(output_linear_srgb));
+  }
+
+  if (debug_view == DEBUG_VIEW_OUT_OF_RANGE_MASK) {
+    return output_linear_srgb_out_of_range_mask(output_linear_srgb);
+  }
+
+  if (debug_view == DEBUG_VIEW_WORKING_RGB_CHANNELS) {
+    return debug_stage_rgb_channels(working_color);
+  }
+
+  if (debug_view == DEBUG_VIEW_EXPOSED_RGB_CHANNELS) {
+    return debug_stage_rgb_channels(exposed_working_color);
+  }
+
+  if (debug_view == DEBUG_VIEW_DISPLAY_DOMAIN_RGB_CHANNELS) {
+    return debug_stage_rgb_channels(display_domain_color);
+  }
+
+  if (debug_view == DEBUG_VIEW_OUTPUT_LINEAR_SRGB_COLOR) {
+    return debug_stage_rgb_channels(output_linear_srgb);
+  }
+
+  if (debug_view == DEBUG_VIEW_FINAL_DISPLAY_NO_TONE_MAP) {
+    return final_display_no_tone_map;
+  }
+
+  if (debug_view == DEBUG_VIEW_FINAL_DISPLAY_WITH_OUTPUT_SOFT_CLIP) {
+    return final_display_with_output_soft_clip;
+  }
+
+  if (debug_view == DEBUG_VIEW_FINAL_DISPLAY) {
+    return final_display_color;
+  }
+
+  return final_display_color;
 }
 
 // ---------- Checkerboard ----------
@@ -158,18 +267,35 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
   let texture_sample = textureSample(imageTexture, imageSampler, input.texture_coordinates);
   let texture_size = vec2<f32>(textureDimensions(imageTexture, 0));
   let texture_element = input.texture_coordinates * texture_size;
-  let exposed_working_color = apply_exposure(texture_sample.rgb, uDisplayParams.exposure_ev);
+  let working_color = texture_sample.rgb;
+  let exposed_working_color = apply_exposure(working_color, uDisplayParams.exposure_ev);
   let display_domain_color =
     apply_display_transform(exposed_working_color, uDisplayParams.display_render_intent);
   let output_linear_srgb = working_to_output_linear_srgb(display_domain_color);
   let display_color = map_output_linear_srgb_to_display_range(output_linear_srgb);
+  let output_linear_srgb_no_tone_map = working_to_output_linear_srgb(exposed_working_color);
+  let final_display_no_tone_map =
+    map_output_linear_srgb_to_display_range(output_linear_srgb_no_tone_map);
+  let final_display_with_output_soft_clip =
+    clamp_output_linear_srgb_to_display_range(soft_clip_output_linear_srgb(output_linear_srgb));
+  let debug_color =
+    debug_view_color(
+      working_color,
+      exposed_working_color,
+      display_domain_color,
+      output_linear_srgb,
+      display_color,
+      final_display_no_tone_map,
+      final_display_with_output_soft_clip,
+      uDisplayParams.debug_view,
+    );
   let tile_checker = checkerboard_tile_color(texture_element);
 
   if (uTransform.display_checkerboard.x < 0.5) {
-    return vec4<f32>(display_color, 1.0);
+    return vec4<f32>(debug_color, 1.0);
   }
 
-  let rgb_values = tile_checker * (1.0 - texture_sample.a) + display_color * texture_sample.a;
+  let rgb_values = tile_checker * (1.0 - texture_sample.a) + debug_color * texture_sample.a;
 
   return vec4<f32>(rgb_values, 1.0);
 }

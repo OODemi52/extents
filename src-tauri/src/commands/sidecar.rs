@@ -26,9 +26,10 @@ pub fn sync_sidecar(sidecar: Sidecar, state: State<AppState>) {
     let mut renderer_lock = state.renderer.lock().unwrap();
 
     if let Some(renderer) = renderer_lock.as_mut() {
-        let display_params = DisplayParamsUniforms::from_recipe_and_intent(
+        let display_params = DisplayParamsUniforms::from_recipe_intent_and_debug_view(
             sidecar.recipe(),
             renderer.current_display_render_intent(),
+            renderer.current_debug_view(),
         );
 
         renderer.update_display_params(display_params);

@@ -11,6 +11,8 @@ use std::time::Instant;
 use tauri::async_runtime;
 use tauri::{State, WebviewWindow};
 
+const DEBUG_VIEW_MAX: u32 = 11;
+
 #[tauri::command]
 pub fn init_renderer(state: State<AppState>) {
     let mut renderer_lock = state.renderer.lock().unwrap();
@@ -40,6 +42,24 @@ pub fn resize_surface(width: u32, height: u32, state: State<AppState>) {
     if let Some(renderer) = renderer_lock.as_mut() {
         renderer.resize(width, height);
     }
+}
+
+#[tauri::command]
+pub fn set_debug_view(debug_view: u32, state: State<AppState>) -> Result<(), String> {
+    if debug_view > DEBUG_VIEW_MAX {
+        return Err(format!("Unsupported debug view: {debug_view}"));
+    }
+
+    let mut renderer_lock = state.renderer.lock().unwrap();
+
+    if let Some(renderer) = renderer_lock.as_mut() {
+        renderer.update_debug_view(debug_view);
+        renderer.render();
+
+        return Ok(());
+    }
+
+    Err("Renderer not initialized".to_string())
 }
 
 #[tauri::command]

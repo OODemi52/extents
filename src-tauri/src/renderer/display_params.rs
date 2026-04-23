@@ -10,7 +10,8 @@ use wgpu::util::DeviceExt;
 pub struct DisplayParamsUniforms {
     pub exposure_ev: f32,
     pub display_render_intent: u32,
-    pub _padding: [u32; 2],
+    pub debug_view: u32,
+    pub _padding: u32,
 }
 
 impl Default for DisplayParamsUniforms {
@@ -18,7 +19,8 @@ impl Default for DisplayParamsUniforms {
         Self {
             exposure_ev: 0.0,
             display_render_intent: 0,
-            _padding: [0, 0],
+            debug_view: 0,
+            _padding: 0,
         }
     }
 }
@@ -26,11 +28,16 @@ impl Default for DisplayParamsUniforms {
 impl DisplayParamsUniforms {
     /// Builds a shader-facing display-parameter snapshot from the current recipe
     /// and the image-derived display render intent.
-    pub fn from_recipe_and_intent(recipe: &EditRecipe, display_render_intent: u32) -> Self {
+    pub fn from_recipe_intent_and_debug_view(
+        recipe: &EditRecipe,
+        display_render_intent: u32,
+        debug_view: u32,
+    ) -> Self {
         Self {
             exposure_ev: recipe.exposure_ev,
             display_render_intent,
-            _padding: [0, 0],
+            debug_view,
+            _padding: 0,
         }
     }
 }
