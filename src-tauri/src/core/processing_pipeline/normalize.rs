@@ -133,8 +133,6 @@ fn normalize_decoded_raw(raw: DecodedRawImage) -> Result<ProcessingPipelineImage
             ProcessingStep::Rescale,
             ProcessingStep::Demosaic,
             ProcessingStep::CropActiveArea,
-            ProcessingStep::WhiteBalance,
-            ProcessingStep::Calibrate, // Need to investigate so that we can ensure we're not clipping highlights unneccesarily
             ProcessingStep::CropDefault,
         ],
     };
