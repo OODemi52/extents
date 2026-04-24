@@ -1,4 +1,5 @@
 mod develop;
+mod types;
 
 use anyhow::{anyhow, Result};
 use rawler::imgop::develop::Intermediate;
