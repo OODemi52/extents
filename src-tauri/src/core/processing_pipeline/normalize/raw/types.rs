@@ -27,7 +27,10 @@ impl CameraRgbImage {
     /// Returns an error if the provided pixel buffer length does not match the
     /// number of pixels implied by `dimensions`.
     pub fn new(dimensions: ImageDimensions, pixels: Vec<CameraRgbPixel>) -> Result<Self> {
-        let expected_pixel_count = dimensions.pixel_count()?;
+        let expected_pixel_count = match dimensions.pixel_count() {
+            Ok(expected_pixel_count) => expected_pixel_count,
+            Err(error) => return Err(error),
+        };
 
         if pixels.len() != expected_pixel_count {
             bail!(
@@ -49,6 +52,60 @@ impl CameraRgbImage {
     /// Returns the camera-space RGB pixels as a mutable slice.
     pub fn pixels_mut(&mut self) -> &mut [CameraRgbPixel] {
         &mut self.pixels
+    }
+
+    /// Returns the image dimensions.
+    pub fn dimensions(&self) -> &ImageDimensions {
+        &self.dimensions
+    }
+}
+
+/// A single linear sRGB pixel produced by app-owned RAW calibration.
+///
+/// These channel values are white-balanced and calibrated into a standard
+/// linear sRGB basis, but have not yet been converted into the pipeline
+/// working space.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct LinearSrgbPixel {
+    pub red: f32,
+    pub green: f32,
+    pub blue: f32,
+}
+
+/// A linear sRGB image produced during RAW normalization before working-space
+/// conversion.
+#[derive(Debug, Clone)]
+pub struct LinearSrgbImage {
+    dimensions: ImageDimensions,
+    pixels: Vec<LinearSrgbPixel>,
+}
+
+impl LinearSrgbImage {
+    /// Creates a validated linear sRGB image.
+    ///
+    /// Returns an error if the provided pixel buffer length does not match the
+    /// number of pixels implied by `dimensions`.
+    pub fn new(dimensions: ImageDimensions, pixels: Vec<LinearSrgbPixel>) -> Result<Self> {
+        let expected_pixel_count = match dimensions.pixel_count() {
+            Ok(expected_pixel_count) => expected_pixel_count,
+            Err(error) => return Err(error),
+        };
+
+        if pixels.len() != expected_pixel_count {
+            bail!(
+                "linear sRGB image pixel count {} does not match dimensions {}x{}",
+                pixels.len(),
+                dimensions.width(),
+                dimensions.height()
+            );
+        }
+
+        Ok(Self { dimensions, pixels })
+    }
+
+    /// Returns the linear sRGB pixels as a read-only slice.
+    pub fn pixels(&self) -> &[LinearSrgbPixel] {
+        &self.pixels
     }
 
     /// Returns the image dimensions.
