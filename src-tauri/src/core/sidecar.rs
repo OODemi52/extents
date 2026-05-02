@@ -162,7 +162,6 @@ impl Sidecar {
             recipe: self.recipe.clone(),
         })
     }
-
 }
 
 /// Loads a sibling `.exts` sidecar file for an image path.

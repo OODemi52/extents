@@ -10,7 +10,7 @@ use rawler::imgop::develop::RawDevelop;
 use tokio::sync::Semaphore;
 
 use crate::core::image::orientation::{
-    apply_orientation, resolve_raw_file_orientation, resolve_raster_file_orientation, Orientation,
+    apply_orientation, resolve_raster_file_orientation, resolve_raw_file_orientation, Orientation,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -203,9 +203,11 @@ fn apply_orientation_to_rgba(image: RgbaImage, orientation: Orientation) -> Resu
     let (oriented_pixels, oriented_width, oriented_height) =
         apply_orientation(pixels, width, height, orientation)?;
 
-    Ok(RgbaImage::from_fn(oriented_width, oriented_height, |x, y| {
-        oriented_pixels[((y * oriented_width) + x) as usize]
-    }))
+    Ok(RgbaImage::from_fn(
+        oriented_width,
+        oriented_height,
+        |x, y| oriented_pixels[((y * oriented_width) + x) as usize],
+    ))
 }
 
 fn decode_raw_file(path: &str) -> Result<RgbaImage> {
