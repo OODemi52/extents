@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.0](https://github.com/OODemi52/extents/compare/Extents-v0.0.4...Extents-v0.1.0) (2026-05-02)
+
+
+### New Features
+
+* move raw white balance and camera calibration into app-owned development path ([d059999](https://github.com/OODemi52/extents/commit/d059999fe5529ea7380b5caa477cda174ff65abe))
+
+
+### Bug Fixes
+
+* apply soft knee to exposure math in shader ([46f8f72](https://github.com/OODemi52/extents/commit/46f8f721f850ae875d22a51f73e99aed2380cd54))
+* preserve headroom in RAW color development ([4bf1dea](https://github.com/OODemi52/extents/commit/4bf1deacd607e52c86a02bdc714019d9b84bcf93))
+* preserve headroom in RAW color development ([e81ba2a](https://github.com/OODemi52/extents/commit/e81ba2a93a66631172387d6bcdd1bc838d952056))
+* removed calibrate and wb step from rawler pipeline ([e9a6c44](https://github.com/OODemi52/extents/commit/e9a6c442562ba240674a20510584e72ecebb34b7))
+
 ## [0.0.4](https://github.com/OODemi52/extents/compare/Extents-v0.0.3...Extents-v0.0.4) (2026-04-17)
 
 
