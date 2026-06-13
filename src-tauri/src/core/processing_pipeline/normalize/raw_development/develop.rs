@@ -3,6 +3,9 @@ use rawler::imgop::develop::{Intermediate, ProcessingStep, RawDevelop};
 use rawler::RawImage;
 
 use super::color_transform::build_raw_color_transform;
+use super::highlight_reconstruction::{
+    build_raw_highlight_mask, reconstruct_working_space_highlight,
+};
 use super::types::{CameraSpaceRgbImage, CameraSpaceRgbPixel};
 use crate::core::processing_pipeline::types::{ImageDimensions, RgbPixel, WorkingImage};
 
@@ -15,6 +18,11 @@ use crate::core::processing_pipeline::types::{ImageDimensions, RgbPixel, Working
 pub(in crate::core::processing_pipeline::normalize) fn develop_working_image(
     raw_image: &RawImage,
 ) -> Result<WorkingImage> {
+    let highlight_mask = match build_raw_highlight_mask(raw_image) {
+        Ok(highlight_mask) => highlight_mask,
+        Err(error) => return Err(error),
+    };
+
     let camera_space_rgb_image = match develop_camera_space_rgb_image(raw_image) {
         Ok(camera_space_rgb_image) => camera_space_rgb_image,
         Err(error) => return Err(error),
@@ -27,12 +35,32 @@ pub(in crate::core::processing_pipeline::normalize) fn develop_working_image(
 
     let dimensions = *camera_space_rgb_image.dimensions();
 
+    if let Some(highlight_mask) = &highlight_mask {
+        if highlight_mask.dimensions() != &dimensions {
+            return Err(anyhow!(
+                "raw highlight mask dimensions {}x{} do not match camera-space image dimensions {}x{}",
+                highlight_mask.dimensions().width(),
+                highlight_mask.dimensions().height(),
+                dimensions.width(),
+                dimensions.height()
+            ));
+        }
+    }
+
     let mut pixels = Vec::with_capacity(camera_space_rgb_image.pixels().len());
 
-    for pixel in camera_space_rgb_image.pixels() {
+    for (index, pixel) in camera_space_rgb_image.pixels().iter().enumerate() {
         let working_space_pixel = color_transform.apply_to_camera_space_rgb(*pixel);
+        let working_space_pixel = clip_negative_values(working_space_pixel);
+        let working_space_pixel = match &highlight_mask {
+            Some(highlight_mask) => reconstruct_working_space_highlight(
+                working_space_pixel,
+                highlight_mask.samples()[index],
+            ),
+            None => working_space_pixel,
+        };
 
-        pixels.push(clip_negative_values(working_space_pixel));
+        pixels.push(working_space_pixel);
     }
 
     WorkingImage::new(dimensions, pixels)
