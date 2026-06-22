@@ -5,6 +5,7 @@ use super::texture::TextureManager;
 use super::transform::TransformBuffer;
 use super::vertex::VertexBuffer;
 use super::viewport::Viewport;
+use anyhow::{Context, Result};
 use log::{error, info};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -44,16 +45,25 @@ pub struct Renderer<'a> {
 }
 
 impl<'a> Renderer<'a> {
-    pub fn new(window: &'a WebviewWindow) -> Self {
-        let window_size = window.inner_size().unwrap();
+    pub fn new(window: &'a WebviewWindow) -> Result<Self> {
+        let window_size = match window
+            .inner_size()
+            .context("failed to read renderer window size")
+        {
+            Ok(window_size) => window_size,
+            Err(error) => return Err(error),
+        };
 
-        let context = RenderContext::new(window);
+        let context = match RenderContext::new(window) {
+            Ok(context) => context,
+            Err(error) => return Err(error),
+        };
 
-        let pipeline = RenderPipeline::new(&context.device, context.config.format);
+        let pipeline = RenderPipeline::new(&context.gpu.device, context.surface.format());
 
-        let vertex_buffer = VertexBuffer::new(&context.device);
+        let vertex_buffer = VertexBuffer::new(&context.gpu.device);
 
-        let texture_manager = TextureManager::new(&context.device, &context.queue);
+        let texture_manager = TextureManager::new(&context.gpu.device, &context.gpu.queue);
 
         let viewport = Mutex::new(Viewport::new(0, 0, window_size.width, window_size.height));
 
@@ -61,12 +71,12 @@ impl<'a> Renderer<'a> {
 
         let last_render = Instant::now();
 
-        let transform_buffer = TransformBuffer::new(&context.device);
-        let display_params_buffer = DisplayParamsBuffer::new(&context.device);
+        let transform_buffer = TransformBuffer::new(&context.gpu.device);
+        let display_params_buffer = DisplayParamsBuffer::new(&context.gpu.device);
         let current_display_params = DisplayParamsUniforms::default();
 
         let bind_group = pipeline.create_bind_group(
-            &context.device,
+            &context.gpu.device,
             texture_manager.view(),
             transform_buffer.as_entire_binding(),
             display_params_buffer.as_entire_binding(),
@@ -99,7 +109,7 @@ impl<'a> Renderer<'a> {
 
         renderer.update_vertices();
 
-        renderer
+        Ok(renderer)
     }
 
     pub fn begin_image_request(&mut self) -> u64 {
@@ -137,9 +147,9 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn update_vertices(&mut self) {
-        let window_width = self.context.config.width;
+        let window_width = self.context.surface.width();
 
-        let window_height = self.context.config.height;
+        let window_height = self.context.surface.height();
 
         if window_width == 0
             || window_height == 0
@@ -156,7 +166,7 @@ impl<'a> Renderer<'a> {
         }
 
         let (scale_x, scale_y) = self.vertex_buffer.update_for_aspect_ratio(
-            &self.context.queue,
+            &self.context.gpu.queue,
             window_width,
             window_height,
             self.texture_manager.width,
@@ -182,15 +192,15 @@ impl<'a> Renderer<'a> {
         self.has_image = true;
 
         self.texture_manager.update(
-            &self.context.device,
-            &self.context.queue,
+            &self.context.gpu.device,
+            &self.context.gpu.queue,
             texels,
             width,
             height,
         );
 
         self.bind_group = self.pipeline.create_bind_group(
-            &self.context.device,
+            &self.context.gpu.device,
             self.texture_manager.view(),
             self.transform_buffer.as_entire_binding(),
             self.display_params_buffer.as_entire_binding(),
@@ -203,7 +213,7 @@ impl<'a> Renderer<'a> {
         self.current_display_params = uniforms;
 
         self.display_params_buffer
-            .update(&self.context.queue, uniforms);
+            .update(&self.context.gpu.queue, uniforms);
     }
 
     /// Returns the currently active shader display-render intent.
@@ -291,7 +301,7 @@ impl<'a> Renderer<'a> {
             return;
         }
 
-        let output = match self.context.surface.get_current_texture() {
+        let output = match self.context.surface.current_texture() {
             Ok(texture) => texture,
 
             Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
@@ -310,6 +320,7 @@ impl<'a> Renderer<'a> {
 
         let mut encoder =
             self.context
+                .gpu
                 .device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                     label: Some("Render Encoder"),
@@ -341,8 +352,8 @@ impl<'a> Renderer<'a> {
             render_pass.set_viewport(
                 0.0,
                 0.0,
-                self.context.config.width as f32,
-                self.context.config.height as f32,
+                self.context.surface.width() as f32,
+                self.context.surface.height() as f32,
                 0.0,
                 1.0,
             );
@@ -358,7 +369,10 @@ impl<'a> Renderer<'a> {
             }
         }
 
-        self.context.queue.submit(std::iter::once(encoder.finish()));
+        self.context
+            .gpu
+            .queue
+            .submit(std::iter::once(encoder.finish()));
 
         output.present();
 
@@ -375,13 +389,13 @@ impl<'a> Renderer<'a> {
     }
 
     fn apply_transform_with_viewport(&mut self, viewport: &Viewport) {
-        if self.context.config.width == 0 || self.context.config.height == 0 {
+        if self.context.surface.width() == 0 || self.context.surface.height() == 0 {
             return;
         }
 
-        let window_width = self.context.config.width as f32;
+        let window_width = self.context.surface.width() as f32;
 
-        let window_height = self.context.config.height as f32;
+        let window_height = self.context.surface.height() as f32;
 
         let viewport_center_x = viewport.x as f32 + viewport.width as f32 / 2.0;
 
@@ -402,7 +416,7 @@ impl<'a> Renderer<'a> {
         let offset_y = ndc_center_y + self.pending_offset_y * viewport_fraction_y;
 
         self.transform_buffer.update(
-            &self.context.queue,
+            &self.context.gpu.queue,
             combined_scale,
             offset_x,
             offset_y,
@@ -411,17 +425,17 @@ impl<'a> Renderer<'a> {
     }
 
     fn compute_fit_scale(&self, viewport: &Viewport) -> f32 {
-        if self.context.config.width == 0
-            || self.context.config.height == 0
+        if self.context.surface.width() == 0
+            || self.context.surface.height() == 0
             || viewport.width == 0
             || viewport.height == 0
         {
             return 1.0;
         }
 
-        let window_width = self.context.config.width as f32;
+        let window_width = self.context.surface.width() as f32;
 
-        let window_height = self.context.config.height as f32;
+        let window_height = self.context.surface.height() as f32;
 
         let scale_from_width =
             (viewport.width as f32 / window_width) / self.vertex_scale_x.max(f32::EPSILON);

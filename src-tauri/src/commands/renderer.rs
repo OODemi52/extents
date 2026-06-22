@@ -12,11 +12,11 @@ use tauri::{State, WebviewWindow};
 const DEBUG_VIEW_MAX: u32 = 11;
 
 #[tauri::command]
-pub fn init_renderer(state: State<AppState>) {
+pub fn init_renderer(state: State<AppState>) -> Result<(), String> {
     let mut renderer_lock = state.renderer.lock().unwrap();
     if renderer_lock.is_some() {
         warn!("Renderer already initialized.");
-        return;
+        return Ok(());
     }
 
     info!("Initializing renderer...");
@@ -28,9 +28,16 @@ pub fn init_renderer(state: State<AppState>) {
     // 3. We never access the window after the app is closed
     let window_ref: &'static WebviewWindow = unsafe { std::mem::transmute(&state.window) };
 
-    *renderer_lock = Some(Renderer::new(window_ref));
+    let mut renderer = match Renderer::new(window_ref) {
+        Ok(renderer) => renderer,
+        Err(error) => return Err(error.to_string()),
+    };
 
-    renderer_lock.as_mut().unwrap().render();
+    renderer.render();
+
+    *renderer_lock = Some(renderer);
+
+    Ok(())
 }
 
 #[tauri::command]
