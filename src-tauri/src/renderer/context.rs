@@ -49,8 +49,8 @@ impl GpuContext {
 /// This context owns only the swapchain-facing surface and its configuration.
 /// General GPU work should use `GpuContext` instead.
 pub struct SurfaceContext<'a> {
-    pub surface: wgpu::Surface<'a>,
-    pub config: wgpu::SurfaceConfiguration,
+    surface: wgpu::Surface<'a>,
+    config: wgpu::SurfaceConfiguration,
 }
 
 impl<'a> SurfaceContext<'a> {
@@ -115,6 +115,26 @@ impl<'a> SurfaceContext<'a> {
         Ok(Self { surface, config })
     }
 
+    /// Returns the texture format used by the window surface.
+    pub fn format(&self) -> wgpu::TextureFormat {
+        self.config.format
+    }
+
+    /// Returns the current configured surface width.
+    pub fn width(&self) -> u32 {
+        self.config.width
+    }
+
+    /// Returns the current configured surface height.
+    pub fn height(&self) -> u32 {
+        self.config.height
+    }
+
+    /// Acquires the next drawable surface texture from the presentation chain.
+    pub fn current_texture(&self) -> Result<wgpu::SurfaceTexture, wgpu::SurfaceError> {
+        self.surface.get_current_texture()
+    }
+
     /// Reconfigures the presentation surface after a non-zero window resize.
     pub fn resize(&mut self, gpu: &GpuContext, width: u32, height: u32) {
         if width > 0 && height > 0 {
@@ -124,33 +144,5 @@ impl<'a> SurfaceContext<'a> {
 
             self.surface.configure(&gpu.device, &self.config);
         }
-    }
-}
-
-/// Renderer-facing context that groups shared GPU state with window presentation state.
-pub struct RenderContext<'a> {
-    pub gpu: GpuContext,
-    pub surface: SurfaceContext<'a>,
-}
-
-impl<'a> RenderContext<'a> {
-    /// Creates all GPU and surface state needed by the current window renderer.
-    pub fn new(window: &'a WebviewWindow) -> Result<Self> {
-        let gpu = match GpuContext::new() {
-            Ok(gpu) => gpu,
-            Err(error) => return Err(error),
-        };
-
-        let surface = match SurfaceContext::new(window, &gpu) {
-            Ok(surface) => surface,
-            Err(error) => return Err(error),
-        };
-
-        Ok(Self { gpu, surface })
-    }
-
-    /// Resizes the window presentation surface.
-    pub fn resize(&mut self, width: u32, height: u32) {
-        self.surface.resize(&self.gpu, width, height);
     }
 }
