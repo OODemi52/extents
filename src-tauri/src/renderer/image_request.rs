@@ -2,17 +2,16 @@ use tauri::async_runtime::JoinHandle;
 
 /// Tracks asynchronous image-load request ownership for the renderer.
 ///
-/// This state decides which decode/upload request is currently allowed to
-/// update the displayed image and aborts stale background work when a newer
-/// request supersedes it.
-pub(super) struct ImageRequestState {
+/// This decides which decode/upload request is currently allowed to update the
+/// displayed image and aborts stale background work when a newer request supersedes it.
+pub(super) struct ImageRequest {
     pending_load: Option<JoinHandle<()>>,
     request_counter: u64,
     active_request_id: Option<u64>,
 }
 
-impl ImageRequestState {
-    /// Creates empty image request state with no active request.
+impl ImageRequest {
+    /// Creates an empty image request tracker with no active request.
     pub(super) fn new() -> Self {
         Self {
             pending_load: None,

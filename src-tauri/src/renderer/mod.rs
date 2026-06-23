@@ -1,13 +1,13 @@
 mod context;
 mod display_parameters;
 mod display_resources;
-mod image_request_state;
+mod image_request;
 mod pipeline;
 mod renderer;
 mod texture;
 mod transform;
 mod vertex;
-mod viewer_state;
+mod viewer;
 mod viewport;
 
 pub use context::GpuContext;

@@ -1,8 +1,8 @@
 use super::context::{GpuContext, SurfaceContext};
 use super::display_parameters::DisplayParameters;
 use super::display_resources::DisplayResources;
-use super::image_request_state::ImageRequestState;
-use super::viewer_state::ViewerState;
+use super::image_request::ImageRequest;
+use super::viewer::Viewer;
 use anyhow::{Context, Result};
 use log::{error, info};
 use std::time::{Duration, Instant};
@@ -20,8 +20,8 @@ pub struct Renderer {
     gpu: GpuContext,
     surface: SurfaceContext,
     display_resources: DisplayResources,
-    viewer_state: ViewerState,
-    image_request_state: ImageRequestState,
+    viewer: Viewer,
+    image_request: ImageRequest,
     pub render_state: RenderState,
     pub last_render: Instant,
     has_image: bool,
@@ -49,9 +49,9 @@ impl Renderer {
 
         let display_resources = DisplayResources::new(&gpu.device, &gpu.queue, surface.format());
 
-        let viewer_state = ViewerState::new(window_size.width, window_size.height);
+        let viewer = Viewer::new(window_size.width, window_size.height);
 
-        let image_request_state = ImageRequestState::new();
+        let image_request = ImageRequest::new();
 
         let render_state = RenderState::Idle;
 
@@ -61,8 +61,8 @@ impl Renderer {
             gpu,
             surface,
             display_resources,
-            viewer_state,
-            image_request_state,
+            viewer,
+            image_request,
             render_state,
             last_render,
             has_image: false,
@@ -74,20 +74,19 @@ impl Renderer {
     }
 
     pub fn begin_image_request(&mut self) -> u64 {
-        self.image_request_state.begin_request()
+        self.image_request.begin_request()
     }
 
     pub fn attach_load_handle(&mut self, request_id: u64, handle: JoinHandle<()>) {
-        self.image_request_state
-            .attach_load_handle(request_id, handle);
+        self.image_request.attach_load_handle(request_id, handle);
     }
 
     pub fn complete_image_request(&mut self, request_id: u64) {
-        self.image_request_state.complete_request(request_id);
+        self.image_request.complete_request(request_id);
     }
 
     pub fn is_request_active(&self, request_id: u64) -> bool {
-        self.image_request_state.is_request_active(request_id)
+        self.image_request.is_request_active(request_id)
     }
 
     pub fn update_vertices(&mut self) {
@@ -103,7 +102,7 @@ impl Renderer {
             return;
         }
 
-        if !self.viewer_state.has_valid_viewport() {
+        if !self.viewer.has_valid_viewport() {
             return;
         }
 
@@ -113,10 +112,9 @@ impl Renderer {
             window_height,
         );
 
-        self.viewer_state.update_image_quad_scale(scale_x, scale_y);
+        self.viewer.update_image_quad_scale(scale_x, scale_y);
 
-        self.viewer_state
-            .update_fit_scale(window_width, window_height);
+        self.viewer.update_fit_scale(window_width, window_height);
 
         self.apply_transform();
     }
@@ -171,7 +169,7 @@ impl Renderer {
     }
 
     pub fn clear(&mut self) {
-        self.image_request_state.clear();
+        self.image_request.clear();
 
         self.has_image = false;
 
@@ -179,14 +177,13 @@ impl Renderer {
     }
 
     pub fn update_transform(&mut self, scale: f32, offset_x: f32, offset_y: f32) {
-        self.viewer_state
-            .update_user_transform(scale, offset_x, offset_y);
+        self.viewer.update_user_transform(scale, offset_x, offset_y);
 
         self.apply_transform();
     }
 
     pub fn display_checkboard(&mut self, enabled: bool) {
-        if !self.viewer_state.set_checkerboard_enabled(enabled) {
+        if !self.viewer.set_checkerboard_enabled(enabled) {
             return;
         }
 
@@ -194,7 +191,7 @@ impl Renderer {
     }
 
     pub fn update_proxy_viewport(&mut self, x: f32, y: f32, width: f32, height: f32) {
-        self.viewer_state.update_viewport(x, y, width, height);
+        self.viewer.update_viewport(x, y, width, height);
     }
 
     pub fn should_render(&self) -> bool {
@@ -282,7 +279,7 @@ impl Renderer {
 
     fn apply_transform(&mut self) {
         let Some(transform) = self
-            .viewer_state
+            .viewer
             .transform_for_surface(self.surface.width(), self.surface.height())
         else {
             return;

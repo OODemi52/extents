@@ -1,6 +1,6 @@
 use super::viewport::Viewport;
 
-/// Shader transform values derived from the current viewer state.
+/// Shader transform values derived from the current viewer.
 ///
 /// This is the CPU-side shape passed into the display transform uniform after
 /// viewport placement, fit scale, user pan/zoom, and checkerboard state are resolved.
@@ -11,12 +11,12 @@ pub(super) struct ViewerTransform {
     pub(super) checkerboard_enabled: f32,
 }
 
-/// Interactive image-view state independent of GPU resource ownership.
+/// Interactive image-view model independent of GPU resource ownership.
 ///
-/// The viewer state tracks the logical interaction viewport, user pan/zoom
-/// values, image fit scale, and display-only toggles. It can then derive the
-/// normalized transform values consumed by the display shader.
-pub(super) struct ViewerState {
+/// The viewer tracks the logical interaction viewport, user pan/zoom values,
+/// image fit scale, and display-only toggles. It can then derive the normalized
+/// transform values consumed by the display shader.
+pub(super) struct Viewer {
     viewport: Viewport,
     user_scale: f32,
     user_offset_x: f32,
@@ -27,8 +27,8 @@ pub(super) struct ViewerState {
     fit_scale: f32,
 }
 
-impl ViewerState {
-    /// Creates viewer state with a viewport matching the initial window size.
+impl Viewer {
+    /// Creates a viewer with a viewport matching the initial window size.
     pub(super) fn new(window_width: u32, window_height: u32) -> Self {
         Self {
             viewport: Viewport::new(0, 0, window_width, window_height),
