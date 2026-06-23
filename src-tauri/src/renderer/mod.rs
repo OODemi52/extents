@@ -1,6 +1,7 @@
 mod context;
 mod display_parameters;
 mod display_resources;
+mod image_load;
 mod image_request;
 mod pipeline;
 mod renderer;
@@ -15,6 +16,7 @@ pub use context::GpuContext;
 pub use context::SurfaceContext;
 pub use display_parameters::DisplayParameters;
 pub use display_parameters::DisplayParametersBuffer;
+pub(crate) use image_load::spawn_full_image_load;
 pub use renderer::RenderState;
 pub use renderer::Renderer;
 pub(crate) use renderer_input::{

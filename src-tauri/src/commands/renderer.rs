@@ -1,10 +1,9 @@
 use crate::renderer::{
-    build_renderer_input_from_path, set_renderer_input, set_renderer_input_from_path, RenderState,
-    Renderer,
+    build_renderer_input_from_path, set_renderer_input, set_renderer_input_from_path,
+    spawn_full_image_load, RenderState, Renderer,
 };
 use crate::state::AppState;
-use log::{error, info, warn};
-use std::sync::Arc;
+use log::{info, warn};
 use std::time::Instant;
 use tauri::async_runtime;
 use tauri::State;
@@ -154,67 +153,6 @@ pub fn start_full_image_load(
     spawn_full_image_load(path, request_id, renderer_handle);
 
     Ok(())
-}
-
-// TODO: Move full-image task orchestration behind a renderer/session boundary.
-fn spawn_full_image_load(
-    path: String,
-    request_id: u64,
-    renderer_handle: Arc<std::sync::Mutex<Option<Renderer>>>,
-) {
-    let renderer_for_task = renderer_handle.clone();
-    let cloned_path_for_logging = path.clone();
-    info!(
-        "[CMD] Starting full decode request {} path {}",
-        request_id, cloned_path_for_logging
-    );
-
-    let join_handle = async_runtime::spawn(async move {
-        let renderer_input_result =
-            async_runtime::spawn_blocking(move || build_renderer_input_from_path(&path)).await;
-
-        match renderer_input_result {
-            Ok(Ok(renderer_input)) => {
-                let mut renderer_lock = renderer_for_task.lock().unwrap();
-
-                if let Some(renderer) = renderer_lock.as_mut() {
-                    if renderer.is_request_active(request_id) {
-                        set_renderer_input(renderer, renderer_input);
-                        renderer.render();
-                        renderer.complete_image_request(request_id);
-                    }
-                }
-            }
-            Ok(Err(err)) => {
-                error!(
-                    "[CMD] Failed to decode full image {}: {}",
-                    cloned_path_for_logging,
-                    err.to_string()
-                );
-
-                let mut renderer_lock = renderer_for_task.lock().unwrap();
-                if let Some(renderer) = renderer_lock.as_mut() {
-                    renderer.complete_image_request(request_id);
-                }
-            }
-            Err(join_err) => {
-                error!(
-                    "[CMD] Image decode task panicked for {}: {:?}",
-                    cloned_path_for_logging, join_err
-                );
-
-                let mut renderer_lock = renderer_for_task.lock().unwrap();
-                if let Some(renderer) = renderer_lock.as_mut() {
-                    renderer.complete_image_request(request_id);
-                }
-            }
-        }
-    });
-
-    let mut renderer_lock = renderer_handle.lock().unwrap();
-    if let Some(renderer) = renderer_lock.as_mut() {
-        renderer.attach_load_handle(request_id, join_handle);
-    }
 }
 
 #[tauri::command]
