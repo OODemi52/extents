@@ -1,11 +1,10 @@
 use crate::renderer::{
-    build_renderer_input_from_path, set_renderer_input, set_renderer_input_from_path,
-    spawn_full_image_load, RenderState, Renderer,
+    set_requested_renderer_input_from_path, spawn_full_image_load, swap_requested_renderer_input,
+    RenderState, Renderer,
 };
 use crate::state::AppState;
 use log::{info, warn};
 use std::time::Instant;
-use tauri::async_runtime;
 use tauri::State;
 
 const DEBUG_VIEW_MAX: u32 = 11;
@@ -94,22 +93,19 @@ pub fn load_image(
                 request_id, defer_full, preview_label
             );
 
-            if let Some(preview_path) = preview_path {
-                if let Err(err) = set_renderer_input_from_path(renderer, &preview_path) {
-                    warn!(
-                        "[CMD] Failed to load preview texture from {}: {}",
-                        preview_path, err
-                    );
-                } else {
-                    renderer.render();
-                }
-            }
-
             request_id
         } else {
             return Err("Renderer not initialized".to_string());
         }
     };
+
+    if let Some(preview_path) = preview_path {
+        if let Err(error) =
+            set_requested_renderer_input_from_path(&preview_path, request_id, &renderer_handle)
+        {
+            warn!("[CMD] Failed to load preview texture from {preview_path}: {error}");
+        }
+    }
 
     if !defer_full {
         spawn_full_image_load(path, request_id, renderer_handle.clone());
@@ -167,27 +163,7 @@ pub async fn swap_requested_texture(
     );
     let renderer_handle = state.renderer.clone();
 
-    let renderer_input_result =
-        async_runtime::spawn_blocking(move || build_renderer_input_from_path(&path)).await;
-
-    match renderer_input_result {
-        Ok(Ok(renderer_input)) => {
-            let mut renderer_lock = renderer_handle.lock().unwrap();
-            if let Some(renderer) = renderer_lock.as_mut() {
-                if renderer.is_request_active(request_id) {
-                    set_renderer_input(renderer, renderer_input);
-                    renderer.render();
-                }
-            }
-
-            Ok(())
-        }
-        Ok(Err(err)) => Err(err.to_string()),
-        Err(join_err) => Err(format!(
-            "Proxy texture decode task panicked: {:?}",
-            join_err
-        )),
-    }
+    swap_requested_renderer_input(path, request_id, renderer_handle).await
 }
 
 #[tauri::command]

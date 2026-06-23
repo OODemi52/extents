@@ -16,11 +16,10 @@ pub use context::GpuContext;
 pub use context::SurfaceContext;
 pub use display_parameters::DisplayParameters;
 pub use display_parameters::DisplayParametersBuffer;
-pub(crate) use image_load::spawn_full_image_load;
+pub(crate) use image_load::{
+    set_requested_renderer_input_from_path, spawn_full_image_load, swap_requested_renderer_input,
+};
 pub use renderer::RenderState;
 pub use renderer::Renderer;
-pub(crate) use renderer_input::{
-    build_renderer_input_from_path, set_renderer_input, set_renderer_input_from_path,
-};
 pub use vertex::Vertex;
 pub use viewport::Viewport;

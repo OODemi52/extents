@@ -10,13 +10,13 @@ use crate::core::processing_pipeline::{
 ///
 /// This keeps the CPU-side image upload payload together with the shader-facing
 /// display intent needed when the input is set on the live renderer.
-pub(crate) struct RendererInput {
+pub(super) struct RendererInput {
     image: RendererInputImage,
     display_render_intent: u32,
 }
 
 /// Builds renderer-ready image data from a source image path.
-pub(crate) fn build_renderer_input_from_path(path: &str) -> Result<RendererInput> {
+pub(super) fn build_renderer_input_from_path(path: &str) -> Result<RendererInput> {
     let processing_pipeline_image = match ingest_from_path(path) {
         Ok(processing_pipeline_image) => processing_pipeline_image,
         Err(error) => return Err(error),
@@ -35,20 +35,8 @@ pub(crate) fn build_renderer_input_from_path(path: &str) -> Result<RendererInput
     })
 }
 
-/// Builds and applies renderer-ready image data from a source image path.
-pub(crate) fn set_renderer_input_from_path(renderer: &mut Renderer, path: &str) -> Result<()> {
-    let renderer_input = match build_renderer_input_from_path(path) {
-        Ok(renderer_input) => renderer_input,
-        Err(error) => return Err(error),
-    };
-
-    set_renderer_input(renderer, renderer_input);
-
-    Ok(())
-}
-
 /// Sets renderer input as the live renderer image.
-pub(crate) fn set_renderer_input(renderer: &mut Renderer, renderer_input: RendererInput) {
+pub(super) fn set_renderer_input(renderer: &mut Renderer, renderer_input: RendererInput) {
     renderer.display_checkboard(renderer_input.image.has_transparency());
     renderer.update_display_render_intent(renderer_input.display_render_intent);
     renderer.update_texture(

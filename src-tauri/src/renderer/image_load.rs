@@ -4,7 +4,49 @@ use log::{error, info};
 use tauri::async_runtime;
 
 use super::renderer::Renderer;
+use super::renderer_input::RendererInput;
 use super::renderer_input::{build_renderer_input_from_path, set_renderer_input};
+
+/// Builds renderer input from a path and sets it only if the request is still active.
+pub(crate) fn set_requested_renderer_input_from_path(
+    path: &str,
+    request_id: u64,
+    renderer_handle: &Arc<Mutex<Option<Renderer>>>,
+) -> Result<(), String> {
+    let renderer_input = match build_renderer_input_from_path(path) {
+        Ok(renderer_input) => renderer_input,
+        Err(error) => return Err(error.to_string()),
+    };
+
+    set_renderer_input_for_active_request(renderer_handle, request_id, renderer_input);
+
+    Ok(())
+}
+
+/// Builds and swaps a requested proxy renderer input if the request is still active.
+pub(crate) async fn swap_requested_renderer_input(
+    path: String,
+    request_id: u64,
+    renderer_handle: Arc<Mutex<Option<Renderer>>>,
+) -> Result<(), String> {
+    let renderer_input_result =
+        async_runtime::spawn_blocking(move || build_renderer_input_from_path(&path)).await;
+
+    let renderer_input = match renderer_input_result {
+        Ok(Ok(renderer_input)) => renderer_input,
+        Ok(Err(error)) => return Err(error.to_string()),
+        Err(join_error) => {
+            return Err(format!(
+                "Proxy texture decode task panicked: {:?}",
+                join_error
+            ));
+        }
+    };
+
+    set_renderer_input_for_active_request(&renderer_handle, request_id, renderer_input);
+
+    Ok(())
+}
 
 /// Spawns a full-image load task and applies it if the request is still active.
 ///
@@ -69,5 +111,20 @@ pub(crate) fn spawn_full_image_load(
     let mut renderer_lock = renderer_handle.lock().unwrap();
     if let Some(renderer) = renderer_lock.as_mut() {
         renderer.attach_load_handle(request_id, join_handle);
+    }
+}
+
+fn set_renderer_input_for_active_request(
+    renderer_handle: &Arc<Mutex<Option<Renderer>>>,
+    request_id: u64,
+    renderer_input: RendererInput,
+) {
+    let mut renderer_lock = renderer_handle.lock().unwrap();
+
+    if let Some(renderer) = renderer_lock.as_mut() {
+        if renderer.is_request_active(request_id) {
+            set_renderer_input(renderer, renderer_input);
+            renderer.render();
+        }
     }
 }
