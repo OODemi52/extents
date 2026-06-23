@@ -4,6 +4,7 @@ mod display_resources;
 mod image_request;
 mod pipeline;
 mod renderer;
+mod renderer_input;
 mod texture;
 mod transform;
 mod vertex;
@@ -16,5 +17,8 @@ pub use display_parameters::DisplayParameters;
 pub use display_parameters::DisplayParametersBuffer;
 pub use renderer::RenderState;
 pub use renderer::Renderer;
+pub(crate) use renderer_input::{
+    build_renderer_input_from_path, set_renderer_input, set_renderer_input_from_path,
+};
 pub use vertex::Vertex;
 pub use viewport::Viewport;

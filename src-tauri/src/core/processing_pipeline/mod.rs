@@ -6,5 +6,5 @@ mod output;
 pub mod types;
 
 pub use ingest::ingest_from_path;
-pub use output::{build_render_input, RenderInputImage};
+pub use output::{build_renderer_input_image, RendererInputImage};
 pub use types::{AlphaPlane, ImageDimensions, ProcessingPipelineImage, RgbPixel, WorkingImage};

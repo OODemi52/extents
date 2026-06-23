@@ -3,16 +3,16 @@ use anyhow::Result;
 use super::types::{DisplayRenderIntent, ProcessingPipelineImage};
 use crate::core::processing_pipeline::types::ImageDimensions;
 
-/// Packed working-image texels prepared for live renderer upload.
+/// Packed working-image texels built for live renderer upload.
 #[derive(Debug, Clone)]
-pub struct RenderInputImage {
+pub struct RendererInputImage {
     texels: Vec<f32>,
     dimensions: ImageDimensions,
     display_render_intent: DisplayRenderIntent,
     has_transparency: bool,
 }
 
-impl RenderInputImage {
+impl RendererInputImage {
     /// Returns the packed working-image texels as a read-only slice.
     pub fn texels(&self) -> &[f32] {
         &self.texels
@@ -35,7 +35,7 @@ impl RenderInputImage {
 }
 
 /// Builds a renderer-facing working-image upload payload from a canonical pipeline image.
-pub fn build_render_input(image: &ProcessingPipelineImage) -> Result<RenderInputImage> {
+pub fn build_renderer_input_image(image: &ProcessingPipelineImage) -> Result<RendererInputImage> {
     let dimensions = *image.dimensions();
     let pixel_count = dimensions.pixel_count()?;
 
@@ -61,7 +61,7 @@ pub fn build_render_input(image: &ProcessingPipelineImage) -> Result<RenderInput
         texels.push(alpha);
     }
 
-    Ok(RenderInputImage {
+    Ok(RendererInputImage {
         texels,
         dimensions,
         display_render_intent: image.display_render_intent(),
