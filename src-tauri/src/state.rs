@@ -1,11 +1,11 @@
 use crate::core::db::connection::DbConnection;
-use crate::renderer::Renderer;
+use crate::renderer::{RendererManager, RendererManagerHandle};
 use std::sync::{Arc, Mutex};
 use tauri::{WebviewWindow, Wry};
 
 pub struct AppState {
     pub db: DbConnection,
-    pub renderer: Arc<Mutex<Option<Renderer>>>,
+    pub renderer_manager: RendererManagerHandle,
     pub window: WebviewWindow<Wry>,
 }
 
@@ -13,7 +13,7 @@ impl AppState {
     pub fn new(db: DbConnection, window: WebviewWindow<Wry>) -> Self {
         Self {
             db,
-            renderer: Arc::new(Mutex::new(None)),
+            renderer_manager: Arc::new(Mutex::new(RendererManager::new())),
             window,
         }
     }

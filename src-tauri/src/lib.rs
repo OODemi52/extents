@@ -28,7 +28,16 @@ pub fn run() {
 
             app.manage(cache_manager);
 
-            let window = app.get_webview_window("main").unwrap();
+            let window = match app.get_webview_window("main") {
+                Some(window) => window,
+                None => {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        "main webview window not found",
+                    )
+                    .into());
+                }
+            };
 
             let db =
                 DbConnection::init_db_connection().expect("Failed to initialize Extents database");
@@ -39,13 +48,13 @@ pub fn run() {
 
             let app_state = app.state::<AppState>();
 
-            let renderer = app_state.renderer.clone();
+            let renderer_manager = app_state.renderer_manager.clone();
 
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::Resized(size) = event {
-                    let mut renderer_lock = renderer.lock().unwrap();
-                    if let Some(renderer) = renderer_lock.as_mut() {
-                        renderer.resize(size.width, size.height);
+                    match crate::renderer::RendererManager::lock(&renderer_manager) {
+                        Ok(mut manager) => manager.resize_surface(size.width, size.height),
+                        Err(error) => log::warn!("{error}"),
                     }
                 }
             });

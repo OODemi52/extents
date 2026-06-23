@@ -1,8 +1,9 @@
 use crate::core::sidecar::{
     load_sidecar as load_sidecar_document, save_sidecar as save_sidecar_document, Sidecar,
 };
-use crate::renderer::DisplayParameters;
+use crate::renderer::RendererManager;
 use crate::state::AppState;
+use log::warn;
 use tauri::State;
 
 #[tauri::command]
@@ -23,16 +24,8 @@ pub fn save_sidecar(path: String, sidecar: Sidecar) -> Result<(), String> {
 
 #[tauri::command]
 pub fn sync_sidecar(sidecar: Sidecar, state: State<AppState>) {
-    let mut renderer_lock = state.renderer.lock().unwrap();
-
-    if let Some(renderer) = renderer_lock.as_mut() {
-        let display_parameters = DisplayParameters::from_recipe_intent_and_debug_view(
-            sidecar.recipe(),
-            renderer.current_display_render_intent(),
-            renderer.current_debug_view(),
-        );
-
-        renderer.update_display_parameters(display_parameters);
-        renderer.render();
+    match RendererManager::lock(&state.renderer_manager) {
+        Ok(mut manager) => manager.sync_sidecar(sidecar.recipe()),
+        Err(error) => warn!("{error}"),
     }
 }

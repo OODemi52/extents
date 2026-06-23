@@ -2,7 +2,7 @@ use super::context::{GpuContext, SurfaceContext};
 use super::display_parameters::DisplayParameters;
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
-use super::render_schedule::{RenderSchedule, RenderState};
+use super::schedule::{RenderSchedule, RenderState};
 use super::viewer::Viewer;
 use anyhow::{Context, Result};
 use log::{error, info};
