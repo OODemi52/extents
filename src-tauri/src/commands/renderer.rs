@@ -4,7 +4,6 @@ use crate::renderer::{
 };
 use crate::state::AppState;
 use log::{info, warn};
-use std::time::Instant;
 use tauri::State;
 
 const DEBUG_VIEW_MAX: u32 = 11;
@@ -203,7 +202,6 @@ pub fn render_frame(state: State<AppState>) {
 
     if let Some(renderer) = renderer_lock.as_mut() {
         renderer.render();
-        renderer.last_render = Instant::now();
     }
 }
 
@@ -221,11 +219,13 @@ pub fn set_render_state(state_str: String, state: State<AppState>) {
     if let Some(renderer) = state.renderer.lock().unwrap().as_mut() {
         println!("Render state changed to: {}", state_str);
 
-        renderer.render_state = match state_str.as_str() {
+        let render_state = match state_str.as_str() {
             "active" => RenderState::Active,
             "idle" => RenderState::Idle,
             "paused" => RenderState::Paused,
             _ => RenderState::Idle,
         };
+
+        renderer.set_render_state(render_state);
     }
 }

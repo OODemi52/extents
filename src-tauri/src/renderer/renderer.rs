@@ -2,19 +2,12 @@ use super::context::{GpuContext, SurfaceContext};
 use super::display_parameters::DisplayParameters;
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
+use super::render_schedule::{RenderSchedule, RenderState};
 use super::viewer::Viewer;
 use anyhow::{Context, Result};
 use log::{error, info};
-use std::time::{Duration, Instant};
 use tauri::async_runtime::JoinHandle;
 use tauri::WebviewWindow;
-
-#[derive(Debug)]
-pub enum RenderState {
-    Idle,   // ~10 FPS
-    Active, // ~60 FPS
-    Paused,
-}
 
 pub struct Renderer {
     gpu: GpuContext,
@@ -22,8 +15,7 @@ pub struct Renderer {
     display_resources: DisplayResources,
     viewer: Viewer,
     image_request: ImageRequest,
-    pub render_state: RenderState,
-    pub last_render: Instant,
+    render_schedule: RenderSchedule,
     has_image: bool,
 }
 
@@ -53,9 +45,7 @@ impl Renderer {
 
         let image_request = ImageRequest::new();
 
-        let render_state = RenderState::Idle;
-
-        let last_render = Instant::now();
+        let render_schedule = RenderSchedule::new();
 
         let mut renderer = Self {
             gpu,
@@ -63,8 +53,7 @@ impl Renderer {
             display_resources,
             viewer,
             image_request,
-            render_state,
-            last_render,
+            render_schedule,
             has_image: false,
         };
 
@@ -195,17 +184,15 @@ impl Renderer {
     }
 
     pub fn should_render(&self) -> bool {
-        match self.render_state {
-            RenderState::Paused => false,
+        self.render_schedule.should_render()
+    }
 
-            RenderState::Idle => self.last_render.elapsed() > Duration::from_millis(100), // ~10 FPS
-
-            RenderState::Active => self.last_render.elapsed() > Duration::from_millis(16), // ~60 FPS
-        }
+    pub fn set_render_state(&mut self, state: RenderState) {
+        self.render_schedule.set_state(state);
     }
 
     pub fn render(&mut self) {
-        if matches!(self.render_state, RenderState::Paused) {
+        if self.render_schedule.is_paused() {
             return;
         }
 
@@ -274,7 +261,7 @@ impl Renderer {
 
         output.present();
 
-        self.last_render = Instant::now();
+        self.render_schedule.mark_rendered();
     }
 
     fn apply_transform(&mut self) {
