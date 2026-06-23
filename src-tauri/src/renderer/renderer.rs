@@ -1,10 +1,10 @@
 use super::context::{GpuContext, SurfaceContext};
 use super::display_parameters::DisplayParameters;
 use super::display_resources::DisplayResources;
-use super::viewport::Viewport;
+use super::image_request_state::ImageRequestState;
+use super::viewer_state::ViewerState;
 use anyhow::{Context, Result};
 use log::{error, info};
-use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use tauri::async_runtime::JoinHandle;
 use tauri::WebviewWindow;
@@ -20,17 +20,8 @@ pub struct Renderer {
     gpu: GpuContext,
     surface: SurfaceContext,
     display_resources: DisplayResources,
-    pending_scale: f32,
-    pending_offset_x: f32,
-    pending_offset_y: f32,
-    checkerboard_enabled: f32,
-    vertex_scale_x: f32,
-    vertex_scale_y: f32,
-    fit_scale: f32,
-    pending_load: Option<JoinHandle<()>>,
-    request_counter: u64,
-    active_request_id: Option<u64>,
-    pub viewport: Mutex<Viewport>,
+    viewer_state: ViewerState,
+    image_request_state: ImageRequestState,
     pub render_state: RenderState,
     pub last_render: Instant,
     has_image: bool,
@@ -58,7 +49,9 @@ impl Renderer {
 
         let display_resources = DisplayResources::new(&gpu.device, &gpu.queue, surface.format());
 
-        let viewport = Mutex::new(Viewport::new(0, 0, window_size.width, window_size.height));
+        let viewer_state = ViewerState::new(window_size.width, window_size.height);
+
+        let image_request_state = ImageRequestState::new();
 
         let render_state = RenderState::Idle;
 
@@ -68,19 +61,10 @@ impl Renderer {
             gpu,
             surface,
             display_resources,
-            viewport,
+            viewer_state,
+            image_request_state,
             render_state,
             last_render,
-            pending_scale: 1.0,
-            pending_offset_x: 0.0,
-            pending_offset_y: 0.0,
-            checkerboard_enabled: 0.0,
-            vertex_scale_x: 1.0,
-            vertex_scale_y: 1.0,
-            fit_scale: 1.0,
-            pending_load: None,
-            request_counter: 0,
-            active_request_id: None,
             has_image: false,
         };
 
@@ -90,37 +74,20 @@ impl Renderer {
     }
 
     pub fn begin_image_request(&mut self) -> u64 {
-        if let Some(handle) = self.pending_load.take() {
-            handle.abort();
-        }
-
-        self.request_counter = self.request_counter.wrapping_add(1);
-        let request_id = self.request_counter;
-        self.active_request_id = Some(request_id);
-
-        request_id
+        self.image_request_state.begin_request()
     }
 
     pub fn attach_load_handle(&mut self, request_id: u64, handle: JoinHandle<()>) {
-        if self.active_request_id == Some(request_id) {
-            if let Some(existing) = self.pending_load.take() {
-                existing.abort();
-            }
-            self.pending_load = Some(handle);
-        } else {
-            handle.abort();
-        }
+        self.image_request_state
+            .attach_load_handle(request_id, handle);
     }
 
     pub fn complete_image_request(&mut self, request_id: u64) {
-        if self.active_request_id == Some(request_id) {
-            self.pending_load = None;
-            self.active_request_id = None;
-        }
+        self.image_request_state.complete_request(request_id);
     }
 
     pub fn is_request_active(&self, request_id: u64) -> bool {
-        self.active_request_id == Some(request_id)
+        self.image_request_state.is_request_active(request_id)
     }
 
     pub fn update_vertices(&mut self) {
@@ -136,9 +103,7 @@ impl Renderer {
             return;
         }
 
-        let viewport = *self.viewport.lock().unwrap();
-
-        if !viewport.is_valid() {
+        if !self.viewer_state.has_valid_viewport() {
             return;
         }
 
@@ -148,13 +113,12 @@ impl Renderer {
             window_height,
         );
 
-        self.vertex_scale_x = scale_x;
+        self.viewer_state.update_image_quad_scale(scale_x, scale_y);
 
-        self.vertex_scale_y = scale_y;
+        self.viewer_state
+            .update_fit_scale(window_width, window_height);
 
-        self.fit_scale = self.compute_fit_scale(&viewport);
-
-        self.apply_transform_with_viewport(&viewport);
+        self.apply_transform();
     }
 
     pub fn resize(&mut self, new_width: u32, new_height: u32) {
@@ -207,11 +171,7 @@ impl Renderer {
     }
 
     pub fn clear(&mut self) {
-        if let Some(handle) = self.pending_load.take() {
-            handle.abort();
-        }
-
-        self.active_request_id = None;
+        self.image_request_state.clear();
 
         self.has_image = false;
 
@@ -219,37 +179,22 @@ impl Renderer {
     }
 
     pub fn update_transform(&mut self, scale: f32, offset_x: f32, offset_y: f32) {
-        self.pending_scale = scale;
-
-        self.pending_offset_x = offset_x;
-
-        self.pending_offset_y = offset_y;
+        self.viewer_state
+            .update_user_transform(scale, offset_x, offset_y);
 
         self.apply_transform();
     }
 
     pub fn display_checkboard(&mut self, enabled: bool) {
-        let value = if enabled { 1.0 } else { 0.0 };
-
-        if (self.checkerboard_enabled - value).abs() < f32::EPSILON {
+        if !self.viewer_state.set_checkerboard_enabled(enabled) {
             return;
         }
-
-        self.checkerboard_enabled = value;
 
         self.apply_transform();
     }
 
     pub fn update_proxy_viewport(&mut self, x: f32, y: f32, width: f32, height: f32) {
-        let mut viewport = self.viewport.lock().unwrap();
-
-        viewport.x = x.max(0.0).round() as u32;
-
-        viewport.y = y.max(0.0).round() as u32;
-
-        viewport.width = width.max(0.0).round() as u32;
-
-        viewport.height = height.max(0.0).round() as u32;
+        self.viewer_state.update_viewport(x, y, width, height);
     }
 
     pub fn should_render(&self) -> bool {
@@ -336,69 +281,19 @@ impl Renderer {
     }
 
     fn apply_transform(&mut self) {
-        let viewport = *self.viewport.lock().unwrap();
-        if !viewport.is_valid() {
+        let Some(transform) = self
+            .viewer_state
+            .transform_for_surface(self.surface.width(), self.surface.height())
+        else {
             return;
-        }
-
-        self.apply_transform_with_viewport(&viewport);
-    }
-
-    fn apply_transform_with_viewport(&mut self, viewport: &Viewport) {
-        if self.surface.width() == 0 || self.surface.height() == 0 {
-            return;
-        }
-
-        let window_width = self.surface.width() as f32;
-
-        let window_height = self.surface.height() as f32;
-
-        let viewport_center_x = viewport.x as f32 + viewport.width as f32 / 2.0;
-
-        let viewport_center_y = viewport.y as f32 + viewport.height as f32 / 2.0;
-
-        let viewport_fraction_x = viewport.width as f32 / window_width;
-
-        let viewport_fraction_y = viewport.height as f32 / window_height;
-
-        let combined_scale = self.pending_scale * self.fit_scale;
-
-        let ndc_center_x = (viewport_center_x / window_width) * 2.0 - 1.0;
-
-        let ndc_center_y = 1.0 - (viewport_center_y / window_height) * 2.0;
-
-        let offset_x = ndc_center_x + self.pending_offset_x * viewport_fraction_x;
-
-        let offset_y = ndc_center_y + self.pending_offset_y * viewport_fraction_y;
+        };
 
         self.display_resources.update_transform(
             &self.gpu.queue,
-            combined_scale,
-            offset_x,
-            offset_y,
-            self.checkerboard_enabled,
+            transform.scale,
+            transform.offset_x,
+            transform.offset_y,
+            transform.checkerboard_enabled,
         );
-    }
-
-    fn compute_fit_scale(&self, viewport: &Viewport) -> f32 {
-        if self.surface.width() == 0
-            || self.surface.height() == 0
-            || viewport.width == 0
-            || viewport.height == 0
-        {
-            return 1.0;
-        }
-
-        let window_width = self.surface.width() as f32;
-
-        let window_height = self.surface.height() as f32;
-
-        let scale_from_width =
-            (viewport.width as f32 / window_width) / self.vertex_scale_x.max(f32::EPSILON);
-
-        let scale_from_height =
-            (viewport.height as f32 / window_height) / self.vertex_scale_y.max(f32::EPSILON);
-
-        scale_from_width.min(scale_from_height)
     }
 }
