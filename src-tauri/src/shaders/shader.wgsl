@@ -16,7 +16,7 @@ struct Transform {
   display_checkerboard: vec2<f32>,
 };
 
-struct DisplayParams {
+struct DisplayParameters {
   exposure_ev: f32,
   display_render_intent: u32,
   debug_view: u32,
@@ -27,7 +27,7 @@ struct DisplayParams {
 var<uniform> uTransform: Transform;
 
 @group(0) @binding(3)
-var<uniform> uDisplayParams: DisplayParams;
+var<uniform> uDisplayParameters: DisplayParameters;
 
 // ---------- Texture Bindings ----------
 @group(0) @binding(0)
@@ -268,9 +268,9 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
   let texture_size = vec2<f32>(textureDimensions(imageTexture, 0));
   let texture_element = input.texture_coordinates * texture_size;
   let working_color = texture_sample.rgb;
-  let exposed_working_color = apply_exposure(working_color, uDisplayParams.exposure_ev);
+  let exposed_working_color = apply_exposure(working_color, uDisplayParameters.exposure_ev);
   let display_domain_color =
-    apply_display_transform(exposed_working_color, uDisplayParams.display_render_intent);
+    apply_display_transform(exposed_working_color, uDisplayParameters.display_render_intent);
   let output_linear_srgb = working_to_output_linear_srgb(display_domain_color);
   let display_color = map_output_linear_srgb_to_display_range(output_linear_srgb);
   let output_linear_srgb_no_tone_map = working_to_output_linear_srgb(exposed_working_color);
@@ -287,7 +287,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
       display_color,
       final_display_no_tone_map,
       final_display_with_output_soft_clip,
-      uDisplayParams.debug_view,
+      uDisplayParameters.debug_view,
     );
   let tile_checker = checkerboard_tile_color(texture_element);
 

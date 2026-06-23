@@ -1,7 +1,7 @@
 use crate::core::sidecar::{
     load_sidecar as load_sidecar_document, save_sidecar as save_sidecar_document, Sidecar,
 };
-use crate::renderer::DisplayParamsUniforms;
+use crate::renderer::DisplayParameters;
 use crate::state::AppState;
 use tauri::State;
 
@@ -26,13 +26,13 @@ pub fn sync_sidecar(sidecar: Sidecar, state: State<AppState>) {
     let mut renderer_lock = state.renderer.lock().unwrap();
 
     if let Some(renderer) = renderer_lock.as_mut() {
-        let display_params = DisplayParamsUniforms::from_recipe_intent_and_debug_view(
+        let display_parameters = DisplayParameters::from_recipe_intent_and_debug_view(
             sidecar.recipe(),
             renderer.current_display_render_intent(),
             renderer.current_debug_view(),
         );
 
-        renderer.update_display_params(display_params);
+        renderer.update_display_parameters(display_parameters);
         renderer.render();
     }
 }

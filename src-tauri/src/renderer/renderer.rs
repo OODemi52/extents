@@ -1,9 +1,6 @@
 use super::context::{GpuContext, SurfaceContext};
-use super::display_params::{DisplayParamsBuffer, DisplayParamsUniforms};
-use super::pipeline::RenderPipeline;
-use super::texture::TextureManager;
-use super::transform::TransformBuffer;
-use super::vertex::VertexBuffer;
+use super::display_parameters::DisplayParameters;
+use super::display_resources::DisplayResources;
 use super::viewport::Viewport;
 use anyhow::{Context, Result};
 use log::{error, info};
@@ -22,13 +19,7 @@ pub enum RenderState {
 pub struct Renderer {
     gpu: GpuContext,
     surface: SurfaceContext,
-    pipeline: RenderPipeline,
-    vertex_buffer: VertexBuffer,
-    texture_manager: TextureManager,
-    transform_buffer: TransformBuffer,
-    display_params_buffer: DisplayParamsBuffer,
-    current_display_params: DisplayParamsUniforms,
-    bind_group: wgpu::BindGroup,
+    display_resources: DisplayResources,
     pending_scale: f32,
     pending_offset_x: f32,
     pending_offset_y: f32,
@@ -65,11 +56,7 @@ impl Renderer {
             Err(error) => return Err(error),
         };
 
-        let pipeline = RenderPipeline::new(&gpu.device, surface.format());
-
-        let vertex_buffer = VertexBuffer::new(&gpu.device);
-
-        let texture_manager = TextureManager::new(&gpu.device, &gpu.queue);
+        let display_resources = DisplayResources::new(&gpu.device, &gpu.queue, surface.format());
 
         let viewport = Mutex::new(Viewport::new(0, 0, window_size.width, window_size.height));
 
@@ -77,27 +64,10 @@ impl Renderer {
 
         let last_render = Instant::now();
 
-        let transform_buffer = TransformBuffer::new(&gpu.device);
-        let display_params_buffer = DisplayParamsBuffer::new(&gpu.device);
-        let current_display_params = DisplayParamsUniforms::default();
-
-        let bind_group = pipeline.create_bind_group(
-            &gpu.device,
-            texture_manager.view(),
-            transform_buffer.as_entire_binding(),
-            display_params_buffer.as_entire_binding(),
-        );
-
         let mut renderer = Self {
             gpu,
             surface,
-            pipeline,
-            vertex_buffer,
-            texture_manager,
-            transform_buffer,
-            display_params_buffer,
-            current_display_params,
-            bind_group,
+            display_resources,
             viewport,
             render_state,
             last_render,
@@ -160,8 +130,8 @@ impl Renderer {
 
         if window_width == 0
             || window_height == 0
-            || self.texture_manager.width == 0
-            || self.texture_manager.height == 0
+            || self.display_resources.image_width() == 0
+            || self.display_resources.image_height() == 0
         {
             return;
         }
@@ -172,12 +142,10 @@ impl Renderer {
             return;
         }
 
-        let (scale_x, scale_y) = self.vertex_buffer.update_for_aspect_ratio(
+        let (scale_x, scale_y) = self.display_resources.update_vertices_for_surface(
             &self.gpu.queue,
             window_width,
             window_height,
-            self.texture_manager.width,
-            self.texture_manager.height,
         );
 
         self.vertex_scale_x = scale_x;
@@ -198,47 +166,44 @@ impl Renderer {
 
         self.has_image = true;
 
-        self.texture_manager
-            .update(&self.gpu.device, &self.gpu.queue, texels, width, height);
-
-        self.bind_group = self.pipeline.create_bind_group(
+        self.display_resources.update_texture(
             &self.gpu.device,
-            self.texture_manager.view(),
-            self.transform_buffer.as_entire_binding(),
-            self.display_params_buffer.as_entire_binding(),
+            &self.gpu.queue,
+            texels,
+            width,
+            height,
         );
 
         self.update_vertices();
     }
 
-    pub fn update_display_params(&mut self, uniforms: DisplayParamsUniforms) {
-        self.current_display_params = uniforms;
-
-        self.display_params_buffer.update(&self.gpu.queue, uniforms);
+    pub fn update_display_parameters(&mut self, uniforms: DisplayParameters) {
+        self.display_resources
+            .update_display_parameters(&self.gpu.queue, uniforms);
     }
 
     /// Returns the currently active shader display-render intent.
     pub fn current_display_render_intent(&self) -> u32 {
-        self.current_display_params.display_render_intent
+        self.display_resources.current_display_render_intent()
     }
 
     /// Returns the currently active shader debug view.
     pub fn current_debug_view(&self) -> u32 {
-        self.current_display_params.debug_view
+        self.display_resources.current_debug_view()
     }
 
     /// Updates the active display render intent while preserving the current exposure.
     pub fn update_display_render_intent(&mut self, display_render_intent: u32) {
-        let mut uniforms = self.current_display_params;
+        let mut uniforms = self.display_resources.current_display_parameters();
         uniforms.display_render_intent = display_render_intent;
-        self.update_display_params(uniforms);
+        self.update_display_parameters(uniforms);
     }
 
     /// Updates the active debug view while preserving the current display params.
     pub fn update_debug_view(&mut self, debug_view: u32) {
-        let mut uniforms = self.current_display_params;
+        let mut uniforms = self.display_resources.current_display_parameters();
         uniforms.debug_view = debug_view;
-        self.update_display_params(uniforms);
+        self.update_display_parameters(uniforms);
     }
 
     pub fn clear(&mut self) {
@@ -359,13 +324,7 @@ impl Renderer {
             );
 
             if self.has_image {
-                render_pass.set_pipeline(&self.pipeline.pipeline);
-
-                render_pass.set_bind_group(0, &self.bind_group, &[]);
-
-                render_pass.set_vertex_buffer(0, self.vertex_buffer.slice());
-
-                render_pass.draw(0..6, 0..1);
+                self.display_resources.draw(&mut render_pass);
             }
         }
 
@@ -412,7 +371,7 @@ impl Renderer {
 
         let offset_y = ndc_center_y + self.pending_offset_y * viewport_fraction_y;
 
-        self.transform_buffer.update(
+        self.display_resources.update_transform(
             &self.gpu.queue,
             combined_scale,
             offset_x,

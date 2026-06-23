@@ -1,5 +1,6 @@
 mod context;
-mod display_params;
+mod display_parameters;
+mod display_resources;
 mod pipeline;
 mod renderer;
 mod texture;
@@ -9,8 +10,8 @@ mod viewport;
 
 pub use context::GpuContext;
 pub use context::SurfaceContext;
-pub use display_params::DisplayParamsBuffer;
-pub use display_params::DisplayParamsUniforms;
+pub use display_parameters::DisplayParameters;
+pub use display_parameters::DisplayParametersBuffer;
 pub use renderer::RenderState;
 pub use renderer::Renderer;
 pub use vertex::Vertex;

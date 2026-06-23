@@ -114,7 +114,7 @@ impl RenderPipeline {
         device: &wgpu::Device,
         texture_view: &wgpu::TextureView,
         transform_binding: wgpu::BindingResource,
-        display_params_binding: wgpu::BindingResource,
+        display_parameters_binding: wgpu::BindingResource,
     ) -> wgpu::BindGroup {
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.bind_group_layout,
@@ -134,7 +134,7 @@ impl RenderPipeline {
                 },
                 wgpu::BindGroupEntry {
                     binding: 3,
-                    resource: display_params_binding,
+                    resource: display_parameters_binding,
                 },
             ],
         })
