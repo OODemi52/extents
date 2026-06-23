@@ -5,7 +5,7 @@ use tauri::{WebviewWindow, Wry};
 
 pub struct AppState {
     pub db: DbConnection,
-    pub renderer: Arc<Mutex<Option<Renderer<'static>>>>,
+    pub renderer: Arc<Mutex<Option<Renderer>>>,
     pub window: WebviewWindow<Wry>,
 }
 

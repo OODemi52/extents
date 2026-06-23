@@ -48,14 +48,14 @@ impl GpuContext {
 ///
 /// This context owns only the swapchain-facing surface and its configuration.
 /// General GPU work should use `GpuContext` instead.
-pub struct SurfaceContext<'a> {
-    surface: wgpu::Surface<'a>,
+pub struct SurfaceContext {
+    surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
 }
 
-impl<'a> SurfaceContext<'a> {
+impl SurfaceContext {
     /// Creates and configures the window surface used for presentation.
-    pub fn new(window: &'a WebviewWindow, gpu: &GpuContext) -> Result<Self> {
+    pub fn new(window: WebviewWindow, gpu: &GpuContext) -> Result<Self> {
         let size = match window
             .inner_size()
             .context("failed to read renderer window size")

@@ -7,7 +7,7 @@ use log::{error, info, warn};
 use std::sync::Arc;
 use std::time::Instant;
 use tauri::async_runtime;
-use tauri::{State, WebviewWindow};
+use tauri::State;
 
 const DEBUG_VIEW_MAX: u32 = 11;
 
@@ -21,14 +21,9 @@ pub fn init_renderer(state: State<AppState>) -> Result<(), String> {
 
     info!("Initializing renderer...");
 
-    // SAFETY: This transmute extends the lifetime of the window reference.
-    // This is safe because:
-    // 1. The window is owned by AppState which lives for the entire app lifetime
-    // 2. The renderer is also owned by AppState and will be dropped before the window
-    // 3. We never access the window after the app is closed
-    let window_ref: &'static WebviewWindow = unsafe { std::mem::transmute(&state.window) };
+    let window = state.window.clone();
 
-    let mut renderer = match Renderer::new(window_ref) {
+    let mut renderer = match Renderer::new(window) {
         Ok(renderer) => renderer,
         Err(error) => return Err(error.to_string()),
     };
@@ -214,7 +209,7 @@ fn shader_display_render_intent(intent: DisplayRenderIntent) -> u32 {
 fn spawn_full_image_load(
     path: String,
     request_id: u64,
-    renderer_handle: Arc<std::sync::Mutex<Option<Renderer<'static>>>>,
+    renderer_handle: Arc<std::sync::Mutex<Option<Renderer>>>,
 ) {
     let renderer_for_task = renderer_handle.clone();
     let cloned_path_for_logging = path.clone();

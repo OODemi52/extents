@@ -19,9 +19,9 @@ pub enum RenderState {
     Paused,
 }
 
-pub struct Renderer<'a> {
+pub struct Renderer {
     gpu: GpuContext,
-    surface: SurfaceContext<'a>,
+    surface: SurfaceContext,
     pipeline: RenderPipeline,
     vertex_buffer: VertexBuffer,
     texture_manager: TextureManager,
@@ -45,8 +45,8 @@ pub struct Renderer<'a> {
     has_image: bool,
 }
 
-impl<'a> Renderer<'a> {
-    pub fn new(window: &'a WebviewWindow) -> Result<Self> {
+impl Renderer {
+    pub fn new(window: WebviewWindow) -> Result<Self> {
         let window_size = match window
             .inner_size()
             .context("failed to read renderer window size")
