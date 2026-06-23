@@ -100,7 +100,7 @@ impl VertexBuffer {
     }
 
     /// Get a slice of the entire buffer
-    pub fn slice(&self) -> wgpu::BufferSlice {
+    pub fn slice(&self) -> wgpu::BufferSlice<'_> {
         self.buffer.slice(..)
     }
 }
