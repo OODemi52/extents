@@ -6,7 +6,7 @@ use tauri::WebviewWindow;
 use super::image_load::{
     set_requested_renderer_input_from_path, spawn_full_image_load, swap_requested_renderer_input,
 };
-use super::input::{set_renderer_input, RendererInput};
+use super::input::RendererInput;
 use super::renderer::Renderer;
 use super::schedule::RenderState;
 use crate::core::editing::EditRecipe;
@@ -237,7 +237,7 @@ impl RendererManager {
     ) {
         if let Some(renderer) = self.renderer.as_mut() {
             if renderer.is_request_active(request_id) {
-                set_renderer_input(renderer, renderer_input);
+                renderer.set_renderer_input(renderer_input);
                 renderer.render();
             }
         }

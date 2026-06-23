@@ -2,8 +2,10 @@ use super::context::{GpuContext, SurfaceContext};
 use super::display_parameters::DisplayParameters;
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
+use super::input::RendererInput;
 use super::schedule::{RenderSchedule, RenderState};
 use super::viewer::Viewer;
+use crate::core::processing_pipeline::types::DisplayRenderIntent;
 use anyhow::{Context, Result};
 use log::{error, info};
 use tauri::async_runtime::JoinHandle;
@@ -112,7 +114,19 @@ impl Renderer {
         self.surface.resize(&self.gpu, new_width, new_height);
     }
 
-    pub fn update_texture(&mut self, texels: &[f32], width: u32, height: u32) {
+    /// Sets the current renderer input as the live display image.
+    pub(super) fn set_renderer_input(&mut self, renderer_input: RendererInput) {
+        let image = renderer_input.image();
+        let dimensions = image.dimensions();
+
+        self.display_checkboard(image.has_transparency());
+        self.update_display_render_intent(shader_display_render_intent(
+            renderer_input.display_render_intent(),
+        ));
+        self.update_texture(image.texels(), dimensions.width(), dimensions.height());
+    }
+
+    fn update_texture(&mut self, texels: &[f32], width: u32, height: u32) {
         info!("[Renderer] Updating texture ({}x{})", width, height);
 
         self.has_image = true;
@@ -144,7 +158,7 @@ impl Renderer {
     }
 
     /// Updates the active display render intent while preserving the current exposure.
-    pub fn update_display_render_intent(&mut self, display_render_intent: u32) {
+    fn update_display_render_intent(&mut self, display_render_intent: u32) {
         let mut uniforms = self.display_resources.current_display_parameters();
         uniforms.display_render_intent = display_render_intent;
         self.update_display_parameters(uniforms);
@@ -171,7 +185,7 @@ impl Renderer {
         self.apply_transform();
     }
 
-    pub fn display_checkboard(&mut self, enabled: bool) {
+    fn display_checkboard(&mut self, enabled: bool) {
         if !self.viewer.set_checkerboard_enabled(enabled) {
             return;
         }
@@ -279,5 +293,12 @@ impl Renderer {
             transform.offset_y,
             transform.checkerboard_enabled,
         );
+    }
+}
+
+fn shader_display_render_intent(intent: DisplayRenderIntent) -> u32 {
+    match intent {
+        DisplayRenderIntent::DirectSdr => 0,
+        DisplayRenderIntent::ToneMapToSdr => 1,
     }
 }
