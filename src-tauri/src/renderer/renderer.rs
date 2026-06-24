@@ -6,6 +6,7 @@ use super::input::RendererInput;
 use super::processing_graph::ImageProcessingGraph;
 use super::schedule::{RenderSchedule, RenderState};
 use super::viewer::Viewer;
+use crate::core::editing::EditRecipe;
 use crate::core::processing_pipeline::types::DisplayRenderIntent;
 use anyhow::{Context, Result};
 use log::{error, info};
@@ -161,6 +162,15 @@ impl Renderer {
             .update_display_parameters(&self.gpu.queue, uniforms);
     }
 
+    /// Updates graph-owned edit parameters and reruns GPU image processing.
+    pub fn update_edit_recipe(&mut self, recipe: &EditRecipe) {
+        self.processing_graph.update_adjustments(
+            &self.gpu.device,
+            &self.gpu.queue,
+            recipe.exposure_ev,
+        );
+    }
+
     /// Returns the currently active shader display-render intent.
     pub fn current_display_render_intent(&self) -> u32 {
         self.display_resources.current_display_render_intent()
@@ -171,7 +181,7 @@ impl Renderer {
         self.display_resources.current_debug_view()
     }
 
-    /// Updates the active display render intent while preserving the current exposure.
+    /// Updates the active display render intent while preserving other display state.
     fn update_display_render_intent(&mut self, display_render_intent: u32) {
         let mut uniforms = self.display_resources.current_display_parameters();
         uniforms.display_render_intent = display_render_intent;

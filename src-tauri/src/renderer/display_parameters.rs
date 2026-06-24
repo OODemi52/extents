@@ -1,4 +1,3 @@
-use crate::core::editing::EditRecipe;
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
@@ -8,36 +7,28 @@ use wgpu::util::DeviceExt;
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
 pub struct DisplayParameters {
-    pub exposure_ev: f32,
     pub display_render_intent: u32,
     pub debug_view: u32,
-    pub _padding: u32,
+    pub _padding: [u32; 2],
 }
 
 impl Default for DisplayParameters {
     fn default() -> Self {
         Self {
-            exposure_ev: 0.0,
             display_render_intent: 0,
             debug_view: 0,
-            _padding: 0,
+            _padding: [0; 2],
         }
     }
 }
 
 impl DisplayParameters {
-    /// Builds a shader-facing display-parameter snapshot from the current recipe
-    /// and the image-derived display render intent.
-    pub fn from_recipe_intent_and_debug_view(
-        recipe: &EditRecipe,
-        display_render_intent: u32,
-        debug_view: u32,
-    ) -> Self {
+    /// Builds shader-facing display parameters from display-only renderer state.
+    pub fn from_intent_and_debug_view(display_render_intent: u32, debug_view: u32) -> Self {
         Self {
-            exposure_ev: recipe.exposure_ev,
             display_render_intent,
             debug_view,
-            _padding: 0,
+            _padding: [0; 2],
         }
     }
 }

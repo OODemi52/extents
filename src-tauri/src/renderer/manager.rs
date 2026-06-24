@@ -216,11 +216,12 @@ impl RendererManager {
         }
     }
 
-    /// Applies sidecar recipe display parameters and renders.
+    /// Applies sidecar recipe parameters and renders.
     pub fn sync_sidecar(&mut self, recipe: &EditRecipe) {
         if let Some(renderer) = self.renderer.as_mut() {
-            let display_parameters = DisplayParameters::from_recipe_intent_and_debug_view(
-                recipe,
+            renderer.update_edit_recipe(recipe);
+
+            let display_parameters = DisplayParameters::from_intent_and_debug_view(
                 renderer.current_display_render_intent(),
                 renderer.current_debug_view(),
             );

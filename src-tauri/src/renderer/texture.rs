@@ -1,31 +1,40 @@
 use bytemuck::cast_slice;
 use half::f16;
 
-/// GPU texture holding the currently uploaded renderer image.
+/// GPU image texture used by the renderer processing graph.
 pub(super) struct ImageTexture {
     current_texture: wgpu::Texture,
     current_view: wgpu::TextureView,
     width: u32,
     height: u32,
+    usage: wgpu::TextureUsages,
+    label: &'static str,
 }
 
 impl ImageTexture {
-    /// Creates a placeholder image texture so display resources can bind immediately.
-    pub(super) fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
-        let (texture, width, height) =
-            Self::create_texture(device, queue, &[0.0, 0.0, 0.0, 0.0], 1, 1);
-
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        Self {
-            current_texture: texture,
-            current_view: view,
-            width,
-            height,
-        }
+    /// Creates a placeholder source texture for CPU-uploaded image texels.
+    pub(super) fn new_source(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+        Self::new(
+            device,
+            queue,
+            "Source Image Texture",
+            wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        )
     }
 
-    /// Replaces the current live working-image texture with packed renderer texels.
+    /// Creates a placeholder output texture for GPU processing results.
+    pub(super) fn new_processing_output(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+        Self::new(
+            device,
+            queue,
+            "Processing Output Texture",
+            wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::STORAGE_BINDING
+                | wgpu::TextureUsages::COPY_DST,
+        )
+    }
+
+    /// Replaces the current texture with packed renderer texels.
     pub(super) fn update(
         &mut self,
         device: &wgpu::Device,
@@ -34,7 +43,8 @@ impl ImageTexture {
         width: u32,
         height: u32,
     ) {
-        let (texture, _, _) = Self::create_texture(device, queue, texels, width, height);
+        let texture = self.create_texture(device, width, height);
+        upload_texels(queue, &texture, texels, width, height);
 
         self.current_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -45,7 +55,20 @@ impl ImageTexture {
         self.height = height;
     }
 
-    /// Returns the texture view used by presentation shaders.
+    /// Replaces the current texture with an empty texture of the requested size.
+    pub(super) fn resize_empty(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        let texture = self.create_texture(device, width, height);
+
+        self.current_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        self.current_texture = texture;
+
+        self.width = width;
+
+        self.height = height;
+    }
+
+    /// Returns this texture's default view.
     pub(super) fn view(&self) -> &wgpu::TextureView {
         &self.current_view
     }
@@ -60,52 +83,92 @@ impl ImageTexture {
         self.height
     }
 
-    /// Creates a GPU texture for packed working-image texels and uploads its contents.
-    fn create_texture(
+    fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        texels: &[f32],
-        width: u32,
-        height: u32,
-    ) -> (wgpu::Texture, u32, u32) {
-        let texels_f16 = convert_texels_to_f16(texels);
+        label: &'static str,
+        usage: wgpu::TextureUsages,
+    ) -> Self {
+        let width = 1;
+        let height = 1;
+        let texture = create_texture(device, label, usage, width, height);
+        upload_texels(queue, &texture, &[0.0, 0.0, 0.0, 0.0], width, height);
 
-        let size = wgpu::Extent3d {
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        Self {
+            current_texture: texture,
+            current_view: view,
+            width,
+            height,
+            usage,
+            label,
+        }
+    }
+
+    fn create_texture(&self, device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
+        create_texture(device, self.label, self.usage, width, height)
+    }
+}
+
+/// Creates a GPU image texture with the provided usage flags.
+fn create_texture(
+    device: &wgpu::Device,
+    label: &'static str,
+    usage: wgpu::TextureUsages,
+    width: u32,
+    height: u32,
+) -> wgpu::Texture {
+    let size = wgpu::Extent3d {
+        width,
+        height,
+        depth_or_array_layers: 1,
+    };
+
+    device.create_texture(&wgpu::TextureDescriptor {
+        label: Some(label),
+        size,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: IMAGE_TEXTURE_FORMAT,
+        usage,
+        view_formats: &[],
+    })
+}
+
+/// Uploads packed working-image texels into an RGBA16F GPU texture.
+fn upload_texels(
+    queue: &wgpu::Queue,
+    texture: &wgpu::Texture,
+    texels: &[f32],
+    width: u32,
+    height: u32,
+) {
+    let texels_f16 = convert_texels_to_f16(texels);
+
+    queue.write_texture(
+        wgpu::TexelCopyTextureInfo {
+            texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        cast_slice(&texels_f16),
+        wgpu::TexelCopyBufferLayout {
+            offset: 0,
+            bytes_per_row: Some(8 * width),
+            rows_per_image: Some(height),
+        },
+        wgpu::Extent3d {
             width,
             height,
             depth_or_array_layers: 1,
-        };
-
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Image Texture"),
-            size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba16Float,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            cast_slice(&texels_f16),
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(8 * width),
-                rows_per_image: Some(height),
-            },
-            size,
-        );
-
-        (texture, width, height)
-    }
+        },
+    );
 }
+
+pub(super) const IMAGE_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 
 /// Converts packed working-image texels from `f32` to `f16` for GPU upload.
 ///

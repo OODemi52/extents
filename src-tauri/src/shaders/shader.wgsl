@@ -17,10 +17,9 @@ struct Transform {
 };
 
 struct DisplayParameters {
-  exposure_ev: f32,
   display_render_intent: u32,
   debug_view: u32,
-  _padding: u32,
+  _padding: vec2<u32>,
 };
 
 @group(0) @binding(2)
@@ -98,10 +97,6 @@ fn linear_rec2020_to_linear_srgb(color: vec3<f32>) -> vec3<f32> {
     (-0.1246 * color.r) + (1.1329 * color.g) + (-0.0083 * color.b),
     (-0.0182 * color.r) + (-0.1006 * color.g) + (1.1187 * color.b)
   );
-}
-
-fn apply_exposure(color: vec3<f32>, exposure_ev: f32) -> vec3<f32> {
-  return color * exp2(exposure_ev);
 }
 
 // ---------- Display-Transform Paths ----------
@@ -268,12 +263,11 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
   let texture_size = vec2<f32>(textureDimensions(imageTexture, 0));
   let texture_element = input.texture_coordinates * texture_size;
   let working_color = texture_sample.rgb;
-  let exposed_working_color = apply_exposure(working_color, uDisplayParameters.exposure_ev);
   let display_domain_color =
-    apply_display_transform(exposed_working_color, uDisplayParameters.display_render_intent);
+    apply_display_transform(working_color, uDisplayParameters.display_render_intent);
   let output_linear_srgb = working_to_output_linear_srgb(display_domain_color);
   let display_color = map_output_linear_srgb_to_display_range(output_linear_srgb);
-  let output_linear_srgb_no_tone_map = working_to_output_linear_srgb(exposed_working_color);
+  let output_linear_srgb_no_tone_map = working_to_output_linear_srgb(working_color);
   let final_display_no_tone_map =
     map_output_linear_srgb_to_display_range(output_linear_srgb_no_tone_map);
   let final_display_with_output_soft_clip =
@@ -281,7 +275,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
   let debug_color =
     debug_view_color(
       working_color,
-      exposed_working_color,
+      working_color,
       display_domain_color,
       output_linear_srgb,
       display_color,
