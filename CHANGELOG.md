@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/OODemi52/extents/compare/Extents-v0.1.0...Extents-v0.1.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* remove unsafe renderer window lifetime ([8bc9153](https://github.com/OODemi52/extents/commit/8bc9153d208c40b8fe9976eb85a89bd1f476cb77))
+
 ## [0.1.0](https://github.com/OODemi52/extents/compare/Extents-v0.0.4...Extents-v0.1.0) (2026-05-02)
 
 
