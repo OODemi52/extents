@@ -6,6 +6,7 @@ mod image_request;
 mod input;
 mod manager;
 mod pipeline;
+mod processing_graph;
 mod renderer;
 mod schedule;
 mod texture;

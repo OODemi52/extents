@@ -3,8 +3,8 @@ use super::display_parameters::DisplayParameters;
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
 use super::input::RendererInput;
+use super::processing_graph::ImageProcessingGraph;
 use super::schedule::{RenderSchedule, RenderState};
-use super::texture::ImageTexture;
 use super::viewer::Viewer;
 use crate::core::processing_pipeline::types::DisplayRenderIntent;
 use anyhow::{Context, Result};
@@ -15,7 +15,7 @@ use tauri::WebviewWindow;
 pub struct Renderer {
     gpu: GpuContext,
     surface: SurfaceContext,
-    image_texture: ImageTexture,
+    processing_graph: ImageProcessingGraph,
     display_resources: DisplayResources,
     viewer: Viewer,
     image_request: ImageRequest,
@@ -43,10 +43,13 @@ impl Renderer {
             Err(error) => return Err(error),
         };
 
-        let image_texture = ImageTexture::new(&gpu.device, &gpu.queue);
+        let processing_graph = ImageProcessingGraph::new(&gpu.device, &gpu.queue);
 
-        let display_resources =
-            DisplayResources::new(&gpu.device, surface.format(), image_texture.view());
+        let display_resources = DisplayResources::new(
+            &gpu.device,
+            surface.format(),
+            processing_graph.output_view(),
+        );
 
         let viewer = Viewer::new(window_size.width, window_size.height);
 
@@ -57,7 +60,7 @@ impl Renderer {
         let mut renderer = Self {
             gpu,
             surface,
-            image_texture,
+            processing_graph,
             display_resources,
             viewer,
             image_request,
@@ -93,8 +96,8 @@ impl Renderer {
 
         if window_width == 0
             || window_height == 0
-            || self.image_texture.width() == 0
-            || self.image_texture.height() == 0
+            || self.processing_graph.output_width() == 0
+            || self.processing_graph.output_height() == 0
         {
             return;
         }
@@ -107,8 +110,8 @@ impl Renderer {
             &self.gpu.queue,
             window_width,
             window_height,
-            self.image_texture.width(),
-            self.image_texture.height(),
+            self.processing_graph.output_width(),
+            self.processing_graph.output_height(),
         );
 
         self.viewer.update_image_quad_scale(scale_x, scale_y);
@@ -131,19 +134,24 @@ impl Renderer {
         self.update_display_render_intent(shader_display_render_intent(
             renderer_input.display_render_intent(),
         ));
-        self.update_texture(image.texels(), dimensions.width(), dimensions.height());
+        self.upload_source_image(image.texels(), dimensions.width(), dimensions.height());
     }
 
-    fn update_texture(&mut self, texels: &[f32], width: u32, height: u32) {
-        info!("[Renderer] Updating texture ({}x{})", width, height);
+    fn upload_source_image(&mut self, texels: &[f32], width: u32, height: u32) {
+        info!("[Renderer] Uploading source image ({}x{})", width, height);
 
         self.has_image = true;
 
-        self.image_texture
-            .update(&self.gpu.device, &self.gpu.queue, texels, width, height);
+        self.processing_graph.upload_source_image(
+            &self.gpu.device,
+            &self.gpu.queue,
+            texels,
+            width,
+            height,
+        );
 
         self.display_resources
-            .bind_image_texture(&self.gpu.device, self.image_texture.view());
+            .bind_image_texture(&self.gpu.device, self.processing_graph.output_view());
 
         self.update_vertices();
     }
