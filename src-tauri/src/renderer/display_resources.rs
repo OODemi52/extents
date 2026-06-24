@@ -1,17 +1,15 @@
 use super::display_parameters::{DisplayParameters, DisplayParametersBuffer};
 use super::pipeline::RenderPipeline;
-use super::texture::TextureManager;
 use super::transform::TransformBuffer;
 use super::vertex::VertexBuffer;
 
 /// GPU resources used to draw the currently presented image.
 ///
-/// This groups the display pipeline, bind group, image texture, geometry, and
-/// shader uniform buffers so `Renderer` no longer manages display GPU internals directly.
+/// This groups the display pipeline, bind group, geometry, and shader uniform
+/// buffers so `Renderer` no longer manages display GPU internals directly.
 pub(super) struct DisplayResources {
     pipeline: RenderPipeline,
     vertex_buffer: VertexBuffer,
-    texture_manager: TextureManager,
     transform_buffer: TransformBuffer,
     display_parameters_buffer: DisplayParametersBuffer,
     bind_group: wgpu::BindGroup,
@@ -21,21 +19,19 @@ impl DisplayResources {
     /// Creates display resources for a surface with the provided output format.
     pub(super) fn new(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         surface_format: wgpu::TextureFormat,
+        image_texture_view: &wgpu::TextureView,
     ) -> Self {
         let pipeline = RenderPipeline::new(device, surface_format);
 
         let vertex_buffer = VertexBuffer::new(device);
-
-        let texture_manager = TextureManager::new(device, queue);
 
         let transform_buffer = TransformBuffer::new(device);
         let display_parameters_buffer = DisplayParametersBuffer::new(device);
 
         let bind_group = pipeline.create_bind_group(
             device,
-            texture_manager.view(),
+            image_texture_view,
             transform_buffer.as_entire_binding(),
             display_parameters_buffer.as_entire_binding(),
         );
@@ -43,38 +39,21 @@ impl DisplayResources {
         Self {
             pipeline,
             vertex_buffer,
-            texture_manager,
             transform_buffer,
             display_parameters_buffer,
             bind_group,
         }
     }
 
-    /// Returns the current image texture width.
-    pub(super) fn image_width(&self) -> u32 {
-        self.texture_manager.width
-    }
-
-    /// Returns the current image texture height.
-    pub(super) fn image_height(&self) -> u32 {
-        self.texture_manager.height
-    }
-
-    /// Replaces the current image texture and rebinds the display shader resources.
-    pub(super) fn update_texture(
+    /// Rebinds the display shader resources to present the provided image texture.
+    pub(super) fn bind_image_texture(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        texels: &[f32],
-        width: u32,
-        height: u32,
+        image_texture_view: &wgpu::TextureView,
     ) {
-        self.texture_manager
-            .update(device, queue, texels, width, height);
-
         self.bind_group = self.pipeline.create_bind_group(
             device,
-            self.texture_manager.view(),
+            image_texture_view,
             self.transform_buffer.as_entire_binding(),
             self.display_parameters_buffer.as_entire_binding(),
         );
@@ -86,13 +65,15 @@ impl DisplayResources {
         queue: &wgpu::Queue,
         surface_width: u32,
         surface_height: u32,
+        image_width: u32,
+        image_height: u32,
     ) -> (f32, f32) {
         self.vertex_buffer.update_for_aspect_ratio(
             queue,
             surface_width,
             surface_height,
-            self.texture_manager.width,
-            self.texture_manager.height,
+            image_width,
+            image_height,
         )
     }
 

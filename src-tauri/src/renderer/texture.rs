@@ -1,15 +1,17 @@
 use bytemuck::cast_slice;
 use half::f16;
 
-pub struct TextureManager {
+/// GPU texture holding the currently uploaded renderer image.
+pub(super) struct ImageTexture {
     current_texture: wgpu::Texture,
     current_view: wgpu::TextureView,
-    pub width: u32,
-    pub height: u32,
+    width: u32,
+    height: u32,
 }
 
-impl TextureManager {
-    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+impl ImageTexture {
+    /// Creates a placeholder image texture so display resources can bind immediately.
+    pub(super) fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         let (texture, width, height) =
             Self::create_texture(device, queue, &[0.0, 0.0, 0.0, 0.0], 1, 1);
 
@@ -24,7 +26,7 @@ impl TextureManager {
     }
 
     /// Replaces the current live working-image texture with packed renderer texels.
-    pub fn update(
+    pub(super) fn update(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -43,8 +45,19 @@ impl TextureManager {
         self.height = height;
     }
 
-    pub fn view(&self) -> &wgpu::TextureView {
+    /// Returns the texture view used by presentation shaders.
+    pub(super) fn view(&self) -> &wgpu::TextureView {
         &self.current_view
+    }
+
+    /// Returns the current image texture width.
+    pub(super) fn width(&self) -> u32 {
+        self.width
+    }
+
+    /// Returns the current image texture height.
+    pub(super) fn height(&self) -> u32 {
+        self.height
     }
 
     /// Creates a GPU texture for packed working-image texels and uploads its contents.
@@ -96,10 +109,9 @@ impl TextureManager {
 
 /// Converts packed working-image texels from `f32` to `f16` for GPU upload.
 ///
-/// Currently we do this here in order to seperate concerns; the render get to
-/// decided the data type to convert to, but we need to watch this in case it
-/// cause a hit to perf, then we can move this conversion to where we are
-/// packing the texels instead
+/// Currently this lives in the texture upload boundary so the renderer owns the
+/// GPU storage format decision. If this conversion becomes a bottleneck, we can
+/// move it closer to texel packing or make it part of a dedicated staging path.
 fn convert_texels_to_f16(texels: &[f32]) -> Vec<f16> {
     texels.iter().map(|value| f16::from_f32(*value)).collect()
 }
