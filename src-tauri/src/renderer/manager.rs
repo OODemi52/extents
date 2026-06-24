@@ -65,18 +65,6 @@ impl RendererManager {
         }
     }
 
-    /// Updates the active debug view and renders immediately.
-    pub fn set_debug_view(&mut self, debug_view: u32) -> Result<(), String> {
-        let Some(renderer) = self.renderer.as_mut() else {
-            return Err("Renderer not initialized".to_string());
-        };
-
-        renderer.update_debug_view(debug_view);
-        renderer.render();
-
-        Ok(())
-    }
-
     /// Starts a new image request and optionally applies the first proxy image.
     pub fn load_image(
         handle: RendererManagerHandle,
@@ -221,10 +209,8 @@ impl RendererManager {
         if let Some(renderer) = self.renderer.as_mut() {
             renderer.update_edit_recipe(recipe);
 
-            let display_parameters = DisplayParameters::from_intent_and_debug_view(
-                renderer.current_display_render_intent(),
-                renderer.current_debug_view(),
-            );
+            let display_parameters =
+                DisplayParameters::from_intent(renderer.current_display_render_intent());
 
             renderer.update_display_parameters(display_parameters);
             renderer.render();

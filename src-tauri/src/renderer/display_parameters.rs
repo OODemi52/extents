@@ -7,29 +7,31 @@ use wgpu::util::DeviceExt;
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
 pub struct DisplayParameters {
-    pub display_render_intent: u32,
-    pub debug_view: u32,
-    pub _padding: [u32; 2],
+    display: [u32; 4],
 }
 
 impl Default for DisplayParameters {
     fn default() -> Self {
-        Self {
-            display_render_intent: 0,
-            debug_view: 0,
-            _padding: [0; 2],
-        }
+        Self { display: [0; 4] }
     }
 }
 
 impl DisplayParameters {
     /// Builds shader-facing display parameters from display-only renderer state.
-    pub fn from_intent_and_debug_view(display_render_intent: u32, debug_view: u32) -> Self {
+    pub fn from_intent(display_render_intent: u32) -> Self {
         Self {
-            display_render_intent,
-            debug_view,
-            _padding: [0; 2],
+            display: [display_render_intent, 0, 0, 0],
         }
+    }
+
+    /// Returns the shader display-render intent.
+    pub fn display_render_intent(&self) -> u32 {
+        self.display[0]
+    }
+
+    /// Updates the shader display-render intent while preserving padding.
+    pub fn set_display_render_intent(&mut self, display_render_intent: u32) {
+        self.display[0] = display_render_intent;
     }
 }
 

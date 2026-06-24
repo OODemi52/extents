@@ -15,7 +15,6 @@ export interface CommandArgs {
   start_folder_scan: { folderPath: string };
   init_renderer: null;
   resize_surface: { width: number; height: number };
-  set_debug_view: { debugView: number };
   load_image: {
     path: string;
     previewPath?: string | null;
@@ -54,7 +53,6 @@ export interface CommandReturn {
   start_folder_scan: void;
   init_renderer: void;
   resize_surface: void;
-  set_debug_view: void;
   load_image: number;
   start_full_image_load: void;
   swap_requested_texture: void;

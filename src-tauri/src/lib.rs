@@ -86,7 +86,6 @@ pub fn run() {
             commands::renderer::update_viewport,
             commands::renderer::update_transform,
             commands::renderer::resize_surface,
-            commands::renderer::set_debug_view,
             commands::renderer::should_render_frame,
             commands::renderer::render_frame,
             commands::renderer::clear_renderer,

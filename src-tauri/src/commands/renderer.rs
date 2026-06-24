@@ -3,8 +3,6 @@ use crate::state::AppState;
 use log::{info, warn};
 use tauri::State;
 
-const DEBUG_VIEW_MAX: u32 = 11;
-
 #[tauri::command]
 pub fn init_renderer(state: State<AppState>) -> Result<(), String> {
     let window = state.window.clone();
@@ -19,17 +17,6 @@ pub fn resize_surface(width: u32, height: u32, state: State<AppState>) {
         Ok(mut manager) => manager.resize_surface(width, height),
         Err(error) => warn!("{error}"),
     }
-}
-
-#[tauri::command]
-pub fn set_debug_view(debug_view: u32, state: State<AppState>) -> Result<(), String> {
-    if debug_view > DEBUG_VIEW_MAX {
-        return Err(format!("Unsupported debug view: {debug_view}"));
-    }
-
-    let mut manager = RendererManager::lock(&state.renderer_manager)?;
-
-    manager.set_debug_view(debug_view)
 }
 
 #[tauri::command]

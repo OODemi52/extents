@@ -1,9 +1,8 @@
 import { Accordion, AccordionItem } from "@heroui/accordion";
-import { SunDimIcon, PaletteIcon, EyeIcon } from "@phosphor-icons/react";
+import { SunDimIcon, PaletteIcon } from "@phosphor-icons/react";
 
 import { CenteredSlider } from "@/components/ui/sliders/center-slider";
 import { useExposureAdjustment } from "@/features/edit-panel/basic-adjustments/hooks/use-exposure-adjustment";
-import { RendererDebugSelect } from "@/features/edit-panel/components/renderer-debug-select";
 import { EDIT_PANEL_ACCORDION_PROPS } from "@/features/edit-panel/utils/accordion";
 
 export const BasicAdjustmentsPanel = () => {
@@ -14,22 +13,6 @@ export const BasicAdjustmentsPanel = () => {
       {...EDIT_PANEL_ACCORDION_PROPS}
       defaultExpandedKeys={["basic-adjustments", "color-grading"]}
     >
-      <AccordionItem
-        key="render-diagnostics"
-        aria-label="Render Diagnostics"
-        className="w-full rounded-xl bg-zinc-800"
-        startContent={<EyeIcon />}
-        title="Render Diagnostics"
-      >
-        <div className="flex flex-col gap-3">
-          <p className="text-xs leading-5 text-zinc-400">
-            Inspect stage outputs while debugging RAW color and tone-mapping
-            behavior. The RGB channel views are diagnostic views, not normal
-            display renderings.
-          </p>
-          <RendererDebugSelect />
-        </div>
-      </AccordionItem>
       <AccordionItem
         key="basic-adjustments"
         aria-label="Basic Adjustments"

@@ -90,12 +90,7 @@ impl DisplayResources {
     pub(super) fn current_display_render_intent(&self) -> u32 {
         self.display_parameters_buffer
             .parameters()
-            .display_render_intent
-    }
-
-    /// Returns the currently active shader debug view.
-    pub(super) fn current_debug_view(&self) -> u32 {
-        self.display_parameters_buffer.parameters().debug_view
+            .display_render_intent()
     }
 
     /// Returns the current CPU-side display parameter snapshot.

@@ -29,9 +29,6 @@ export const updateTransform = (args: CommandArgs["update_transform"]) =>
 export const resizeSurface = (args: CommandArgs["resize_surface"]) =>
   invokeTauri("resize_surface", args);
 
-export const setDebugView = (args: CommandArgs["set_debug_view"]) =>
-  invokeTauri("set_debug_view", args);
-
 export const prefetch = (args: CommandArgs["prefetch_thumbnails"]) =>
   invokeTauri("prefetch_thumbnails", args);
 

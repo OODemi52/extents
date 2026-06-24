@@ -176,22 +176,10 @@ impl Renderer {
         self.display_resources.current_display_render_intent()
     }
 
-    /// Returns the currently active shader debug view.
-    pub fn current_debug_view(&self) -> u32 {
-        self.display_resources.current_debug_view()
-    }
-
     /// Updates the active display render intent while preserving other display state.
     fn update_display_render_intent(&mut self, display_render_intent: u32) {
         let mut uniforms = self.display_resources.current_display_parameters();
-        uniforms.display_render_intent = display_render_intent;
-        self.update_display_parameters(uniforms);
-    }
-
-    /// Updates the active debug view while preserving the current display params.
-    pub fn update_debug_view(&mut self, debug_view: u32) {
-        let mut uniforms = self.display_resources.current_display_parameters();
-        uniforms.debug_view = debug_view;
+        uniforms.set_display_render_intent(display_render_intent);
         self.update_display_parameters(uniforms);
     }
 
