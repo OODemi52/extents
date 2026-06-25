@@ -10,7 +10,6 @@ use super::input::RendererInput;
 use super::renderer::Renderer;
 use super::schedule::RenderState;
 use crate::core::editing::EditRecipe;
-use crate::renderer::DisplayParameters;
 
 pub type RendererManagerHandle = Arc<Mutex<RendererManager>>;
 
@@ -208,11 +207,6 @@ impl RendererManager {
     pub fn sync_sidecar(&mut self, recipe: &EditRecipe) {
         if let Some(renderer) = self.renderer.as_mut() {
             renderer.update_edit_recipe(recipe);
-
-            let display_parameters =
-                DisplayParameters::from_intent(renderer.current_display_render_intent());
-
-            renderer.update_display_parameters(display_parameters);
             renderer.render();
         }
     }

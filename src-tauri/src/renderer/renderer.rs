@@ -1,5 +1,4 @@
 use super::context::{GpuContext, SurfaceContext};
-use super::display_parameters::DisplayParameters;
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
 use super::input::RendererInput;
@@ -132,7 +131,7 @@ impl Renderer {
         let dimensions = image.dimensions();
 
         self.display_checkboard(image.has_transparency());
-        self.update_display_render_intent(shader_display_render_intent(
+        self.update_display_render_intent(graph_display_render_intent(
             renderer_input.display_render_intent(),
         ));
         self.upload_source_image(image.texels(), dimensions.width(), dimensions.height());
@@ -157,11 +156,6 @@ impl Renderer {
         self.update_vertices();
     }
 
-    pub fn update_display_parameters(&mut self, uniforms: DisplayParameters) {
-        self.display_resources
-            .update_display_parameters(&self.gpu.queue, uniforms);
-    }
-
     /// Updates graph-owned edit parameters and reruns GPU image processing.
     pub fn update_edit_recipe(&mut self, recipe: &EditRecipe) {
         self.processing_graph.update_adjustments(
@@ -171,16 +165,13 @@ impl Renderer {
         );
     }
 
-    /// Returns the currently active shader display-render intent.
-    pub fn current_display_render_intent(&self) -> u32 {
-        self.display_resources.current_display_render_intent()
-    }
-
     /// Updates the active display render intent while preserving other display state.
     fn update_display_render_intent(&mut self, display_render_intent: u32) {
-        let mut uniforms = self.display_resources.current_display_parameters();
-        uniforms.set_display_render_intent(display_render_intent);
-        self.update_display_parameters(uniforms);
+        self.processing_graph.update_display_render_intent(
+            &self.gpu.device,
+            &self.gpu.queue,
+            display_render_intent,
+        );
     }
 
     pub fn clear(&mut self) {
@@ -308,7 +299,7 @@ impl Renderer {
     }
 }
 
-fn shader_display_render_intent(intent: DisplayRenderIntent) -> u32 {
+fn graph_display_render_intent(intent: DisplayRenderIntent) -> u32 {
     match intent {
         DisplayRenderIntent::DirectSdr => 0,
         DisplayRenderIntent::ToneMapToSdr => 1,

@@ -1,5 +1,4 @@
 mod context;
-mod display_parameters;
 mod display_resources;
 mod image_load;
 mod image_request;
@@ -17,8 +16,6 @@ mod viewport;
 
 pub use context::GpuContext;
 pub use context::SurfaceContext;
-pub use display_parameters::DisplayParameters;
-pub use display_parameters::DisplayParametersBuffer;
 pub use manager::{RendererManager, RendererManagerHandle};
 pub use renderer::Renderer;
 pub use schedule::RenderState;

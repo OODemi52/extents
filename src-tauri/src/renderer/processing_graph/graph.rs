@@ -1,6 +1,9 @@
 use super::super::texture::ImageTexture;
-use super::parameters::{AdjustmentParameters, AdjustmentParametersBuffer};
-use super::stages::AdjustmentStage;
+use super::parameters::{
+    AdjustmentParameters, AdjustmentParametersBuffer, OutputTransformParameters,
+    OutputTransformParametersBuffer,
+};
+use super::stages::{AdjustmentStage, OutputTransformStage};
 
 /// GPU-side image processing graph for the active renderer image.
 ///
@@ -8,29 +11,43 @@ use super::stages::AdjustmentStage;
 /// output texture consumed by display resources.
 pub(in crate::renderer) struct ImageProcessingGraph {
     source_texture: ImageTexture,
+    adjustment_output_texture: ImageTexture,
     output_texture: ImageTexture,
     adjustment_parameters_buffer: AdjustmentParametersBuffer,
+    output_transform_parameters_buffer: OutputTransformParametersBuffer,
     adjustment_stage: AdjustmentStage,
+    output_transform_stage: OutputTransformStage,
 }
 
 impl ImageProcessingGraph {
     /// Creates an empty processing graph with placeholder source and output textures.
     pub(in crate::renderer) fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         let source_texture = ImageTexture::new_source(device, queue);
-        let output_texture = ImageTexture::new_processing_output(device, queue);
+        let adjustment_output_texture = ImageTexture::new_adjustment_output(device, queue);
+        let output_texture = ImageTexture::new_display_output(device, queue);
         let adjustment_parameters_buffer = AdjustmentParametersBuffer::new(device);
+        let output_transform_parameters_buffer = OutputTransformParametersBuffer::new(device);
         let adjustment_stage = AdjustmentStage::new(
             device,
             source_texture.view(),
-            output_texture.view(),
+            adjustment_output_texture.view(),
             adjustment_parameters_buffer.as_entire_binding(),
+        );
+        let output_transform_stage = OutputTransformStage::new(
+            device,
+            adjustment_output_texture.view(),
+            output_texture.view(),
+            output_transform_parameters_buffer.as_entire_binding(),
         );
 
         Self {
             source_texture,
+            adjustment_output_texture,
             output_texture,
             adjustment_parameters_buffer,
+            output_transform_parameters_buffer,
             adjustment_stage,
+            output_transform_stage,
         }
     }
 
@@ -45,6 +62,8 @@ impl ImageProcessingGraph {
     ) {
         self.source_texture
             .update(device, queue, texels, width, height);
+        self.adjustment_output_texture
+            .resize_empty(device, width, height);
         self.output_texture.resize_empty(device, width, height);
         self.rebind_stages(device);
         self.run_stages(device, queue);
@@ -61,6 +80,21 @@ impl ImageProcessingGraph {
 
         self.adjustment_parameters_buffer.update(queue, parameters);
         self.run_stages(device, queue);
+    }
+
+    /// Updates graph-owned output parameters and reruns the output transform stage.
+    pub(in crate::renderer) fn update_display_render_intent(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        display_render_intent: u32,
+    ) {
+        let parameters =
+            OutputTransformParameters::from_display_render_intent(display_render_intent);
+
+        self.output_transform_parameters_buffer
+            .update(queue, parameters);
+        self.run_output_transform_stage(device, queue);
     }
 
     /// Returns the current graph output view used by the display resources.
@@ -82,13 +116,29 @@ impl ImageProcessingGraph {
         self.adjustment_stage.rebind(
             device,
             self.source_texture.view(),
-            self.output_texture.view(),
+            self.adjustment_output_texture.view(),
             self.adjustment_parameters_buffer.as_entire_binding(),
+        );
+        self.output_transform_stage.rebind(
+            device,
+            self.adjustment_output_texture.view(),
+            self.output_texture.view(),
+            self.output_transform_parameters_buffer.as_entire_binding(),
         );
     }
 
     fn run_stages(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.adjustment_stage.run(
+            device,
+            queue,
+            self.adjustment_output_texture.width(),
+            self.adjustment_output_texture.height(),
+        );
+        self.run_output_transform_stage(device, queue);
+    }
+
+    fn run_output_transform_stage(&self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.output_transform_stage.run(
             device,
             queue,
             self.output_texture.width(),

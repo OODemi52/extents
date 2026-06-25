@@ -22,12 +22,21 @@ impl ImageTexture {
         )
     }
 
-    /// Creates a placeholder output texture for GPU processing results.
-    pub(super) fn new_processing_output(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+    /// Creates a placeholder output texture for adjusted working-space image data.
+    pub(super) fn new_adjustment_output(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+        Self::new_stage_output(device, queue, "Adjustment Output Texture")
+    }
+
+    /// Creates a placeholder output texture for display-ready image data.
+    pub(super) fn new_display_output(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+        Self::new_stage_output(device, queue, "Display Output Texture")
+    }
+
+    fn new_stage_output(device: &wgpu::Device, queue: &wgpu::Queue, label: &'static str) -> Self {
         Self::new(
             device,
             queue,
-            "Processing Output Texture",
+            label,
             wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::STORAGE_BINDING
                 | wgpu::TextureUsages::COPY_DST,

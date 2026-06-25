@@ -55,3 +55,58 @@ impl AdjustmentParametersBuffer {
         self.buffer.as_entire_binding()
     }
 }
+
+/// Graph-owned output transform parameters consumed by the display-output stage.
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Pod, Zeroable)]
+pub(super) struct OutputTransformParameters {
+    display: [u32; 4],
+}
+
+impl OutputTransformParameters {
+    /// Packs the current display render intent into a 16-byte uniform block.
+    pub(super) fn from_display_render_intent(display_render_intent: u32) -> Self {
+        Self {
+            display: [display_render_intent, 0, 0, 0],
+        }
+    }
+}
+
+impl Default for OutputTransformParameters {
+    fn default() -> Self {
+        Self { display: [0; 4] }
+    }
+}
+
+/// GPU uniform buffer for graph-owned output transform parameters.
+pub(super) struct OutputTransformParametersBuffer {
+    parameters: OutputTransformParameters,
+    buffer: wgpu::Buffer,
+}
+
+impl OutputTransformParametersBuffer {
+    /// Creates a uniform buffer initialized with neutral output transform parameters.
+    pub(super) fn new(device: &wgpu::Device) -> Self {
+        let parameters = OutputTransformParameters::default();
+
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Output Transform Parameters Buffer"),
+            contents: bytemuck::cast_slice(&[parameters]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        Self { parameters, buffer }
+    }
+
+    /// Updates the live output transform parameters used by graph stages.
+    pub(super) fn update(&mut self, queue: &wgpu::Queue, parameters: OutputTransformParameters) {
+        self.parameters = parameters;
+
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[self.parameters]));
+    }
+
+    /// Returns this buffer as a bindable uniform resource.
+    pub(super) fn as_entire_binding(&self) -> wgpu::BindingResource<'_> {
+        self.buffer.as_entire_binding()
+    }
+}

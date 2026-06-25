@@ -92,29 +92,16 @@ impl RenderPipeline {
                     },
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry {
-                    // Display params uniform buffer
-                    binding: 3,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
             ],
         })
     }
 
-    /// Creates the bind group for the live image texture, sampler, transform uniforms,
-    /// and display-parameter uniforms used by the render shader.
+    /// Creates the bind group for the live image texture, sampler, and transform uniforms.
     pub fn create_bind_group(
         &self,
         device: &wgpu::Device,
         texture_view: &wgpu::TextureView,
         transform_binding: wgpu::BindingResource,
-        display_parameters_binding: wgpu::BindingResource,
     ) -> wgpu::BindGroup {
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.bind_group_layout,
@@ -131,10 +118,6 @@ impl RenderPipeline {
                 wgpu::BindGroupEntry {
                     binding: 2,
                     resource: transform_binding,
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: display_parameters_binding,
                 },
             ],
         })

@@ -1,17 +1,15 @@
-use super::display_parameters::{DisplayParameters, DisplayParametersBuffer};
 use super::pipeline::RenderPipeline;
 use super::transform::TransformBuffer;
 use super::vertex::VertexBuffer;
 
 /// GPU resources used to draw the currently presented image.
 ///
-/// This groups the display pipeline, bind group, geometry, and shader uniform
-/// buffers so `Renderer` no longer manages display GPU internals directly.
+/// This groups the display pipeline, bind group, geometry, and transform
+/// uniforms so `Renderer` no longer manages display GPU internals directly.
 pub(super) struct DisplayResources {
     pipeline: RenderPipeline,
     vertex_buffer: VertexBuffer,
     transform_buffer: TransformBuffer,
-    display_parameters_buffer: DisplayParametersBuffer,
     bind_group: wgpu::BindGroup,
 }
 
@@ -27,20 +25,17 @@ impl DisplayResources {
         let vertex_buffer = VertexBuffer::new(device);
 
         let transform_buffer = TransformBuffer::new(device);
-        let display_parameters_buffer = DisplayParametersBuffer::new(device);
 
         let bind_group = pipeline.create_bind_group(
             device,
             image_texture_view,
             transform_buffer.as_entire_binding(),
-            display_parameters_buffer.as_entire_binding(),
         );
 
         Self {
             pipeline,
             vertex_buffer,
             transform_buffer,
-            display_parameters_buffer,
             bind_group,
         }
     }
@@ -55,7 +50,6 @@ impl DisplayResources {
             device,
             image_texture_view,
             self.transform_buffer.as_entire_binding(),
-            self.display_parameters_buffer.as_entire_binding(),
         );
     }
 
@@ -75,27 +69,6 @@ impl DisplayResources {
             image_width,
             image_height,
         )
-    }
-
-    /// Updates the live display parameters used by the fragment shader.
-    pub(super) fn update_display_parameters(
-        &mut self,
-        queue: &wgpu::Queue,
-        parameters: DisplayParameters,
-    ) {
-        self.display_parameters_buffer.update(queue, parameters);
-    }
-
-    /// Returns the currently active shader display-render intent.
-    pub(super) fn current_display_render_intent(&self) -> u32 {
-        self.display_parameters_buffer
-            .parameters()
-            .display_render_intent()
-    }
-
-    /// Returns the current CPU-side display parameter snapshot.
-    pub(super) fn current_display_parameters(&self) -> DisplayParameters {
-        self.display_parameters_buffer.parameters()
     }
 
     /// Updates the live transform values used by the presentation shaders.
