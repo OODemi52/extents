@@ -1,12 +1,18 @@
-use super::super::super::texture::IMAGE_TEXTURE_FORMAT;
+use super::compute::{ImageComputeStage, ImageComputeStageLabels};
 
-const WORKGROUP_SIZE: u32 = 16;
+const LABELS: ImageComputeStageLabels = ImageComputeStageLabels {
+    bind_group_layout: "Output Transform Stage Bind Group Layout",
+    pipeline_layout: "Output Transform Stage Pipeline Layout",
+    shader: "Output Transform Stage Shader",
+    pipeline: "Output Transform Stage Pipeline",
+    bind_group: "Output Transform Stage Bind Group",
+    encoder: "Output Transform Stage Encoder",
+    pass: "Output Transform Stage Pass",
+};
 
 /// Compute stage that converts adjusted working-space image data into display output.
 pub(in crate::renderer::processing_graph) struct OutputTransformStage {
-    pipeline: wgpu::ComputePipeline,
-    bind_group_layout: wgpu::BindGroupLayout,
-    bind_group: wgpu::BindGroup,
+    stage: ImageComputeStage,
 }
 
 impl OutputTransformStage {
@@ -17,21 +23,16 @@ impl OutputTransformStage {
         output_view: &wgpu::TextureView,
         output_transform_parameters_binding: wgpu::BindingResource<'_>,
     ) -> Self {
-        let bind_group_layout = create_bind_group_layout(device);
-        let pipeline = create_pipeline(device, &bind_group_layout);
-        let bind_group = create_bind_group(
+        let stage = ImageComputeStage::new(
             device,
-            &bind_group_layout,
+            LABELS,
+            include_str!("../../../shaders/output_transform.wgsl"),
             source_view,
             output_view,
             output_transform_parameters_binding,
         );
 
-        Self {
-            pipeline,
-            bind_group_layout,
-            bind_group,
-        }
+        Self { stage }
     }
 
     /// Rebinds this stage after graph texture resources are replaced.
@@ -42,9 +43,8 @@ impl OutputTransformStage {
         output_view: &wgpu::TextureView,
         output_transform_parameters_binding: wgpu::BindingResource<'_>,
     ) {
-        self.bind_group = create_bind_group(
+        self.stage.rebind(
             device,
-            &self.bind_group_layout,
             source_view,
             output_view,
             output_transform_parameters_binding,
@@ -59,116 +59,6 @@ impl OutputTransformStage {
         width: u32,
         height: u32,
     ) {
-        let workgroup_count_x = width.div_ceil(WORKGROUP_SIZE);
-        let workgroup_count_y = height.div_ceil(WORKGROUP_SIZE);
-
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Output Transform Stage Encoder"),
-        });
-
-        {
-            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: Some("Output Transform Stage Pass"),
-                timestamp_writes: None,
-            });
-
-            compute_pass.set_pipeline(&self.pipeline);
-            compute_pass.set_bind_group(0, &self.bind_group, &[]);
-            compute_pass.dispatch_workgroups(workgroup_count_x, workgroup_count_y, 1);
-        }
-
-        queue.submit(std::iter::once(encoder.finish()));
+        self.stage.run(device, queue, width, height);
     }
-}
-
-fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("Output Transform Stage Bind Group Layout"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::StorageTexture {
-                    access: wgpu::StorageTextureAccess::WriteOnly,
-                    format: IMAGE_TEXTURE_FORMAT,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-        ],
-    })
-}
-
-fn create_pipeline(
-    device: &wgpu::Device,
-    bind_group_layout: &wgpu::BindGroupLayout,
-) -> wgpu::ComputePipeline {
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("Output Transform Stage Pipeline Layout"),
-        bind_group_layouts: &[bind_group_layout],
-        push_constant_ranges: &[],
-    });
-
-    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Output Transform Stage Shader"),
-        source: wgpu::ShaderSource::Wgsl(
-            include_str!("../../../shaders/output_transform.wgsl").into(),
-        ),
-    });
-
-    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("Output Transform Stage Pipeline"),
-        layout: Some(&pipeline_layout),
-        module: &shader,
-        entry_point: Some("cs_main"),
-        compilation_options: wgpu::PipelineCompilationOptions::default(),
-        cache: None,
-    })
-}
-
-fn create_bind_group(
-    device: &wgpu::Device,
-    bind_group_layout: &wgpu::BindGroupLayout,
-    source_view: &wgpu::TextureView,
-    output_view: &wgpu::TextureView,
-    output_transform_parameters_binding: wgpu::BindingResource<'_>,
-) -> wgpu::BindGroup {
-    device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("Output Transform Stage Bind Group"),
-        layout: bind_group_layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(source_view),
-            },
-            wgpu::BindGroupEntry {
-                binding: 1,
-                resource: wgpu::BindingResource::TextureView(output_view),
-            },
-            wgpu::BindGroupEntry {
-                binding: 2,
-                resource: output_transform_parameters_binding,
-            },
-        ],
-    })
 }
