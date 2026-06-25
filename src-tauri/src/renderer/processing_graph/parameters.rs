@@ -1,6 +1,44 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
+/// Graph-owned development parameters consumed by GPU development stages.
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Pod, Zeroable)]
+pub(super) struct DevelopmentParameters {
+    source: [u32; 4],
+}
+
+impl Default for DevelopmentParameters {
+    fn default() -> Self {
+        Self { source: [0; 4] }
+    }
+}
+
+/// GPU uniform buffer for graph-owned development parameters.
+pub(super) struct DevelopmentParametersBuffer {
+    buffer: wgpu::Buffer,
+}
+
+impl DevelopmentParametersBuffer {
+    /// Creates a uniform buffer initialized with neutral development parameters.
+    pub(super) fn new(device: &wgpu::Device) -> Self {
+        let parameters = DevelopmentParameters::default();
+
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Development Parameters Buffer"),
+            contents: bytemuck::cast_slice(&[parameters]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        Self { buffer }
+    }
+
+    /// Returns this buffer as a bindable uniform resource.
+    pub(super) fn as_entire_binding(&self) -> wgpu::BindingResource<'_> {
+        self.buffer.as_entire_binding()
+    }
+}
+
 /// Graph-owned adjustment parameters consumed by GPU adjustment stages.
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]

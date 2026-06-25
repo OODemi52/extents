@@ -22,6 +22,11 @@ impl ImageTexture {
         )
     }
 
+    /// Creates a placeholder output texture for developed working-space image data.
+    pub(super) fn new_development_output(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+        Self::new_stage_output(device, queue, "Development Output Texture")
+    }
+
     /// Creates a placeholder output texture for adjusted working-space image data.
     pub(super) fn new_adjustment_output(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         Self::new_stage_output(device, queue, "Adjustment Output Texture")
