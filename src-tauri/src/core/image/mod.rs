@@ -3,6 +3,7 @@ pub mod exif;
 pub mod histogram;
 pub mod orientation;
 pub mod preview;
+pub mod source;
 pub mod thumbnail;
 
 pub use decode::{
