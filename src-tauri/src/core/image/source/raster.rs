@@ -57,6 +57,23 @@ impl RasterSource {
     pub fn icc_profile(&self) -> Option<&[u8]> {
         self.icc_profile.as_deref()
     }
+
+    /// Consumes the source and returns the decoded raster payload.
+    pub fn into_parts(
+        self,
+    ) -> (
+        RasterSamples,
+        ImageDimensions,
+        Option<Orientation>,
+        Option<Vec<u8>>,
+    ) {
+        (
+            self.samples,
+            self.dimensions,
+            self.orientation,
+            self.icc_profile,
+        )
+    }
 }
 
 /// Raster sample storage before GPU upload.

@@ -1,6 +1,8 @@
+mod decode;
 mod raster;
 mod raw;
 
+pub use decode::decode_source_from_path;
 pub use raster::{RasterSamples, RasterSource};
 pub use raw::{RawCfaPattern, RawColorMatrixAnchor, RawLevels, RawRect, RawSamples, RawSource};
 

@@ -3,6 +3,7 @@ use rawler::imgop::xyz::Illuminant;
 use rawler::rawimage::RawPhotometricInterpretation;
 use rawler::{RawImage, RawImageData};
 
+use crate::core::image::orientation::Orientation;
 use crate::core::processing_pipeline::types::ImageDimensions;
 
 /// CPU-side RAW sensor payload intended for GPU RAW development upload.
@@ -23,13 +24,14 @@ pub struct RawSource {
     black_areas: Vec<RawRect>,
     white_balance_coefficients: [f32; 4],
     color_matrix_anchors: Vec<RawColorMatrixAnchor>,
+    orientation: Option<Orientation>,
     camera_make: String,
     camera_model: String,
 }
 
 impl RawSource {
     /// Builds a GPU-oriented RAW sensor source from rawler's decoded RAW image.
-    pub fn from_raw_image(raw_image: &RawImage) -> Result<Self> {
+    pub fn from_raw_image(raw_image: &RawImage, orientation: Option<Orientation>) -> Result<Self> {
         if raw_image.cpp != 1 {
             return Err(anyhow!(
                 "GPU RAW source currently supports one sample per photosite, got cpp={}",
@@ -138,6 +140,7 @@ impl RawSource {
             black_areas,
             white_balance_coefficients: raw_image.wb_coeffs,
             color_matrix_anchors,
+            orientation,
             camera_make: raw_image.clean_make.clone(),
             camera_model: raw_image.clean_model.clone(),
         })
@@ -196,6 +199,11 @@ impl RawSource {
     /// Returns supported camera color matrix anchors.
     pub fn color_matrix_anchors(&self) -> &[RawColorMatrixAnchor] {
         &self.color_matrix_anchors
+    }
+
+    /// Returns the orientation transform that still needs to be applied.
+    pub fn orientation(&self) -> Option<Orientation> {
+        self.orientation
     }
 
     /// Returns the cleaned camera make reported by rawler.
