@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0](https://github.com/OODemi52/extents/compare/Extents-v0.1.1...Extents-v0.2.0) (2026-06-29)
+
+
+### New Features
+
+* add GPU development graph boundary ([55d8fd3](https://github.com/OODemi52/extents/commit/55d8fd31645ec60be4377b1ccf2a1acd98751824))
+* add image source decode entrypoint ([3e3dc80](https://github.com/OODemi52/extents/commit/3e3dc80fb384fdc46f07bacc9c6261cdf66288eb))
+* add raster image source model ([58a5385](https://github.com/OODemi52/extents/commit/58a538530742f73c1a1fbb36b2f1f3a3a55c2ed7))
+* add RAW image source model ([fdb02cb](https://github.com/OODemi52/extents/commit/fdb02cb71d7de3ede409a6bd3c0911161fc2f974))
+* develop raster sources on GPU ([1db92f1](https://github.com/OODemi52/extents/commit/1db92f159ed19ef049493b79be6655343c1585d8))
+* develop RAW inputs on the GPU ([95c1ac1](https://github.com/OODemi52/extents/commit/95c1ac177bc709b994ae15c49bdf54502bd4abf2))
+* move output transform into GPU graph ([c2e99c8](https://github.com/OODemi52/extents/commit/c2e99c8ab532dfe8e6ebe5ec45f5a8bfc1254ffe))
+* process exposure in GPU image graph ([0929f9b](https://github.com/OODemi52/extents/commit/0929f9b17c18584026ef042b437fb624cf454466))
+
 ## [0.1.1](https://github.com/OODemi52/extents/compare/Extents-v0.1.0...Extents-v0.1.1) (2026-06-24)
 
 
