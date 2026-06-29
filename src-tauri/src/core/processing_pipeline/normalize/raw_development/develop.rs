@@ -7,7 +7,8 @@ use super::highlight_reconstruction::{
     build_raw_highlight_mask, reconstruct_working_space_highlight,
 };
 use super::types::{CameraSpaceRgbImage, CameraSpaceRgbPixel};
-use crate::core::processing_pipeline::types::{ImageDimensions, RgbPixel, WorkingImage};
+use crate::core::image::ImageDimensions;
+use crate::core::processing_pipeline::types::{RgbPixel, WorkingImage};
 
 /// Runs the remaining RAW development stages and returns a calibrated linear
 /// Rec.2020 working image without overflow folding.

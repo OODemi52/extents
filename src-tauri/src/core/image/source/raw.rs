@@ -4,7 +4,7 @@ use rawler::rawimage::RawPhotometricInterpretation;
 use rawler::{RawImage, RawImageData};
 
 use crate::core::image::orientation::Orientation;
-use crate::core::processing_pipeline::types::ImageDimensions;
+use crate::core::image::ImageDimensions;
 
 /// CPU-side RAW sensor payload intended for GPU RAW development upload.
 ///

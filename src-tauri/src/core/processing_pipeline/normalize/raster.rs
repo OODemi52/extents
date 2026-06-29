@@ -3,11 +3,11 @@ use image::RgbaImage;
 
 use super::convert::linear_srgb_to_linear_rec2020;
 use crate::core::image::orientation::apply_orientation;
+use crate::core::image::ImageDimensions;
 use crate::core::processing_pipeline::decode::DecodedRasterImage;
 use crate::core::processing_pipeline::luts::srgb_u8_to_linear;
 use crate::core::processing_pipeline::types::{
-    AlphaPlane, DisplayRenderIntent, ImageDimensions, ProcessingPipelineImage, RgbPixel,
-    WorkingImage,
+    AlphaPlane, DisplayRenderIntent, ProcessingPipelineImage, RgbPixel, WorkingImage,
 };
 
 /// Normalizes a decoded raster image into canonical pipeline state.

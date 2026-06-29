@@ -6,7 +6,7 @@ use crate::core::image::orientation::{apply_orientation, Orientation};
 use crate::core::image::source::{
     decode_source_from_path, ImageSource, RasterSamples, RasterSource,
 };
-use crate::core::processing_pipeline::types::ImageDimensions;
+use crate::core::image::ImageDimensions;
 
 /// Renderer-ready input built from source-domain image data.
 ///

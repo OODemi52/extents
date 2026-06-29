@@ -3,7 +3,8 @@ use rawler::imgop::{Dim2, Point, Rect};
 use rawler::rawimage::RawPhotometricInterpretation;
 use rawler::{RawImage, RawImageData};
 
-use crate::core::processing_pipeline::types::{ImageDimensions, RgbPixel};
+use crate::core::image::ImageDimensions;
+use crate::core::processing_pipeline::types::RgbPixel;
 
 const RAW_SATURATION_THRESHOLD: f32 = 0.995;
 const RAW_HIGHLIGHT_MASK_RADIUS: usize = 1;

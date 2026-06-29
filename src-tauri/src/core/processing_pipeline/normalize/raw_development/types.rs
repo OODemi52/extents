@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 
-use crate::core::processing_pipeline::types::ImageDimensions;
+use crate::core::image::ImageDimensions;
 
 /// A single demosaiced camera-space RGB pixel.
 ///

@@ -2,7 +2,7 @@ use anyhow::Result;
 use image::RgbaImage;
 
 use crate::core::image::orientation::Orientation;
-use crate::core::processing_pipeline::types::ImageDimensions;
+use crate::core::image::ImageDimensions;
 
 /// CPU-side raster payload intended for GPU source upload.
 ///

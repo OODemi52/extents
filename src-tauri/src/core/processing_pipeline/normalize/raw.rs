@@ -2,9 +2,10 @@ use anyhow::Result;
 
 use super::raw_development;
 use crate::core::image::orientation::apply_orientation;
+use crate::core::image::ImageDimensions;
 use crate::core::processing_pipeline::decode::DecodedRawImage;
 use crate::core::processing_pipeline::types::{
-    DisplayRenderIntent, ImageDimensions, ProcessingPipelineImage, WorkingImage,
+    DisplayRenderIntent, ProcessingPipelineImage, WorkingImage,
 };
 
 /// Normalizes a decoded RAW image into canonical pipeline state.
