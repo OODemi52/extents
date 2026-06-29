@@ -3,4 +3,4 @@ mod parameters;
 mod stages;
 
 pub(super) use graph::ImageProcessingGraph;
-pub(super) use parameters::SourceKind;
+pub(super) use parameters::{DevelopmentParameters, SourceKind};

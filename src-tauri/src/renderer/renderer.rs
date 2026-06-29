@@ -2,7 +2,7 @@ use super::context::{GpuContext, SurfaceContext};
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
 use super::input::{DisplayIntent, Input};
-use super::processing_graph::{ImageProcessingGraph, SourceKind};
+use super::processing_graph::{DevelopmentParameters, ImageProcessingGraph};
 use super::schedule::{RenderSchedule, RenderState};
 use super::viewer::Viewer;
 use crate::core::editing::EditRecipe;
@@ -135,7 +135,7 @@ impl Renderer {
             image.texels(),
             dimensions.width(),
             dimensions.height(),
-            input.source_kind(),
+            input.development_parameters(),
         );
     }
 
@@ -144,7 +144,7 @@ impl Renderer {
         texels: &[f32],
         width: u32,
         height: u32,
-        source_kind: SourceKind,
+        development_parameters: DevelopmentParameters,
     ) {
         info!("[Renderer] Uploading source image ({}x{})", width, height);
 
@@ -156,7 +156,7 @@ impl Renderer {
             texels,
             width,
             height,
-            source_kind,
+            development_parameters,
         );
 
         self.display_resources
@@ -311,5 +311,6 @@ impl Renderer {
 fn graph_display_intent(intent: DisplayIntent) -> u32 {
     match intent {
         DisplayIntent::DirectSdr => 0,
+        DisplayIntent::ToneMapToSdr => 1,
     }
 }
