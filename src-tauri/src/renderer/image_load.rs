@@ -1,37 +1,36 @@
 use log::{error, info};
 use tauri::async_runtime;
 
-use super::input::build_renderer_input_from_path;
-use super::input::RendererInput;
+use super::input::build_input_from_path;
+use super::input::Input;
 use super::manager::{RendererManager, RendererManagerHandle};
 
-/// Builds renderer input from a path and sets it only if the request is still active.
-pub(crate) fn set_requested_renderer_input_from_path(
+/// Builds input from a path and sets it only if the request is still active.
+pub(crate) fn set_requested_input_from_path(
     path: &str,
     request_id: u64,
     renderer_manager: &RendererManagerHandle,
 ) -> Result<(), String> {
-    let renderer_input = match build_renderer_input_from_path(path) {
-        Ok(renderer_input) => renderer_input,
+    let input = match build_input_from_path(path) {
+        Ok(input) => input,
         Err(error) => return Err(error.to_string()),
     };
 
-    set_renderer_input_for_active_request(renderer_manager, request_id, renderer_input);
+    set_input_for_active_request(renderer_manager, request_id, input);
 
     Ok(())
 }
 
-/// Builds and swaps a requested proxy renderer input if the request is still active.
-pub(crate) async fn swap_requested_renderer_input(
+/// Builds and swaps a requested proxy input if the request is still active.
+pub(crate) async fn swap_requested_input(
     path: String,
     request_id: u64,
     renderer_manager: RendererManagerHandle,
 ) -> Result<(), String> {
-    let renderer_input_result =
-        async_runtime::spawn_blocking(move || build_renderer_input_from_path(&path)).await;
+    let input_result = async_runtime::spawn_blocking(move || build_input_from_path(&path)).await;
 
-    let renderer_input = match renderer_input_result {
-        Ok(Ok(renderer_input)) => renderer_input,
+    let input = match input_result {
+        Ok(Ok(input)) => input,
         Ok(Err(error)) => return Err(error.to_string()),
         Err(join_error) => {
             return Err(format!(
@@ -41,16 +40,16 @@ pub(crate) async fn swap_requested_renderer_input(
         }
     };
 
-    set_renderer_input_for_active_request(&renderer_manager, request_id, renderer_input);
+    set_input_for_active_request(&renderer_manager, request_id, input);
 
     Ok(())
 }
 
 /// Spawns a full-image load task and applies it if the request is still active.
 ///
-/// This owns the async execution flow for full-resolution renderer input:
-/// build renderer input off the main async task, reject stale requests, set the
-/// renderer input, render, and mark the request complete.
+/// This owns the async execution flow for full-resolution input:
+/// build input off the main async task, reject stale requests, set the input,
+/// render, and mark the request complete.
 pub(crate) fn spawn_full_image_load(
     path: String,
     request_id: u64,
@@ -65,13 +64,13 @@ pub(crate) fn spawn_full_image_load(
     );
 
     let join_handle = async_runtime::spawn(async move {
-        let renderer_input_result =
-            async_runtime::spawn_blocking(move || build_renderer_input_from_path(&path)).await;
+        let input_result =
+            async_runtime::spawn_blocking(move || build_input_from_path(&path)).await;
 
-        match renderer_input_result {
-            Ok(Ok(renderer_input)) => match RendererManager::lock(&renderer_for_task) {
+        match input_result {
+            Ok(Ok(input)) => match RendererManager::lock(&renderer_for_task) {
                 Ok(mut manager) => {
-                    manager.set_renderer_input_for_active_request(request_id, renderer_input);
+                    manager.set_input_for_active_request(request_id, input);
                     manager.complete_image_request(request_id);
                 }
                 Err(error) => error!("[Renderer] {error}"),
@@ -111,14 +110,14 @@ pub(crate) fn spawn_full_image_load(
     }
 }
 
-fn set_renderer_input_for_active_request(
+fn set_input_for_active_request(
     renderer_manager: &RendererManagerHandle,
     request_id: u64,
-    renderer_input: RendererInput,
+    input: Input,
 ) {
     match RendererManager::lock(renderer_manager) {
         Ok(mut manager) => {
-            manager.set_renderer_input_for_active_request(request_id, renderer_input);
+            manager.set_input_for_active_request(request_id, input);
         }
         Err(error) => error!("[Renderer] {error}"),
     }

@@ -1,7 +1,7 @@
 use super::context::{GpuContext, SurfaceContext};
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
-use super::input::{RendererDisplayIntent, RendererInput};
+use super::input::{DisplayIntent, Input};
 use super::processing_graph::{ImageProcessingGraph, SourceKind};
 use super::schedule::{RenderSchedule, RenderState};
 use super::viewer::Viewer;
@@ -124,20 +124,18 @@ impl Renderer {
         self.surface.resize(&self.gpu, new_width, new_height);
     }
 
-    /// Sets the current renderer input as the live display image.
-    pub(super) fn set_renderer_input(&mut self, renderer_input: RendererInput) {
-        let image = renderer_input.image();
+    /// Sets the current input as the live display image.
+    pub(super) fn set_input(&mut self, input: Input) {
+        let image = input.image();
         let dimensions = image.dimensions();
 
         self.display_checkboard(image.has_transparency());
-        self.update_display_render_intent(graph_display_render_intent(
-            renderer_input.display_render_intent(),
-        ));
+        self.update_display_intent(graph_display_intent(input.display_intent()));
         self.upload_source_image(
             image.texels(),
             dimensions.width(),
             dimensions.height(),
-            renderer_input.source_kind(),
+            input.source_kind(),
         );
     }
 
@@ -176,12 +174,12 @@ impl Renderer {
         );
     }
 
-    /// Updates the active display render intent while preserving other display state.
-    fn update_display_render_intent(&mut self, display_render_intent: u32) {
-        self.processing_graph.update_display_render_intent(
+    /// Updates the active display intent while preserving other display state.
+    fn update_display_intent(&mut self, display_intent: u32) {
+        self.processing_graph.update_display_intent(
             &self.gpu.device,
             &self.gpu.queue,
-            display_render_intent,
+            display_intent,
         );
     }
 
@@ -310,8 +308,8 @@ impl Renderer {
     }
 }
 
-fn graph_display_render_intent(intent: RendererDisplayIntent) -> u32 {
+fn graph_display_intent(intent: DisplayIntent) -> u32 {
     match intent {
-        RendererDisplayIntent::DirectSdr => 0,
+        DisplayIntent::DirectSdr => 0,
     }
 }

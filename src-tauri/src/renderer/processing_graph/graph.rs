@@ -103,14 +103,13 @@ impl ImageProcessingGraph {
     }
 
     /// Updates graph-owned output parameters and reruns the output transform stage.
-    pub(in crate::renderer) fn update_display_render_intent(
+    pub(in crate::renderer) fn update_display_intent(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        display_render_intent: u32,
+        display_intent: u32,
     ) {
-        let parameters =
-            OutputTransformParameters::from_display_render_intent(display_render_intent);
+        let parameters = OutputTransformParameters::from_display_intent(display_intent);
 
         self.output_transform_parameters_buffer
             .update(queue, parameters);

@@ -4,9 +4,9 @@ use log::{info, warn};
 use tauri::WebviewWindow;
 
 use super::image_load::{
-    set_requested_renderer_input_from_path, spawn_full_image_load, swap_requested_renderer_input,
+    set_requested_input_from_path, spawn_full_image_load, swap_requested_input,
 };
-use super::input::RendererInput;
+use super::input::Input;
 use super::renderer::Renderer;
 use super::schedule::RenderState;
 use crate::core::editing::EditRecipe;
@@ -100,9 +100,7 @@ impl RendererManager {
         };
 
         if let Some(preview_path) = preview_path {
-            if let Err(error) =
-                set_requested_renderer_input_from_path(&preview_path, request_id, &handle)
-            {
+            if let Err(error) = set_requested_input_from_path(&preview_path, request_id, &handle) {
                 warn!(
                     "[RendererManager] Failed to load preview texture from {preview_path}: {error}"
                 );
@@ -149,13 +147,13 @@ impl RendererManager {
         Ok(())
     }
 
-    /// Builds and swaps a requested proxy renderer input.
+    /// Builds and swaps a requested proxy input.
     pub async fn swap_requested_texture(
         handle: RendererManagerHandle,
         path: String,
         request_id: u64,
     ) -> Result<(), String> {
-        swap_requested_renderer_input(path, request_id, handle).await
+        swap_requested_input(path, request_id, handle).await
     }
 
     /// Updates the logical interaction viewport and recalculates image placement.
@@ -211,14 +209,10 @@ impl RendererManager {
         }
     }
 
-    pub(super) fn set_renderer_input_for_active_request(
-        &mut self,
-        request_id: u64,
-        renderer_input: RendererInput,
-    ) {
+    pub(super) fn set_input_for_active_request(&mut self, request_id: u64, input: Input) {
         if let Some(renderer) = self.renderer.as_mut() {
             if renderer.is_request_active(request_id) {
-                renderer.set_renderer_input(renderer_input);
+                renderer.set_input(input);
                 renderer.render();
             }
         }

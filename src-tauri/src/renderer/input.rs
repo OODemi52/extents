@@ -12,15 +12,15 @@ use crate::core::processing_pipeline::types::ImageDimensions;
 ///
 /// This keeps the CPU-side source upload payload together with the graph
 /// development source kind and display intent needed by the live renderer.
-pub(super) struct RendererInput {
-    image: RendererInputImage,
+pub(super) struct Input {
+    image: InputImage,
     source_kind: SourceKind,
-    display_render_intent: RendererDisplayIntent,
+    display_intent: DisplayIntent,
 }
 
-impl RendererInput {
+impl Input {
     /// Returns the CPU-side source payload to upload into graph resources.
-    pub(super) fn image(&self) -> &RendererInputImage {
+    pub(super) fn image(&self) -> &InputImage {
         &self.image
     }
 
@@ -30,19 +30,19 @@ impl RendererInput {
     }
 
     /// Returns how this input should be transformed for display.
-    pub(super) fn display_render_intent(&self) -> RendererDisplayIntent {
-        self.display_render_intent
+    pub(super) fn display_intent(&self) -> DisplayIntent {
+        self.display_intent
     }
 }
 
 /// CPU-side texel payload used for renderer source upload.
-pub(super) struct RendererInputImage {
+pub(super) struct InputImage {
     texels: Vec<f32>,
     dimensions: ImageDimensions,
     has_transparency: bool,
 }
 
-impl RendererInputImage {
+impl InputImage {
     /// Returns packed source texels as a read-only slice.
     pub(super) fn texels(&self) -> &[f32] {
         &self.texels
@@ -61,26 +61,26 @@ impl RendererInputImage {
 
 /// Controls how graph output should be rendered for display.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum RendererDisplayIntent {
+pub(super) enum DisplayIntent {
     DirectSdr,
 }
 
 /// Builds renderer-ready image data from a source image path.
-pub(super) fn build_renderer_input_from_path(path: &str) -> Result<RendererInput> {
+pub(super) fn build_input_from_path(path: &str) -> Result<Input> {
     let source = match decode_source_from_path(path) {
         Ok(source) => source,
         Err(error) => return Err(error),
     };
 
     match source {
-        ImageSource::Raster(raster) => build_raster_renderer_input(raster),
+        ImageSource::Raster(raster) => build_raster_input(raster),
         ImageSource::Raw(_) => Err(anyhow!(
             "GPU RAW development is not implemented for renderer source input yet"
         )),
     }
 }
 
-fn build_raster_renderer_input(raster: RasterSource) -> Result<RendererInput> {
+fn build_raster_input(raster: RasterSource) -> Result<Input> {
     let (samples, _, orientation, _) = raster.into_parts();
 
     let mut pixels = match samples {
@@ -94,19 +94,19 @@ fn build_raster_renderer_input(raster: RasterSource) -> Result<RendererInput> {
         };
     }
 
-    let image = match build_rgba8_renderer_input_image(pixels) {
+    let image = match build_rgba8_input_image(pixels) {
         Ok(image) => image,
         Err(error) => return Err(error),
     };
 
-    Ok(RendererInput {
+    Ok(Input {
         image,
         source_kind: SourceKind::RasterSrgb,
-        display_render_intent: RendererDisplayIntent::DirectSdr,
+        display_intent: DisplayIntent::DirectSdr,
     })
 }
 
-fn build_rgba8_renderer_input_image(pixels: RgbaImage) -> Result<RendererInputImage> {
+fn build_rgba8_input_image(pixels: RgbaImage) -> Result<InputImage> {
     let (width, height) = pixels.dimensions();
     let dimensions = match ImageDimensions::new(width, height) {
         Ok(dimensions) => dimensions,
@@ -135,7 +135,7 @@ fn build_rgba8_renderer_input_image(pixels: RgbaImage) -> Result<RendererInputIm
         texels.push(alpha);
     }
 
-    Ok(RendererInputImage {
+    Ok(InputImage {
         texels,
         dimensions,
         has_transparency,

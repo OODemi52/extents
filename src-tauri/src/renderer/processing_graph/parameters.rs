@@ -133,10 +133,10 @@ pub(super) struct OutputTransformParameters {
 }
 
 impl OutputTransformParameters {
-    /// Packs the current display render intent into a 16-byte uniform block.
-    pub(super) fn from_display_render_intent(display_render_intent: u32) -> Self {
+    /// Packs the current display intent into a 16-byte uniform block.
+    pub(super) fn from_display_intent(display_intent: u32) -> Self {
         Self {
-            display: [display_render_intent, 0, 0, 0],
+            display: [display_intent, 0, 0, 0],
         }
     }
 }
