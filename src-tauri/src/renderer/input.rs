@@ -1,47 +1,165 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use image::RgbaImage;
 
-use crate::core::processing_pipeline::types::DisplayRenderIntent;
-use crate::core::processing_pipeline::{
-    build_renderer_input_image, ingest_from_path, RendererInputImage,
+use super::processing_graph::SourceKind;
+use crate::core::image::orientation::{apply_orientation, Orientation};
+use crate::core::image::source::{
+    decode_source_from_path, ImageSource, RasterSamples, RasterSource,
 };
+use crate::core::processing_pipeline::types::ImageDimensions;
 
-/// Renderer-ready input built from the processing pipeline.
+/// Renderer-ready input built from source-domain image data.
 ///
-/// This keeps the CPU-side image upload payload together with the typed display
-/// intent needed when the input is set on the live renderer.
+/// This keeps the CPU-side source upload payload together with the graph
+/// development source kind and display intent needed by the live renderer.
 pub(super) struct RendererInput {
     image: RendererInputImage,
-    display_render_intent: DisplayRenderIntent,
+    source_kind: SourceKind,
+    display_render_intent: RendererDisplayIntent,
 }
 
 impl RendererInput {
-    /// Returns the CPU-side image payload to upload into renderer resources.
+    /// Returns the CPU-side source payload to upload into graph resources.
     pub(super) fn image(&self) -> &RendererInputImage {
         &self.image
     }
 
-    /// Returns how this input should be rendered for display.
-    pub(super) fn display_render_intent(&self) -> DisplayRenderIntent {
+    /// Returns how the development stage should interpret the uploaded source.
+    pub(super) fn source_kind(&self) -> SourceKind {
+        self.source_kind
+    }
+
+    /// Returns how this input should be transformed for display.
+    pub(super) fn display_render_intent(&self) -> RendererDisplayIntent {
         self.display_render_intent
     }
 }
 
+/// CPU-side texel payload used for renderer source upload.
+pub(super) struct RendererInputImage {
+    texels: Vec<f32>,
+    dimensions: ImageDimensions,
+    has_transparency: bool,
+}
+
+impl RendererInputImage {
+    /// Returns packed source texels as a read-only slice.
+    pub(super) fn texels(&self) -> &[f32] {
+        &self.texels
+    }
+
+    /// Returns the source image dimensions represented by this upload payload.
+    pub(super) fn dimensions(&self) -> ImageDimensions {
+        self.dimensions
+    }
+
+    /// Returns whether any texel in this renderer input contains transparency.
+    pub(super) fn has_transparency(&self) -> bool {
+        self.has_transparency
+    }
+}
+
+/// Controls how graph output should be rendered for display.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RendererDisplayIntent {
+    DirectSdr,
+}
+
 /// Builds renderer-ready image data from a source image path.
 pub(super) fn build_renderer_input_from_path(path: &str) -> Result<RendererInput> {
-    let processing_pipeline_image = match ingest_from_path(path) {
-        Ok(processing_pipeline_image) => processing_pipeline_image,
+    let source = match decode_source_from_path(path) {
+        Ok(source) => source,
         Err(error) => return Err(error),
     };
 
-    let image = match build_renderer_input_image(&processing_pipeline_image) {
-        Ok(renderer_input) => renderer_input,
-        Err(error) => return Err(error),
+    match source {
+        ImageSource::Raster(raster) => build_raster_renderer_input(raster),
+        ImageSource::Raw(_) => Err(anyhow!(
+            "GPU RAW development is not implemented for renderer source input yet"
+        )),
+    }
+}
+
+fn build_raster_renderer_input(raster: RasterSource) -> Result<RendererInput> {
+    let (samples, _, orientation, _) = raster.into_parts();
+
+    let mut pixels = match samples {
+        RasterSamples::Rgba8(pixels) => pixels,
     };
 
-    let display_render_intent = image.display_render_intent();
+    if let Some(orientation) = orientation {
+        pixels = match apply_orientation_to_rgba(pixels, orientation) {
+            Ok(pixels) => pixels,
+            Err(error) => return Err(error),
+        };
+    }
+
+    let image = match build_rgba8_renderer_input_image(pixels) {
+        Ok(image) => image,
+        Err(error) => return Err(error),
+    };
 
     Ok(RendererInput {
         image,
-        display_render_intent,
+        source_kind: SourceKind::RasterSrgb,
+        display_render_intent: RendererDisplayIntent::DirectSdr,
     })
+}
+
+fn build_rgba8_renderer_input_image(pixels: RgbaImage) -> Result<RendererInputImage> {
+    let (width, height) = pixels.dimensions();
+    let dimensions = match ImageDimensions::new(width, height) {
+        Ok(dimensions) => dimensions,
+        Err(error) => return Err(error),
+    };
+
+    let pixel_count = match dimensions.pixel_count() {
+        Ok(pixel_count) => pixel_count,
+        Err(error) => return Err(error),
+    };
+
+    let mut texels = Vec::with_capacity(pixel_count * 4);
+    let mut has_transparency = false;
+
+    for rgba in pixels.pixels() {
+        texels.push(u8_to_normalized_f32(rgba[0]));
+        texels.push(u8_to_normalized_f32(rgba[1]));
+        texels.push(u8_to_normalized_f32(rgba[2]));
+
+        let alpha = u8_to_normalized_f32(rgba[3]);
+
+        if alpha < 1.0 {
+            has_transparency = true;
+        }
+
+        texels.push(alpha);
+    }
+
+    Ok(RendererInputImage {
+        texels,
+        dimensions,
+        has_transparency,
+    })
+}
+
+fn apply_orientation_to_rgba(image: RgbaImage, orientation: Orientation) -> Result<RgbaImage> {
+    let (width, height) = image.dimensions();
+    let pixels: Vec<_> = image.pixels().copied().collect();
+
+    let (oriented_pixels, oriented_width, oriented_height) =
+        match apply_orientation(pixels, width, height, orientation) {
+            Ok(oriented) => oriented,
+            Err(error) => return Err(error),
+        };
+
+    Ok(RgbaImage::from_fn(
+        oriented_width,
+        oriented_height,
+        |x, y| oriented_pixels[((y * oriented_width) + x) as usize],
+    ))
+}
+
+/// Converts an 8-bit channel value into a normalized `f32` in the range `0.0..=1.0`.
+fn u8_to_normalized_f32(value: u8) -> f32 {
+    value as f32 / 255.0
 }

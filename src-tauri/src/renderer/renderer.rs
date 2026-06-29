@@ -1,12 +1,11 @@
 use super::context::{GpuContext, SurfaceContext};
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
-use super::input::RendererInput;
-use super::processing_graph::ImageProcessingGraph;
+use super::input::{RendererDisplayIntent, RendererInput};
+use super::processing_graph::{ImageProcessingGraph, SourceKind};
 use super::schedule::{RenderSchedule, RenderState};
 use super::viewer::Viewer;
 use crate::core::editing::EditRecipe;
-use crate::core::processing_pipeline::types::DisplayRenderIntent;
 use anyhow::{Context, Result};
 use log::{error, info};
 use tauri::async_runtime::JoinHandle;
@@ -134,10 +133,21 @@ impl Renderer {
         self.update_display_render_intent(graph_display_render_intent(
             renderer_input.display_render_intent(),
         ));
-        self.upload_source_image(image.texels(), dimensions.width(), dimensions.height());
+        self.upload_source_image(
+            image.texels(),
+            dimensions.width(),
+            dimensions.height(),
+            renderer_input.source_kind(),
+        );
     }
 
-    fn upload_source_image(&mut self, texels: &[f32], width: u32, height: u32) {
+    fn upload_source_image(
+        &mut self,
+        texels: &[f32],
+        width: u32,
+        height: u32,
+        source_kind: SourceKind,
+    ) {
         info!("[Renderer] Uploading source image ({}x{})", width, height);
 
         self.has_image = true;
@@ -148,6 +158,7 @@ impl Renderer {
             texels,
             width,
             height,
+            source_kind,
         );
 
         self.display_resources
@@ -299,9 +310,8 @@ impl Renderer {
     }
 }
 
-fn graph_display_render_intent(intent: DisplayRenderIntent) -> u32 {
+fn graph_display_render_intent(intent: RendererDisplayIntent) -> u32 {
     match intent {
-        DisplayRenderIntent::DirectSdr => 0,
-        DisplayRenderIntent::ToneMapToSdr => 1,
+        RendererDisplayIntent::DirectSdr => 0,
     }
 }

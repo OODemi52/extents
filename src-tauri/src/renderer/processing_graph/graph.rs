@@ -1,7 +1,8 @@
 use super::super::texture::ImageTexture;
 use super::parameters::{
-    AdjustmentParameters, AdjustmentParametersBuffer, DevelopmentParametersBuffer,
-    OutputTransformParameters, OutputTransformParametersBuffer,
+    AdjustmentParameters, AdjustmentParametersBuffer, DevelopmentParameters,
+    DevelopmentParametersBuffer, OutputTransformParameters, OutputTransformParametersBuffer,
+    SourceKind,
 };
 use super::stages::{AdjustmentStage, DevelopmentStage, OutputTransformStage};
 
@@ -73,9 +74,12 @@ impl ImageProcessingGraph {
         texels: &[f32],
         width: u32,
         height: u32,
+        source_kind: SourceKind,
     ) {
         self.source_texture
             .update(device, queue, texels, width, height);
+        self.development_parameters_buffer
+            .update(queue, DevelopmentParameters::from_source_kind(source_kind));
         self.development_output_texture
             .resize_empty(device, width, height);
         self.adjustment_output_texture

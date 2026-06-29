@@ -1,6 +1,20 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
+/// Identifies the source-domain interpretation used by the development stage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::renderer) enum SourceKind {
+    RasterSrgb,
+}
+
+impl SourceKind {
+    fn as_u32(self) -> u32 {
+        match self {
+            Self::RasterSrgb => 0,
+        }
+    }
+}
+
 /// Graph-owned development parameters consumed by GPU development stages.
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
@@ -8,14 +22,24 @@ pub(super) struct DevelopmentParameters {
     source: [u32; 4],
 }
 
+impl DevelopmentParameters {
+    /// Packs the current source kind into a 16-byte uniform block.
+    pub(super) fn from_source_kind(source_kind: SourceKind) -> Self {
+        Self {
+            source: [source_kind.as_u32(), 0, 0, 0],
+        }
+    }
+}
+
 impl Default for DevelopmentParameters {
     fn default() -> Self {
-        Self { source: [0; 4] }
+        Self::from_source_kind(SourceKind::RasterSrgb)
     }
 }
 
 /// GPU uniform buffer for graph-owned development parameters.
 pub(super) struct DevelopmentParametersBuffer {
+    parameters: DevelopmentParameters,
     buffer: wgpu::Buffer,
 }
 
@@ -30,7 +54,14 @@ impl DevelopmentParametersBuffer {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-        Self { buffer }
+        Self { parameters, buffer }
+    }
+
+    /// Updates the live development parameters used by graph stages.
+    pub(super) fn update(&mut self, queue: &wgpu::Queue, parameters: DevelopmentParameters) {
+        self.parameters = parameters;
+
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[self.parameters]));
     }
 
     /// Returns this buffer as a bindable uniform resource.
