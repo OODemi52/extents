@@ -11,6 +11,11 @@ const DEMOSAIC_SHADER_SOURCE: &str = concat!(
     include_str!("../../../../shaders/development/raw_demosaic_bayer.wgsl"),
 );
 
+const HIGHLIGHT_RECONSTRUCTION_SHADER_SOURCE: &str = concat!(
+    include_str!("../../../../shaders/development/common.wgsl"),
+    include_str!("../../../../shaders/development/raw_highlight_reconstruction.wgsl"),
+);
+
 const CAMERA_TO_WORKING_SHADER_SOURCE: &str = concat!(
     include_str!("../../../../shaders/development/common.wgsl"),
     include_str!("../../../../shaders/development/raw_camera_to_working.wgsl"),
@@ -36,6 +41,16 @@ const DEMOSAIC_LABELS: ImageComputeStageLabels = ImageComputeStageLabels {
     pass: "RAW Demosaic Bayer Stage Pass",
 };
 
+const HIGHLIGHT_RECONSTRUCTION_LABELS: ImageComputeStageLabels = ImageComputeStageLabels {
+    bind_group_layout: "RAW Highlight Reconstruction Stage Bind Group Layout",
+    pipeline_layout: "RAW Highlight Reconstruction Stage Pipeline Layout",
+    shader: "RAW Highlight Reconstruction Stage Shader",
+    pipeline: "RAW Highlight Reconstruction Stage Pipeline",
+    bind_group: "RAW Highlight Reconstruction Stage Bind Group",
+    encoder: "RAW Highlight Reconstruction Stage Encoder",
+    pass: "RAW Highlight Reconstruction Stage Pass",
+};
+
 const CAMERA_TO_WORKING_LABELS: ImageComputeStageLabels = ImageComputeStageLabels {
     bind_group_layout: "RAW Camera To Working Stage Bind Group Layout",
     pipeline_layout: "RAW Camera To Working Stage Pipeline Layout",
@@ -49,8 +64,10 @@ const CAMERA_TO_WORKING_LABELS: ImageComputeStageLabels = ImageComputeStageLabel
 /// Multi-pass development pipeline for one-plane 2x2 Bayer RAW input.
 pub(in crate::renderer::processing_graph) struct RawBayerDevelopmentStage {
     normalized_bayer_texture: ImageTexture,
+    reconstructed_bayer_texture: ImageTexture,
     camera_rgb_texture: ImageTexture,
     normalize_stage: ImageComputeStage,
+    highlight_reconstruction_stage: ImageComputeStage,
     demosaic_stage: ImageComputeStage,
     camera_to_working_stage: ImageComputeStage,
 }
@@ -65,6 +82,8 @@ impl RawBayerDevelopmentStage {
         development_parameters_binding: wgpu::BindingResource<'_>,
     ) -> Self {
         let normalized_bayer_texture = ImageTexture::new_raw_normalized_bayer_output(device, queue);
+        let reconstructed_bayer_texture =
+            ImageTexture::new_raw_reconstructed_bayer_output(device, queue);
         let camera_rgb_texture = ImageTexture::new_raw_camera_rgb_output(device, queue);
         let normalize_stage = ImageComputeStage::new(
             device,
@@ -74,11 +93,19 @@ impl RawBayerDevelopmentStage {
             normalized_bayer_texture.view(),
             development_parameters_binding.clone(),
         );
+        let highlight_reconstruction_stage = ImageComputeStage::new(
+            device,
+            HIGHLIGHT_RECONSTRUCTION_LABELS,
+            HIGHLIGHT_RECONSTRUCTION_SHADER_SOURCE,
+            normalized_bayer_texture.view(),
+            reconstructed_bayer_texture.view(),
+            development_parameters_binding.clone(),
+        );
         let demosaic_stage = ImageComputeStage::new(
             device,
             DEMOSAIC_LABELS,
             DEMOSAIC_SHADER_SOURCE,
-            normalized_bayer_texture.view(),
+            reconstructed_bayer_texture.view(),
             camera_rgb_texture.view(),
             development_parameters_binding.clone(),
         );
@@ -93,8 +120,10 @@ impl RawBayerDevelopmentStage {
 
         Self {
             normalized_bayer_texture,
+            reconstructed_bayer_texture,
             camera_rgb_texture,
             normalize_stage,
+            highlight_reconstruction_stage,
             demosaic_stage,
             camera_to_working_stage,
         }
@@ -112,6 +141,8 @@ impl RawBayerDevelopmentStage {
     ) {
         self.normalized_bayer_texture
             .resize_empty(device, width, height);
+        self.reconstructed_bayer_texture
+            .resize_empty(device, width, height);
         self.camera_rgb_texture.resize_empty(device, width, height);
         self.normalize_stage.rebind(
             device,
@@ -119,9 +150,15 @@ impl RawBayerDevelopmentStage {
             self.normalized_bayer_texture.view(),
             development_parameters_binding.clone(),
         );
-        self.demosaic_stage.rebind(
+        self.highlight_reconstruction_stage.rebind(
             device,
             self.normalized_bayer_texture.view(),
+            self.reconstructed_bayer_texture.view(),
+            development_parameters_binding.clone(),
+        );
+        self.demosaic_stage.rebind(
+            device,
+            self.reconstructed_bayer_texture.view(),
             self.camera_rgb_texture.view(),
             development_parameters_binding.clone(),
         );
@@ -133,9 +170,11 @@ impl RawBayerDevelopmentStage {
         );
     }
 
-    /// Runs RAW normalization, demosaic, and camera-to-working stages in order.
+    /// Runs RAW normalization, highlight reconstruction, demosaic, and camera-to-working stages.
     pub(super) fn run(&self, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32) {
         self.normalize_stage.run(device, queue, width, height);
+        self.highlight_reconstruction_stage
+            .run(device, queue, width, height);
         self.demosaic_stage.run(device, queue, width, height);
         self.camera_to_working_stage
             .run(device, queue, width, height);
