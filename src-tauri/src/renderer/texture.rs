@@ -27,6 +27,19 @@ impl ImageTexture {
         Self::new_stage_output(device, queue, "Development Output Texture")
     }
 
+    /// Creates a placeholder output texture for normalized Bayer RAW samples.
+    pub(super) fn new_raw_normalized_bayer_output(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> Self {
+        Self::new_stage_output(device, queue, "RAW Normalized Bayer Texture")
+    }
+
+    /// Creates a placeholder output texture for demosaiced camera-space RGB.
+    pub(super) fn new_raw_camera_rgb_output(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+        Self::new_stage_output(device, queue, "RAW Camera RGB Texture")
+    }
+
     /// Creates a placeholder output texture for adjusted working-space image data.
     pub(super) fn new_adjustment_output(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         Self::new_stage_output(device, queue, "Adjustment Output Texture")

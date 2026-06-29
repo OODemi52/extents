@@ -80,6 +80,14 @@ impl DevelopmentParameters {
             ],
         }
     }
+
+    /// Returns how the development graph should interpret the source texture.
+    pub(in crate::renderer) fn source_kind(self) -> SourceKind {
+        match self.source[0] {
+            1 => SourceKind::RawBayer2x2,
+            _ => SourceKind::RasterSrgb,
+        }
+    }
 }
 
 impl Default for DevelopmentParameters {

@@ -34,6 +34,8 @@ impl ImageProcessingGraph {
         let output_transform_parameters_buffer = OutputTransformParametersBuffer::new(device);
         let development_stage = DevelopmentStage::new(
             device,
+            queue,
+            DevelopmentParameters::default().source_kind(),
             source_texture.view(),
             development_output_texture.view(),
             development_parameters_buffer.as_entire_binding(),
@@ -75,6 +77,8 @@ impl ImageProcessingGraph {
         height: u32,
         development_parameters: DevelopmentParameters,
     ) {
+        let source_kind = development_parameters.source_kind();
+
         self.source_texture
             .update(device, queue, texels, width, height);
         self.development_parameters_buffer
@@ -84,7 +88,7 @@ impl ImageProcessingGraph {
         self.adjustment_output_texture
             .resize_empty(device, width, height);
         self.output_texture.resize_empty(device, width, height);
-        self.rebind_stages(device);
+        self.rebind_stages(device, queue, source_kind);
         self.run_full_graph(device, queue);
     }
 
@@ -130,12 +134,21 @@ impl ImageProcessingGraph {
         self.output_texture.height()
     }
 
-    fn rebind_stages(&mut self, device: &wgpu::Device) {
-        self.development_stage.rebind(
+    fn rebind_stages(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        source_kind: super::parameters::SourceKind,
+    ) {
+        self.development_stage.rebuild_or_rebind(
             device,
+            queue,
+            source_kind,
             self.source_texture.view(),
             self.development_output_texture.view(),
             self.development_parameters_buffer.as_entire_binding(),
+            self.development_output_texture.width(),
+            self.development_output_texture.height(),
         );
         self.adjustment_stage.rebind(
             device,
