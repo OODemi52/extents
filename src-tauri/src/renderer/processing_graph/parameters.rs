@@ -1,27 +1,10 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
-/// Identifies the source-domain interpretation used by the development stage.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::renderer) enum SourceKind {
-    RasterSrgb,
-    RawBayer2x2,
-}
-
-impl SourceKind {
-    fn as_u32(self) -> u32 {
-        match self {
-            Self::RasterSrgb => 0,
-            Self::RawBayer2x2 => 1,
-        }
-    }
-}
-
 /// Graph-owned development parameters consumed by GPU development stages.
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
 pub(in crate::renderer) struct DevelopmentParameters {
-    source: [u32; 4],
     cfa_pattern: [u32; 4],
     black_levels: [f32; 4],
     white_levels: [f32; 4],
@@ -32,10 +15,9 @@ pub(in crate::renderer) struct DevelopmentParameters {
 }
 
 impl DevelopmentParameters {
-    /// Packs the current source kind with neutral source-development parameters.
-    pub(in crate::renderer) fn from_source_kind(source_kind: SourceKind) -> Self {
+    /// Packs neutral development parameters for raster sRGB source input.
+    pub(in crate::renderer) fn from_raster_srgb() -> Self {
         Self {
-            source: [source_kind.as_u32(), 0, 0, 0],
             cfa_pattern: [0, 0, 0, 0],
             black_levels: [0.0, 0.0, 0.0, 0.0],
             white_levels: [1.0, 1.0, 1.0, 1.0],
@@ -55,7 +37,6 @@ impl DevelopmentParameters {
         camera_to_working: [[f32; 3]; 3],
     ) -> Self {
         Self {
-            source: [SourceKind::RawBayer2x2.as_u32(), 0, 0, 0],
             cfa_pattern,
             black_levels,
             white_levels,
@@ -80,19 +61,11 @@ impl DevelopmentParameters {
             ],
         }
     }
-
-    /// Returns how the development graph should interpret the source texture.
-    pub(in crate::renderer) fn source_kind(self) -> SourceKind {
-        match self.source[0] {
-            1 => SourceKind::RawBayer2x2,
-            _ => SourceKind::RasterSrgb,
-        }
-    }
 }
 
 impl Default for DevelopmentParameters {
     fn default() -> Self {
-        Self::from_source_kind(SourceKind::RasterSrgb)
+        Self::from_raster_srgb()
     }
 }
 

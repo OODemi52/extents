@@ -1,7 +1,7 @@
 use super::context::{GpuContext, SurfaceContext};
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
-use super::input::{DisplayIntent, Input};
+use super::input::{DevelopmentSource, DisplayIntent, Input};
 use super::processing_graph::{DevelopmentParameters, ImageProcessingGraph};
 use super::schedule::{RenderSchedule, RenderState};
 use super::viewer::Viewer;
@@ -135,6 +135,7 @@ impl Renderer {
             image.texels(),
             dimensions.width(),
             dimensions.height(),
+            input.development_source(),
             input.development_parameters(),
         );
     }
@@ -144,6 +145,7 @@ impl Renderer {
         texels: &[f32],
         width: u32,
         height: u32,
+        development_source: DevelopmentSource,
         development_parameters: DevelopmentParameters,
     ) {
         info!("[Renderer] Uploading source image ({}x{})", width, height);
@@ -156,6 +158,7 @@ impl Renderer {
             texels,
             width,
             height,
+            development_source,
             development_parameters,
         );
 

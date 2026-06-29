@@ -1,11 +1,11 @@
 use anyhow::Result;
 use image::RgbaImage;
 
-use super::{DisplayIntent, Input, InputImage};
+use super::{DevelopmentSource, DisplayIntent, Input, InputImage};
 use crate::core::image::orientation::{apply_orientation, Orientation};
 use crate::core::image::source::{RasterSamples, RasterSource};
 use crate::core::image::ImageDimensions;
-use crate::renderer::processing_graph::{DevelopmentParameters, SourceKind};
+use crate::renderer::processing_graph::DevelopmentParameters;
 
 /// Builds renderer input from a decoded raster source.
 pub(super) fn build_input(raster: RasterSource) -> Result<Input> {
@@ -29,7 +29,8 @@ pub(super) fn build_input(raster: RasterSource) -> Result<Input> {
 
     Ok(Input::new(
         image,
-        DevelopmentParameters::from_source_kind(SourceKind::RasterSrgb),
+        DevelopmentSource::RasterSrgb,
+        DevelopmentParameters::from_raster_srgb(),
         DisplayIntent::DirectSdr,
     ))
 }

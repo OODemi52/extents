@@ -1,5 +1,4 @@
 struct DevelopmentParameters {
-  source: vec4<u32>,
   cfa_pattern: vec4<u32>,
   black_levels: vec4<f32>,
   white_levels: vec4<f32>,

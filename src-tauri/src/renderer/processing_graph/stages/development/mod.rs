@@ -1,8 +1,7 @@
 mod raster;
 mod raw_bayer;
 
-use super::super::parameters::SourceKind;
-
+use crate::renderer::input::DevelopmentSource;
 use raster::RasterDevelopmentStage;
 use raw_bayer::RawBayerDevelopmentStage;
 
@@ -21,19 +20,19 @@ impl DevelopmentStage {
     pub(in crate::renderer::processing_graph) fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        source_kind: SourceKind,
+        development_source: DevelopmentSource,
         source_view: &wgpu::TextureView,
         output_view: &wgpu::TextureView,
         development_parameters_binding: wgpu::BindingResource<'_>,
     ) -> Self {
-        match source_kind {
-            SourceKind::RasterSrgb => Self::Raster(RasterDevelopmentStage::new(
+        match development_source {
+            DevelopmentSource::RasterSrgb => Self::Raster(RasterDevelopmentStage::new(
                 device,
                 source_view,
                 output_view,
                 development_parameters_binding,
             )),
-            SourceKind::RawBayer2x2 => Self::RawBayer(RawBayerDevelopmentStage::new(
+            DevelopmentSource::RawBayer2x2 => Self::RawBayer(RawBayerDevelopmentStage::new(
                 device,
                 queue,
                 source_view,
@@ -44,10 +43,10 @@ impl DevelopmentStage {
     }
 
     /// Returns the source kind this development pipeline was created for.
-    pub(in crate::renderer::processing_graph) fn source_kind(&self) -> SourceKind {
+    pub(in crate::renderer::processing_graph) fn development_source(&self) -> DevelopmentSource {
         match self {
-            Self::Raster(_) => SourceKind::RasterSrgb,
-            Self::RawBayer(_) => SourceKind::RawBayer2x2,
+            Self::Raster(_) => DevelopmentSource::RasterSrgb,
+            Self::RawBayer(_) => DevelopmentSource::RawBayer2x2,
         }
     }
 
@@ -56,18 +55,18 @@ impl DevelopmentStage {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        source_kind: SourceKind,
+        development_source: DevelopmentSource,
         source_view: &wgpu::TextureView,
         output_view: &wgpu::TextureView,
         development_parameters_binding: wgpu::BindingResource<'_>,
         width: u32,
         height: u32,
     ) {
-        if self.source_kind() != source_kind {
+        if self.development_source() != development_source {
             *self = Self::new(
                 device,
                 queue,
-                source_kind,
+                development_source,
                 source_view,
                 output_view,
                 development_parameters_binding.clone(),

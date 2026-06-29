@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use rawler::imgop::matrix::{multiply, normalize, pseudo_inverse};
 use rawler::imgop::xyz::Illuminant;
 
-use super::{DisplayIntent, Input, InputImage};
+use super::{DevelopmentSource, DisplayIntent, Input, InputImage};
 use crate::core::image::orientation::Orientation;
 use crate::core::image::source::{RawRect, RawSamples, RawSource};
 use crate::core::image::ImageDimensions;
@@ -57,6 +57,7 @@ pub(super) fn build_input(raw: RawSource) -> Result<Input> {
 
     Ok(Input::new(
         packed_source.image,
+        DevelopmentSource::RawBayer2x2,
         DevelopmentParameters::from_raw_bayer_2x2(
             packed_source.cfa_pattern,
             packed_source.black_levels,

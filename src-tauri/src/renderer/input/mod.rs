@@ -10,9 +10,11 @@ use crate::core::image::ImageDimensions;
 /// Renderer-ready input built from source-domain image data.
 ///
 /// This keeps the CPU-side source upload payload together with the graph
-/// development parameters and display intent needed by the live renderer.
+/// development pipeline selection, development parameters, and display intent
+/// needed by the live renderer.
 pub(super) struct Input {
     image: InputImage,
+    development_source: DevelopmentSource,
     development_parameters: DevelopmentParameters,
     display_intent: DisplayIntent,
 }
@@ -21,11 +23,13 @@ impl Input {
     /// Builds renderer input from an upload payload and processing metadata.
     pub(in crate::renderer) fn new(
         image: InputImage,
+        development_source: DevelopmentSource,
         development_parameters: DevelopmentParameters,
         display_intent: DisplayIntent,
     ) -> Self {
         Self {
             image,
+            development_source,
             development_parameters,
             display_intent,
         }
@@ -34,6 +38,11 @@ impl Input {
     /// Returns the CPU-side source payload to upload into graph resources.
     pub(super) fn image(&self) -> &InputImage {
         &self.image
+    }
+
+    /// Returns which development pipeline should process the uploaded source.
+    pub(super) fn development_source(&self) -> DevelopmentSource {
+        self.development_source
     }
 
     /// Returns the GPU development parameters for the uploaded source.
@@ -82,6 +91,13 @@ impl InputImage {
     pub(super) fn has_transparency(&self) -> bool {
         self.has_transparency
     }
+}
+
+/// Selects the graph development pipeline for renderer source input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::renderer) enum DevelopmentSource {
+    RasterSrgb,
+    RawBayer2x2,
 }
 
 /// Controls how graph output should be rendered for display.

@@ -4,6 +4,7 @@ use super::parameters::{
     DevelopmentParametersBuffer, OutputTransformParameters, OutputTransformParametersBuffer,
 };
 use super::stages::{AdjustmentStage, DevelopmentStage, OutputTransformStage};
+use crate::renderer::input::DevelopmentSource;
 
 /// GPU-side image processing graph for the active renderer image.
 ///
@@ -35,7 +36,7 @@ impl ImageProcessingGraph {
         let development_stage = DevelopmentStage::new(
             device,
             queue,
-            DevelopmentParameters::default().source_kind(),
+            DevelopmentSource::RasterSrgb,
             source_texture.view(),
             development_output_texture.view(),
             development_parameters_buffer.as_entire_binding(),
@@ -75,10 +76,9 @@ impl ImageProcessingGraph {
         texels: &[f32],
         width: u32,
         height: u32,
+        development_source: DevelopmentSource,
         development_parameters: DevelopmentParameters,
     ) {
-        let source_kind = development_parameters.source_kind();
-
         self.source_texture
             .update(device, queue, texels, width, height);
         self.development_parameters_buffer
@@ -88,7 +88,7 @@ impl ImageProcessingGraph {
         self.adjustment_output_texture
             .resize_empty(device, width, height);
         self.output_texture.resize_empty(device, width, height);
-        self.rebind_stages(device, queue, source_kind);
+        self.rebind_stages(device, queue, development_source);
         self.run_full_graph(device, queue);
     }
 
@@ -138,12 +138,12 @@ impl ImageProcessingGraph {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        source_kind: super::parameters::SourceKind,
+        development_source: DevelopmentSource,
     ) {
         self.development_stage.rebuild_or_rebind(
             device,
             queue,
-            source_kind,
+            development_source,
             self.source_texture.view(),
             self.development_output_texture.view(),
             self.development_parameters_buffer.as_entire_binding(),
