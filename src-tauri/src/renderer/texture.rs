@@ -28,6 +28,9 @@ impl ImageTexture {
     }
 
     /// Creates a placeholder output texture for normalized Bayer RAW samples.
+    ///
+    /// The red channel stores the normalized sample and the green channel stores
+    /// a clipped-photosite mask produced from CFA-specific sensor white levels.
     pub(super) fn new_raw_normalized_bayer_output(
         device: &wgpu::Device,
         queue: &wgpu::Queue,

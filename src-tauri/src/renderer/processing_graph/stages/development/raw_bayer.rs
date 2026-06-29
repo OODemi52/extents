@@ -171,6 +171,9 @@ impl RawBayerDevelopmentStage {
     }
 
     /// Runs RAW normalization, highlight reconstruction, demosaic, and camera-to-working stages.
+    ///
+    /// Normalization emits both normalized Bayer samples and a clipped-photosite
+    /// mask. Highlight reconstruction consumes that mask before demosaic.
     pub(super) fn run(&self, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32) {
         self.normalize_stage.run(device, queue, width, height);
         self.highlight_reconstruction_stage

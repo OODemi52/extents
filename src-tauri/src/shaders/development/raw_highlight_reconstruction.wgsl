@@ -1,5 +1,4 @@
 
-const RAW_HIGHLIGHT_CLIP_THRESHOLD: f32 = 0.98;
 const RAW_HIGHLIGHT_RECONSTRUCTION_RADIUS: i32 = 2;
 
 fn clamp_source_pixel(pixel: vec2<i32>) -> vec2<i32> {
@@ -21,6 +20,10 @@ fn normalized_bayer_sample_at(pixel: vec2<i32>) -> f32 {
   return textureLoad(source_texture, clamp_source_pixel(pixel), 0).r;
 }
 
+fn clipped_bayer_sample_at(pixel: vec2<i32>) -> bool {
+  return textureLoad(source_texture, clamp_source_pixel(pixel), 0).g > 0.5;
+}
+
 fn unclipped_neighbor_estimates(pixel: vec2<i32>, target_color: u32) -> vec4<f32> {
   var same_color_sum = 0.0;
   var same_color_count = 0.0;
@@ -40,7 +43,7 @@ fn unclipped_neighbor_estimates(pixel: vec2<i32>, target_color: u32) -> vec4<f32
       let neighbor = clamp_source_pixel(pixel + vec2<i32>(offset_x, offset_y));
       let sample = normalized_bayer_sample_at(neighbor);
 
-      if (sample < RAW_HIGHLIGHT_CLIP_THRESHOLD) {
+      if (!clipped_bayer_sample_at(neighbor)) {
         any_color_sum = any_color_sum + sample;
         any_color_count = any_color_count + 1.0;
 
@@ -58,7 +61,7 @@ fn unclipped_neighbor_estimates(pixel: vec2<i32>, target_color: u32) -> vec4<f32
 fn reconstruct_highlight_sample(pixel: vec2<i32>) -> f32 {
   let sample = normalized_bayer_sample_at(pixel);
 
-  if (sample < RAW_HIGHLIGHT_CLIP_THRESHOLD) {
+  if (!clipped_bayer_sample_at(pixel)) {
     return sample;
   }
 
@@ -85,6 +88,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
   let pixel = vec2<i32>(i32(global_id.x), i32(global_id.y));
   let reconstructed_sample = reconstruct_highlight_sample(pixel);
+  let clipped = select(0.0, 1.0, clipped_bayer_sample_at(pixel));
 
-  textureStore(output_texture, pixel, vec4<f32>(reconstructed_sample, 0.0, 0.0, 1.0));
+  textureStore(output_texture, pixel, vec4<f32>(reconstructed_sample, clipped, 0.0, 1.0));
 }
