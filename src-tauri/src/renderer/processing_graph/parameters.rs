@@ -1,10 +1,72 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
-/// Graph-owned development parameters consumed by GPU development stages.
+/// Source-specific development parameters before GPU uniform packing.
+#[derive(Debug, Copy, Clone)]
+pub(in crate::renderer) enum DevelopmentParameters {
+    Raster(RasterDevelopmentParameters),
+    RawBayer(RawBayerDevelopmentParameters),
+}
+
+/// Development parameters for raster sRGB source input.
+#[derive(Debug, Copy, Clone)]
+pub(in crate::renderer) struct RasterDevelopmentParameters;
+
+/// Development parameters for one-plane 2x2 Bayer RAW source input.
+#[derive(Debug, Copy, Clone)]
+pub(in crate::renderer) struct RawBayerDevelopmentParameters {
+    cfa_pattern: [u32; 4],
+    black_levels: [f32; 4],
+    white_levels: [f32; 4],
+    white_balance: [f32; 3],
+    camera_to_working: [[f32; 3]; 3],
+}
+
+impl DevelopmentParameters {
+    /// Packs neutral development parameters for raster sRGB source input.
+    pub(in crate::renderer) fn from_raster_srgb() -> Self {
+        Self::Raster(RasterDevelopmentParameters)
+    }
+
+    /// Packs source-development parameters for a one-plane 2x2 Bayer RAW source.
+    pub(in crate::renderer) fn from_raw_bayer_2x2(
+        cfa_pattern: [u32; 4],
+        black_levels: [f32; 4],
+        white_levels: [f32; 4],
+        white_balance: [f32; 3],
+        camera_to_working: [[f32; 3]; 3],
+    ) -> Self {
+        Self::RawBayer(RawBayerDevelopmentParameters {
+            cfa_pattern,
+            black_levels,
+            white_levels,
+            white_balance,
+            camera_to_working,
+        })
+    }
+
+    fn to_uniform_block(self) -> DevelopmentUniformBlock {
+        match self {
+            Self::Raster(_) => DevelopmentUniformBlock::raster_srgb(),
+            Self::RawBayer(parameters) => DevelopmentUniformBlock::raw_bayer(parameters),
+        }
+    }
+}
+
+impl Default for DevelopmentParameters {
+    fn default() -> Self {
+        Self::from_raster_srgb()
+    }
+}
+
+/// Packed GPU uniform block consumed by development shaders.
+///
+/// This layout mirrors `shaders/development/common.wgsl`. It intentionally
+/// remains separate from source-specific Rust parameters so CPU routing and
+/// shader memory layout can evolve independently.
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
-pub(in crate::renderer) struct DevelopmentParameters {
+struct DevelopmentUniformBlock {
     cfa_pattern: [u32; 4],
     black_levels: [f32; 4],
     white_levels: [f32; 4],
@@ -14,9 +76,8 @@ pub(in crate::renderer) struct DevelopmentParameters {
     camera_to_working_blue: [f32; 4],
 }
 
-impl DevelopmentParameters {
-    /// Packs neutral development parameters for raster sRGB source input.
-    pub(in crate::renderer) fn from_raster_srgb() -> Self {
+impl DevelopmentUniformBlock {
+    fn raster_srgb() -> Self {
         Self {
             cfa_pattern: [0, 0, 0, 0],
             black_levels: [0.0, 0.0, 0.0, 0.0],
@@ -28,57 +89,55 @@ impl DevelopmentParameters {
         }
     }
 
-    /// Packs source-development parameters for a one-plane 2x2 Bayer RAW source.
-    pub(in crate::renderer) fn from_raw_bayer_2x2(
-        cfa_pattern: [u32; 4],
-        black_levels: [f32; 4],
-        white_levels: [f32; 4],
-        white_balance: [f32; 3],
-        camera_to_working: [[f32; 3]; 3],
-    ) -> Self {
+    fn raw_bayer(parameters: RawBayerDevelopmentParameters) -> Self {
         Self {
-            cfa_pattern,
-            black_levels,
-            white_levels,
-            white_balance: [white_balance[0], white_balance[1], white_balance[2], 0.0],
+            cfa_pattern: parameters.cfa_pattern,
+            black_levels: parameters.black_levels,
+            white_levels: parameters.white_levels,
+            white_balance: [
+                parameters.white_balance[0],
+                parameters.white_balance[1],
+                parameters.white_balance[2],
+                0.0,
+            ],
             camera_to_working_red: [
-                camera_to_working[0][0],
-                camera_to_working[0][1],
-                camera_to_working[0][2],
+                parameters.camera_to_working[0][0],
+                parameters.camera_to_working[0][1],
+                parameters.camera_to_working[0][2],
                 0.0,
             ],
             camera_to_working_green: [
-                camera_to_working[1][0],
-                camera_to_working[1][1],
-                camera_to_working[1][2],
+                parameters.camera_to_working[1][0],
+                parameters.camera_to_working[1][1],
+                parameters.camera_to_working[1][2],
                 0.0,
             ],
             camera_to_working_blue: [
-                camera_to_working[2][0],
-                camera_to_working[2][1],
-                camera_to_working[2][2],
+                parameters.camera_to_working[2][0],
+                parameters.camera_to_working[2][1],
+                parameters.camera_to_working[2][2],
                 0.0,
             ],
         }
     }
 }
 
-impl Default for DevelopmentParameters {
+impl Default for DevelopmentUniformBlock {
     fn default() -> Self {
-        Self::from_raster_srgb()
+        Self::raster_srgb()
     }
 }
 
 /// GPU uniform buffer for graph-owned development parameters.
 pub(super) struct DevelopmentParametersBuffer {
-    parameters: DevelopmentParameters,
+    parameters: DevelopmentUniformBlock,
     buffer: wgpu::Buffer,
 }
 
 impl DevelopmentParametersBuffer {
     /// Creates a uniform buffer initialized with neutral development parameters.
     pub(super) fn new(device: &wgpu::Device) -> Self {
-        let parameters = DevelopmentParameters::default();
+        let parameters = DevelopmentUniformBlock::default();
 
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Development Parameters Buffer"),
@@ -91,7 +150,7 @@ impl DevelopmentParametersBuffer {
 
     /// Updates the live development parameters used by graph stages.
     pub(super) fn update(&mut self, queue: &wgpu::Queue, parameters: DevelopmentParameters) {
-        self.parameters = parameters;
+        self.parameters = parameters.to_uniform_block();
 
         queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[self.parameters]));
     }
