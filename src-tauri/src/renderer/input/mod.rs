@@ -1,0 +1,105 @@
+mod raster;
+mod raw;
+
+use anyhow::Result;
+
+use super::processing_graph::DevelopmentParameters;
+use crate::core::image::source::{decode_source_from_path, ImageSource};
+use crate::core::image::ImageDimensions;
+
+/// Renderer-ready input built from source-domain image data.
+///
+/// This keeps the CPU-side source upload payload together with the graph
+/// development parameters and display intent needed by the live renderer.
+pub(super) struct Input {
+    image: InputImage,
+    development_parameters: DevelopmentParameters,
+    display_intent: DisplayIntent,
+}
+
+impl Input {
+    /// Builds renderer input from an upload payload and processing metadata.
+    pub(in crate::renderer) fn new(
+        image: InputImage,
+        development_parameters: DevelopmentParameters,
+        display_intent: DisplayIntent,
+    ) -> Self {
+        Self {
+            image,
+            development_parameters,
+            display_intent,
+        }
+    }
+
+    /// Returns the CPU-side source payload to upload into graph resources.
+    pub(super) fn image(&self) -> &InputImage {
+        &self.image
+    }
+
+    /// Returns the GPU development parameters for the uploaded source.
+    pub(super) fn development_parameters(&self) -> DevelopmentParameters {
+        self.development_parameters
+    }
+
+    /// Returns how this input should be transformed for display.
+    pub(super) fn display_intent(&self) -> DisplayIntent {
+        self.display_intent
+    }
+}
+
+/// CPU-side texel payload used for renderer source upload.
+pub(super) struct InputImage {
+    texels: Vec<f32>,
+    dimensions: ImageDimensions,
+    has_transparency: bool,
+}
+
+impl InputImage {
+    /// Builds a renderer source-upload payload.
+    pub(in crate::renderer) fn new(
+        texels: Vec<f32>,
+        dimensions: ImageDimensions,
+        has_transparency: bool,
+    ) -> Self {
+        Self {
+            texels,
+            dimensions,
+            has_transparency,
+        }
+    }
+
+    /// Returns packed source texels as a read-only slice.
+    pub(super) fn texels(&self) -> &[f32] {
+        &self.texels
+    }
+
+    /// Returns the source image dimensions represented by this upload payload.
+    pub(super) fn dimensions(&self) -> ImageDimensions {
+        self.dimensions
+    }
+
+    /// Returns whether any texel in this renderer input contains transparency.
+    pub(super) fn has_transparency(&self) -> bool {
+        self.has_transparency
+    }
+}
+
+/// Controls how graph output should be rendered for display.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum DisplayIntent {
+    DirectSdr,
+    ToneMapToSdr,
+}
+
+/// Builds renderer-ready image data from a source image path.
+pub(super) fn build_input_from_path(path: &str) -> Result<Input> {
+    let source = match decode_source_from_path(path) {
+        Ok(source) => source,
+        Err(error) => return Err(error),
+    };
+
+    match source {
+        ImageSource::Raster(raster) => raster::build_input(raster),
+        ImageSource::Raw(raw) => raw::build_input(raw),
+    }
+}
