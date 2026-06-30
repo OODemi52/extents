@@ -8,6 +8,7 @@ pub(super) struct ImageTexture {
     width: u32,
     height: u32,
     usage: wgpu::TextureUsages,
+    format: wgpu::TextureFormat,
     label: &'static str,
 }
 
@@ -19,6 +20,7 @@ impl ImageTexture {
             queue,
             "Source Image Texture",
             wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            IMAGE_TEXTURE_FORMAT,
         )
     }
 
@@ -38,27 +40,9 @@ impl ImageTexture {
         Self::new_stage_output(device, queue, "RAW Normalized Bayer Texture")
     }
 
-    /// Creates a placeholder output texture for highlight-reconstructed Bayer RAW samples.
-    pub(super) fn new_raw_reconstructed_bayer_output(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-    ) -> Self {
-        Self::new_stage_output(device, queue, "RAW Reconstructed Bayer Texture")
-    }
-
     /// Creates a placeholder output texture for demosaiced camera-space RGB.
-    ///
-    /// The alpha channel stores a clipped-neighborhood mask for guided recovery.
     pub(super) fn new_raw_camera_rgb_output(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         Self::new_stage_output(device, queue, "RAW Camera RGB Texture")
-    }
-
-    /// Creates a placeholder output texture for highlight-recovered camera-space RGB.
-    pub(super) fn new_raw_recovered_camera_rgb_output(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-    ) -> Self {
-        Self::new_stage_output(device, queue, "RAW Recovered Camera RGB Texture")
     }
 
     /// Creates a placeholder output texture for adjusted working-space image data.
@@ -68,7 +52,15 @@ impl ImageTexture {
 
     /// Creates a placeholder output texture for display-ready image data.
     pub(super) fn new_display_output(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
-        Self::new_stage_output(device, queue, "Display Output Texture")
+        Self::new(
+            device,
+            queue,
+            "Display Output Texture",
+            wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::STORAGE_BINDING
+                | wgpu::TextureUsages::COPY_DST,
+            DISPLAY_TEXTURE_FORMAT,
+        )
     }
 
     fn new_stage_output(device: &wgpu::Device, queue: &wgpu::Queue, label: &'static str) -> Self {
@@ -79,6 +71,7 @@ impl ImageTexture {
             wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::STORAGE_BINDING
                 | wgpu::TextureUsages::COPY_DST,
+            IMAGE_TEXTURE_FORMAT,
         )
     }
 
@@ -92,7 +85,7 @@ impl ImageTexture {
         height: u32,
     ) {
         let texture = self.create_texture(device, width, height);
-        upload_texels(queue, &texture, texels, width, height);
+        upload_texels(queue, &texture, self.format, texels, width, height);
 
         self.current_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -136,11 +129,19 @@ impl ImageTexture {
         queue: &wgpu::Queue,
         label: &'static str,
         usage: wgpu::TextureUsages,
+        format: wgpu::TextureFormat,
     ) -> Self {
         let width = 1;
         let height = 1;
-        let texture = create_texture(device, label, usage, width, height);
-        upload_texels(queue, &texture, &[0.0, 0.0, 0.0, 0.0], width, height);
+        let texture = create_texture(device, label, usage, format, width, height);
+        upload_texels(
+            queue,
+            &texture,
+            format,
+            &[0.0, 0.0, 0.0, 0.0],
+            width,
+            height,
+        );
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -150,12 +151,13 @@ impl ImageTexture {
             width,
             height,
             usage,
+            format,
             label,
         }
     }
 
     fn create_texture(&self, device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-        create_texture(device, self.label, self.usage, width, height)
+        create_texture(device, self.label, self.usage, self.format, width, height)
     }
 }
 
@@ -164,6 +166,7 @@ fn create_texture(
     device: &wgpu::Device,
     label: &'static str,
     usage: wgpu::TextureUsages,
+    format: wgpu::TextureFormat,
     width: u32,
     height: u32,
 ) -> wgpu::Texture {
@@ -179,21 +182,33 @@ fn create_texture(
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: IMAGE_TEXTURE_FORMAT,
+        format,
         usage,
         view_formats: &[],
     })
 }
 
-/// Uploads packed working-image texels into an RGBA16F GPU texture.
+/// Uploads packed renderer texels into a GPU texture.
 fn upload_texels(
     queue: &wgpu::Queue,
     texture: &wgpu::Texture,
+    format: wgpu::TextureFormat,
     texels: &[f32],
     width: u32,
     height: u32,
 ) {
-    let texels_f16 = convert_texels_to_f16(texels);
+    let upload_bytes;
+    let bytes;
+    let bytes_per_row;
+
+    if format == wgpu::TextureFormat::Rgba16Float {
+        upload_bytes = convert_texels_to_f16(texels);
+        bytes = cast_slice(&upload_bytes);
+        bytes_per_row = 8 * width;
+    } else {
+        bytes = cast_slice(texels);
+        bytes_per_row = 16 * width;
+    }
 
     queue.write_texture(
         wgpu::TexelCopyTextureInfo {
@@ -202,10 +217,10 @@ fn upload_texels(
             origin: wgpu::Origin3d::ZERO,
             aspect: wgpu::TextureAspect::All,
         },
-        cast_slice(&texels_f16),
+        bytes,
         wgpu::TexelCopyBufferLayout {
             offset: 0,
-            bytes_per_row: Some(8 * width),
+            bytes_per_row: Some(bytes_per_row),
             rows_per_image: Some(height),
         },
         wgpu::Extent3d {
@@ -216,13 +231,9 @@ fn upload_texels(
     );
 }
 
-pub(super) const IMAGE_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
+pub(super) const IMAGE_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba32Float;
+pub(super) const DISPLAY_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 
-/// Converts packed working-image texels from `f32` to `f16` for GPU upload.
-///
-/// Currently this lives in the texture upload boundary so the renderer owns the
-/// GPU storage format decision. If this conversion becomes a bottleneck, we can
-/// move it closer to texel packing or make it part of a dedicated staging path.
 fn convert_texels_to_f16(texels: &[f32]) -> Vec<f16> {
     texels.iter().map(|value| f16::from_f32(*value)).collect()
 }

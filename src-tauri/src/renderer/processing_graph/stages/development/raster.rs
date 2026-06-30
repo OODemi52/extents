@@ -1,7 +1,8 @@
 use super::super::compute::{ImageComputeStage, ImageComputeStageLabels};
+use crate::renderer::texture::IMAGE_TEXTURE_FORMAT;
 
 const SHADER_SOURCE: &str = concat!(
-    include_str!("../../../../shaders/development/common.wgsl"),
+    include_str!("../../../../shaders/development/development_bindings.wgsl"),
     include_str!("../../../../shaders/development/raster_srgb_to_working.wgsl"),
 );
 
@@ -35,6 +36,7 @@ impl RasterDevelopmentStage {
             source_view,
             output_view,
             development_parameters_binding,
+            IMAGE_TEXTURE_FORMAT,
         );
 
         Self { stage }

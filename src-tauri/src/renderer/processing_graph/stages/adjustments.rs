@@ -1,4 +1,5 @@
 use super::compute::{ImageComputeStage, ImageComputeStageLabels};
+use crate::renderer::texture::IMAGE_TEXTURE_FORMAT;
 
 const LABELS: ImageComputeStageLabels = ImageComputeStageLabels {
     bind_group_layout: "Adjustment Stage Bind Group Layout",
@@ -30,6 +31,7 @@ impl AdjustmentStage {
             source_view,
             output_view,
             adjustment_parameters_binding,
+            IMAGE_TEXTURE_FORMAT,
         );
 
         Self { stage }

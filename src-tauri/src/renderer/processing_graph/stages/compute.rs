@@ -1,5 +1,3 @@
-use super::super::super::texture::IMAGE_TEXTURE_FORMAT;
-
 const WORKGROUP_SIZE: u32 = 16;
 
 /// Debug labels used by one image compute stage.
@@ -34,8 +32,10 @@ impl ImageComputeStage {
         source_view: &wgpu::TextureView,
         output_view: &wgpu::TextureView,
         parameters_binding: wgpu::BindingResource<'_>,
+        storage_format: wgpu::TextureFormat,
     ) -> Self {
-        let bind_group_layout = create_bind_group_layout(device, labels.bind_group_layout);
+        let bind_group_layout =
+            create_bind_group_layout(device, labels.bind_group_layout, storage_format);
         let pipeline = create_pipeline(device, &bind_group_layout, labels, shader_source);
         let bind_group = create_bind_group(
             device,
@@ -102,7 +102,11 @@ impl ImageComputeStage {
     }
 }
 
-fn create_bind_group_layout(device: &wgpu::Device, label: &'static str) -> wgpu::BindGroupLayout {
+fn create_bind_group_layout(
+    device: &wgpu::Device,
+    label: &'static str,
+    output_format: wgpu::TextureFormat,
+) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some(label),
         entries: &[
@@ -121,7 +125,7 @@ fn create_bind_group_layout(device: &wgpu::Device, label: &'static str) -> wgpu:
                 visibility: wgpu::ShaderStages::COMPUTE,
                 ty: wgpu::BindingType::StorageTexture {
                     access: wgpu::StorageTextureAccess::WriteOnly,
-                    format: IMAGE_TEXTURE_FORMAT,
+                    format: output_format,
                     view_dimension: wgpu::TextureViewDimension::D2,
                 },
                 count: None,

@@ -1,4 +1,5 @@
 use super::compute::{ImageComputeStage, ImageComputeStageLabels};
+use crate::renderer::texture::DISPLAY_TEXTURE_FORMAT;
 
 const LABELS: ImageComputeStageLabels = ImageComputeStageLabels {
     bind_group_layout: "Output Transform Stage Bind Group Layout",
@@ -30,6 +31,7 @@ impl OutputTransformStage {
             source_view,
             output_view,
             output_transform_parameters_binding,
+            DISPLAY_TEXTURE_FORMAT,
         );
 
         Self { stage }

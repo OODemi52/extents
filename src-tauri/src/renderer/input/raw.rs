@@ -240,7 +240,7 @@ fn oriented_to_raw_crop_position(
     }
 }
 
-/// Resolves the scale used to normalize source samples before RGBA16F upload.
+/// Resolves the scale used to normalize source samples before GPU upload.
 ///
 /// Integer RAW sources use their reported bit depth. Floating RAW sources use
 /// white level when it appears to be in sensor-code units, otherwise they are
@@ -347,8 +347,8 @@ fn cfa_value_for_oriented_position<T: Copy>(
 /// Resolves as-shot RGB white-balance gains while preserving highlight headroom.
 ///
 /// Gains are normalized by the largest valid channel gain so white balance does
-/// not push one channel above the source-normalized range before reconstruction
-/// and tone mapping get more sophisticated.
+/// not push one channel above the source-normalized range before the display
+/// transform has a chance to compress highlights.
 fn resolve_headroom_white_balance(wb_coefficients: [f32; 4]) -> [f32; 3] {
     let gains = [wb_coefficients[0], wb_coefficients[1], wb_coefficients[2]];
 

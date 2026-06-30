@@ -61,7 +61,7 @@ impl Default for DevelopmentParameters {
 
 /// Packed GPU uniform block consumed by development shaders.
 ///
-/// This layout mirrors `shaders/development/common.wgsl`. It intentionally
+/// This layout mirrors `shaders/development/development_bindings.wgsl`. It intentionally
 /// remains separate from source-specific Rust parameters so CPU routing and
 /// shader memory layout can evolve independently.
 #[repr(C)]

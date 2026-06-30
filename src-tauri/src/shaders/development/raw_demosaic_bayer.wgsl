@@ -29,10 +29,6 @@ fn bayer_sample_at(pixel: vec2<i32>) -> f32 {
   return textureLoad(source_texture, clamp_source_pixel(pixel), 0).r;
 }
 
-fn clipped_bayer_sample_at(pixel: vec2<i32>) -> f32 {
-  return textureLoad(source_texture, clamp_source_pixel(pixel), 0).g;
-}
-
 fn is_border_pixel(pixel: vec2<i32>) -> bool {
   let source_size = textureDimensions(source_texture);
   let max_pixel = vec2<i32>(i32(source_size.x) - 1, i32(source_size.y) - 1);
@@ -323,21 +319,6 @@ fn local_detail_mask_at(pixel: vec2<i32>) -> f32 {
   );
 }
 
-fn weighted_clipped_mask_at(pixel: vec2<i32>) -> f32 {
-  let clipped_weighted_sum =
-    (clipped_bayer_sample_at(pixel) * 4.0)
-    + ((clipped_bayer_sample_at(pixel + vec2<i32>(-1, 0))
-      + clipped_bayer_sample_at(pixel + vec2<i32>(1, 0))
-      + clipped_bayer_sample_at(pixel + vec2<i32>(0, -1))
-      + clipped_bayer_sample_at(pixel + vec2<i32>(0, 1))) * 2.0)
-    + clipped_bayer_sample_at(pixel + vec2<i32>(-1, -1))
-    + clipped_bayer_sample_at(pixel + vec2<i32>(1, -1))
-    + clipped_bayer_sample_at(pixel + vec2<i32>(-1, 1))
-    + clipped_bayer_sample_at(pixel + vec2<i32>(1, 1));
-
-  return clipped_weighted_sum / 16.0;
-}
-
 fn weighted_dual_demosaic_mask(pixel: vec2<i32>) -> f32 {
   let detail_weighted_sum =
     (local_detail_mask_at(pixel) * 4.0)
@@ -349,10 +330,7 @@ fn weighted_dual_demosaic_mask(pixel: vec2<i32>) -> f32 {
     + local_detail_mask_at(pixel + vec2<i32>(1, -1))
     + local_detail_mask_at(pixel + vec2<i32>(-1, 1))
     + local_detail_mask_at(pixel + vec2<i32>(1, 1));
-  let detail_mask = detail_weighted_sum / 16.0;
-  let clipped_mask = weighted_clipped_mask_at(pixel);
-
-  return clamp(detail_mask * (1.0 - (0.6 * clipped_mask)), 0.0, 1.0);
+  return detail_weighted_sum / 16.0;
 }
 
 fn demosaic_border_pixel(pixel: vec2<i32>) -> vec3<f32> {
@@ -417,7 +395,6 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
   let pixel = vec2<i32>(i32(global_id.x), i32(global_id.y));
   let camera_color = max(dual_demosaic_raw_bayer_2x2(pixel), vec3<f32>(0.0, 0.0, 0.0));
-  let clipped_mask = weighted_clipped_mask_at(pixel);
 
-  textureStore(output_texture, pixel, vec4<f32>(camera_color, clipped_mask));
+  textureStore(output_texture, pixel, vec4<f32>(camera_color, 1.0));
 }

@@ -12,7 +12,7 @@ struct DevelopmentParameters {
 var source_texture: texture_2d<f32>;
 
 @group(0) @binding(1)
-var output_texture: texture_storage_2d<rgba16float, write>;
+var output_texture: texture_storage_2d<rgba32float, write>;
 
 @group(0) @binding(2)
 var<uniform> development_parameters: DevelopmentParameters;
