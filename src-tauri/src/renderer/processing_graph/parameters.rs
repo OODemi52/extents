@@ -221,20 +221,25 @@ impl AdjustmentParametersBuffer {
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
 pub(super) struct OutputTransformParameters {
     display: [u32; 4],
+    render: [f32; 4],
 }
 
 impl OutputTransformParameters {
-    /// Packs the current display intent into a 16-byte uniform block.
-    pub(super) fn from_display_intent(display_intent: u32) -> Self {
+    /// Packs the current output transform settings into a uniform block.
+    pub(super) fn from_display_intent(display_intent: u32, base_exposure_ev: f32) -> Self {
         Self {
             display: [display_intent, 0, 0, 0],
+            render: [base_exposure_ev, 0.0, 0.0, 0.0],
         }
     }
 }
 
 impl Default for OutputTransformParameters {
     fn default() -> Self {
-        Self { display: [0; 4] }
+        Self {
+            display: [0; 4],
+            render: [0.0; 4],
+        }
     }
 }
 

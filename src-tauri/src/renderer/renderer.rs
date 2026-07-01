@@ -11,6 +11,8 @@ use log::{error, info};
 use tauri::async_runtime::JoinHandle;
 use tauri::WebviewWindow;
 
+const RAW_DISPLAY_BASE_EXPOSURE_EV: f32 = 1.5;
+
 pub struct Renderer {
     gpu: GpuContext,
     surface: SurfaceContext,
@@ -130,7 +132,7 @@ impl Renderer {
         let dimensions = image.dimensions();
 
         self.display_checkboard(image.has_transparency());
-        self.update_display_intent(graph_display_intent(input.display_intent()));
+        self.update_output_transform(input.display_intent());
         self.upload_source_image(
             image.texels(),
             dimensions.width(),
@@ -177,12 +179,13 @@ impl Renderer {
         );
     }
 
-    /// Updates the active display intent while preserving other display state.
-    fn update_display_intent(&mut self, display_intent: u32) {
-        self.processing_graph.update_display_intent(
+    /// Updates active output transform parameters while preserving other display state.
+    fn update_output_transform(&mut self, display_intent: DisplayIntent) {
+        self.processing_graph.update_output_transform(
             &self.gpu.device,
             &self.gpu.queue,
-            display_intent,
+            graph_display_intent(display_intent),
+            graph_base_exposure_ev(display_intent),
         );
     }
 
@@ -315,5 +318,12 @@ fn graph_display_intent(intent: DisplayIntent) -> u32 {
     match intent {
         DisplayIntent::DirectSdr => 0,
         DisplayIntent::ToneMapToSdr => 1,
+    }
+}
+
+fn graph_base_exposure_ev(intent: DisplayIntent) -> f32 {
+    match intent {
+        DisplayIntent::DirectSdr => 0.0,
+        DisplayIntent::ToneMapToSdr => RAW_DISPLAY_BASE_EXPOSURE_EV,
     }
 }

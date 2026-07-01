@@ -1,5 +1,6 @@
 struct OutputTransformParameters {
   display: vec4<u32>,
+  render: vec4<f32>,
 };
 
 @group(0) @binding(0)
@@ -13,7 +14,6 @@ var<uniform> output_transform_parameters: OutputTransformParameters;
 
 const DISPLAY_INTENT_TONEMAP_TO_SDR: u32 = 1u;
 const DISPLAY_EPSILON: f32 = 0.000001;
-const RAW_DISPLAY_BASE_EXPOSURE_EV: f32 = 1.0;
 
 fn rec2020_luminance(color: vec3<f32>) -> f32 {
   return dot(color, vec3<f32>(0.2627, 0.6780, 0.0593));
@@ -92,12 +92,16 @@ fn compress_linear_srgb_to_display_gamut(color: vec3<f32>) -> vec3<f32> {
   return clamp(compressed_color, vec3<f32>(0.0), vec3<f32>(1.0));
 }
 
-fn render_scene_to_display(color: vec3<f32>, display_render_intent: u32) -> vec3<f32> {
+fn render_scene_to_display(
+  color: vec3<f32>,
+  display_render_intent: u32,
+  base_exposure_ev: f32
+) -> vec3<f32> {
   var rendered_rec2020 = max(color, vec3<f32>(0.0));
   var use_photographic_rolloff = false;
 
   if (display_render_intent == DISPLAY_INTENT_TONEMAP_TO_SDR) {
-    rendered_rec2020 *= exp2(RAW_DISPLAY_BASE_EXPOSURE_EV);
+    rendered_rec2020 *= exp2(base_exposure_ev);
     rendered_rec2020 = tone_map_scene_color(rendered_rec2020);
     use_photographic_rolloff = true;
   }
@@ -124,7 +128,8 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let source_color = textureLoad(source_texture, pixel, 0);
   let display_color = render_scene_to_display(
     source_color.rgb,
-    output_transform_parameters.display.x
+    output_transform_parameters.display.x,
+    output_transform_parameters.render.x
   );
 
   textureStore(output_texture, pixel, vec4<f32>(display_color, source_color.a));
