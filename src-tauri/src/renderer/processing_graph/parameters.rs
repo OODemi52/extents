@@ -226,7 +226,7 @@ pub(super) struct OutputTransformParameters {
 
 impl OutputTransformParameters {
     /// Packs the current output transform settings into a uniform block.
-    pub(super) fn from_display_intent(display_intent: u32, base_exposure_ev: f32) -> Self {
+    pub(super) fn from_output_transform(display_intent: u32, base_exposure_ev: f32) -> Self {
         Self {
             display: [display_intent, 0, 0, 0],
             render: [base_exposure_ev, 0.0, 0.0, 0.0],

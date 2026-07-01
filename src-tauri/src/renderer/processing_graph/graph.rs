@@ -114,7 +114,7 @@ impl ImageProcessingGraph {
         base_exposure_ev: f32,
     ) {
         let parameters =
-            OutputTransformParameters::from_display_intent(display_intent, base_exposure_ev);
+            OutputTransformParameters::from_output_transform(display_intent, base_exposure_ev);
 
         self.output_transform_parameters_buffer
             .update(queue, parameters);

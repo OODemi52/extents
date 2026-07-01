@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use rawler::imgop::matrix::{multiply, normalize, pseudo_inverse};
 use rawler::imgop::xyz::Illuminant;
 
-use super::{DevelopmentSource, DisplayIntent, Input, InputImage};
+use super::{DevelopmentSource, Input, InputImage, OutputTransformSettings};
 use crate::core::image::orientation::Orientation;
 use crate::core::image::source::{RawRect, RawSamples, RawSource};
 use crate::core::image::ImageDimensions;
@@ -17,6 +17,9 @@ type ColorMatrix3 = [[f32; 3]; 3];
 /// complete profile builder should interpolate between anchors using the
 /// selected/as-shot neutral instead of permanently preferring one matrix.
 const XYZ_TO_CAMERA_ILLUMINANT_PREFERENCE: [Illuminant; 2] = [Illuminant::D65, Illuminant::A];
+
+/// Baseline RAW display placement applied before SDR tone mapping.
+const RAW_DISPLAY_BASE_EXPOSURE_EV: f32 = 1.5;
 
 /// Converts linear Rec.2020 RGB values to CIE XYZ using Rec.2020's D65 white point.
 ///
@@ -65,7 +68,7 @@ pub(super) fn build_input(raw: RawSource) -> Result<Input> {
             white_balance,
             camera_to_working,
         ),
-        DisplayIntent::ToneMapToSdr,
+        OutputTransformSettings::tone_map_to_sdr(RAW_DISPLAY_BASE_EXPOSURE_EV),
     ))
 }
 

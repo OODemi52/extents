@@ -16,7 +16,7 @@ pub(super) struct Input {
     image: InputImage,
     development_source: DevelopmentSource,
     development_parameters: DevelopmentParameters,
-    display_intent: DisplayIntent,
+    output_transform: OutputTransformSettings,
 }
 
 impl Input {
@@ -25,13 +25,13 @@ impl Input {
         image: InputImage,
         development_source: DevelopmentSource,
         development_parameters: DevelopmentParameters,
-        display_intent: DisplayIntent,
+        output_transform: OutputTransformSettings,
     ) -> Self {
         Self {
             image,
             development_source,
             development_parameters,
-            display_intent,
+            output_transform,
         }
     }
 
@@ -51,8 +51,8 @@ impl Input {
     }
 
     /// Returns how this input should be transformed for display.
-    pub(super) fn display_intent(&self) -> DisplayIntent {
-        self.display_intent
+    pub(super) fn output_transform(&self) -> OutputTransformSettings {
+        self.output_transform
     }
 }
 
@@ -105,6 +105,41 @@ pub(in crate::renderer) enum DevelopmentSource {
 pub(super) enum DisplayIntent {
     DirectSdr,
     ToneMapToSdr,
+}
+
+/// Output-transform settings selected for renderer input display.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) struct OutputTransformSettings {
+    display_intent: DisplayIntent,
+    base_exposure_ev: f32,
+}
+
+impl OutputTransformSettings {
+    /// Builds output settings for display-referred SDR input.
+    pub(super) fn direct_sdr() -> Self {
+        Self {
+            display_intent: DisplayIntent::DirectSdr,
+            base_exposure_ev: 0.0,
+        }
+    }
+
+    /// Builds output settings for scene-linear input that should be tone-mapped to SDR.
+    pub(super) fn tone_map_to_sdr(base_exposure_ev: f32) -> Self {
+        Self {
+            display_intent: DisplayIntent::ToneMapToSdr,
+            base_exposure_ev,
+        }
+    }
+
+    /// Returns the display-output routing mode.
+    pub(super) fn display_intent(self) -> DisplayIntent {
+        self.display_intent
+    }
+
+    /// Returns the baseline display exposure applied before tone mapping.
+    pub(super) fn base_exposure_ev(self) -> f32 {
+        self.base_exposure_ev
+    }
 }
 
 /// Builds renderer-ready image data from a source image path.
