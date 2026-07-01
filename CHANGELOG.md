@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/OODemi52/extents/compare/Extents-v0.2.0...Extents-v0.3.0) (2026-07-01)
+
+
+### New Features
+
+* add GPU ratio-corrected RAW demosaic with blended MHC smooth fallback ([7366196](https://github.com/OODemi52/extents/commit/7366196c6babee87fb7b4772b523bddb080e915d))
+* add guided RAW highlight recovery ([00ea0f2](https://github.com/OODemi52/extents/commit/00ea0f2f3618da4070fa85d3847c8661c7a627bf))
+* add naive RAW highlight reconstruction stage ([758ed9f](https://github.com/OODemi52/extents/commit/758ed9ff01df28c2a6378bacfb1ae97f2177b07d))
+* detect RAW highlight clipping from sensor white levels ([c9f2290](https://github.com/OODemi52/extents/commit/c9f22909ba53a1b8be7c6f82baf560ba79374d51))
+
+
+### Bug Fixes
+
+* improve RAW display tone mapping using ACES fitted curve ([f3daf00](https://github.com/OODemi52/extents/commit/f3daf006bfc02d88fef4d025bef5f5078216b513))
+* parameterize base RAW display exposure ([ad3cdc0](https://github.com/OODemi52/extents/commit/ad3cdc02530daf692aace41f8c86d697a9117a86))
+* reset RAW highlight baseline and clarify shader naming ([6ca691a](https://github.com/OODemi52/extents/commit/6ca691a1dc58986e53e36a7a2425a617c1ac39f7))
+
 ## [0.2.0](https://github.com/OODemi52/extents/compare/Extents-v0.1.1...Extents-v0.2.0) (2026-06-29)
 
 
