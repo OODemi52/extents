@@ -6,13 +6,12 @@ import { useImageStore } from "@/store/image-store";
 import {
   formatAperture,
   formatDateTaken,
-  formatDimensions,
   formatExposureBias,
   formatFocalLength,
   formatGPS,
   formatShutterSpeed,
 } from "@/features/info-panel/utils/formatters";
-import { formatBytes } from "@/lib/formatters";
+import { formatBytes, formatDimensions } from "@/lib/formatters";
 
 const InfoRow = ({ label, value }: { label: string; value: string }) => (
   <div className="flex items-center justify-between gap-3 text-xs text-zinc-400">

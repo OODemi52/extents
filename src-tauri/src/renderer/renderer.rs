@@ -2,6 +2,9 @@ use super::context::{GpuContext, SurfaceContext};
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
 use super::input::{DevelopmentSource, DisplayIntent, Input, OutputTransformSettings};
+use super::inspection::{
+    ImageInspection, InspectionSnapshot, PipelineInspection, RawImageInspection,
+};
 use super::processing_graph::{DevelopmentParameters, ImageProcessingGraph};
 use super::schedule::{RenderSchedule, RenderState};
 use super::viewer::Viewer;
@@ -19,6 +22,7 @@ pub struct Renderer {
     viewer: Viewer,
     image_request: ImageRequest,
     render_schedule: RenderSchedule,
+    inspection: InspectionSnapshot,
     has_image: bool,
 }
 
@@ -55,6 +59,8 @@ impl Renderer {
         let image_request = ImageRequest::new();
 
         let render_schedule = RenderSchedule::new();
+        let inspection =
+            InspectionSnapshot::empty(surface.format(), surface.width(), surface.height());
 
         let mut renderer = Self {
             gpu,
@@ -64,9 +70,11 @@ impl Renderer {
             viewer,
             image_request,
             render_schedule,
+            inspection,
             has_image: false,
         };
 
+        renderer.refresh_texture_inspection();
         renderer.update_vertices();
 
         Ok(renderer)
@@ -122,21 +130,34 @@ impl Renderer {
 
     pub fn resize(&mut self, new_width: u32, new_height: u32) {
         self.surface.resize(&self.gpu, new_width, new_height);
+        self.refresh_texture_inspection();
     }
 
     /// Sets the current input as the live display image.
-    pub(super) fn set_input(&mut self, input: Input) {
+    pub(super) fn set_input(&mut self, input: Input, input_build_ms: Option<f64>) {
         let image = input.image();
         let dimensions = image.dimensions();
+        let development_source = input.development_source();
+        let development_parameters = input.development_parameters();
+        let output_transform = input.output_transform();
 
         self.display_checkboard(image.has_transparency());
-        self.update_output_transform(input.output_transform());
+        self.update_inspection_for_input(
+            dimensions.width(),
+            dimensions.height(),
+            image.has_transparency(),
+            development_source,
+            development_parameters,
+            output_transform,
+        );
+        self.inspection.timings.input_build_ms = input_build_ms;
+        self.update_output_transform(output_transform);
         self.upload_source_image(
             image.texels(),
             dimensions.width(),
             dimensions.height(),
-            input.development_source(),
-            input.development_parameters(),
+            development_source,
+            development_parameters,
         );
     }
 
@@ -161,6 +182,7 @@ impl Renderer {
             development_source,
             development_parameters,
         );
+        self.refresh_texture_inspection();
 
         self.display_resources
             .bind_image_texture(&self.gpu.device, self.processing_graph.output_view());
@@ -175,6 +197,7 @@ impl Renderer {
             &self.gpu.queue,
             recipe.exposure_ev,
         );
+        self.inspection.pipeline.user_exposure_ev = recipe.exposure_ev;
     }
 
     /// Updates active output transform parameters while preserving other display state.
@@ -191,6 +214,8 @@ impl Renderer {
         self.image_request.clear();
 
         self.has_image = false;
+        self.inspection.has_image = false;
+        self.inspection.image = None;
 
         self.render();
     }
@@ -294,6 +319,11 @@ impl Renderer {
         self.render_schedule.mark_rendered();
     }
 
+    /// Returns the current Inspector snapshot.
+    pub fn inspection_snapshot(&self) -> InspectionSnapshot {
+        self.inspection.clone()
+    }
+
     fn apply_transform(&mut self) {
         let Some(transform) = self
             .viewer
@@ -310,11 +340,67 @@ impl Renderer {
             transform.checkerboard_enabled,
         );
     }
+
+    fn update_inspection_for_input(
+        &mut self,
+        width: u32,
+        height: u32,
+        has_transparency: bool,
+        development_source: DevelopmentSource,
+        development_parameters: DevelopmentParameters,
+        output_transform: OutputTransformSettings,
+    ) {
+        self.inspection.has_image = true;
+        self.inspection.image = Some(ImageInspection {
+            source_kind: source_kind_label(development_source).to_string(),
+            width,
+            height,
+            has_transparency,
+            raw: development_parameters
+                .raw_bayer_cfa_pattern()
+                .map(RawImageInspection::from_bayer_cfa_pattern),
+        });
+        self.inspection.pipeline = PipelineInspection {
+            development_source: development_source_label(development_source).to_string(),
+            display_intent: display_intent_label(output_transform.display_intent()).to_string(),
+            base_exposure_ev: Some(output_transform.base_exposure_ev()),
+            user_exposure_ev: self.inspection.pipeline.user_exposure_ev,
+        };
+    }
+
+    fn refresh_texture_inspection(&mut self) {
+        self.inspection.textures = self.processing_graph.texture_inspection(
+            self.surface.format(),
+            self.surface.width(),
+            self.surface.height(),
+        );
+    }
 }
 
 fn graph_display_intent(intent: DisplayIntent) -> u32 {
     match intent {
         DisplayIntent::DirectSdr => 0,
         DisplayIntent::ToneMapToSdr => 1,
+    }
+}
+
+fn source_kind_label(source: DevelopmentSource) -> &'static str {
+    match source {
+        DevelopmentSource::RasterSrgb => "Raster",
+        DevelopmentSource::RawBayer2x2 => "RAW",
+    }
+}
+
+fn development_source_label(source: DevelopmentSource) -> &'static str {
+    match source {
+        DevelopmentSource::RasterSrgb => "Raster sRGB",
+        DevelopmentSource::RawBayer2x2 => "RAW Bayer 2x2",
+    }
+}
+
+fn display_intent_label(intent: DisplayIntent) -> &'static str {
+    match intent {
+        DisplayIntent::DirectSdr => "Direct SDR",
+        DisplayIntent::ToneMapToSdr => "Tone Map to SDR",
     }
 }

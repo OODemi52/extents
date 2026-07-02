@@ -1,6 +1,7 @@
 import { FileAnnotation, FlagEntry, RatingEntry } from "./file-annotations";
 import { ImageExifEntry } from "./exif";
 import { HistogramData } from "./histogram";
+import { InspectionSnapshot } from "./inspection";
 import { TreeNode } from "./file-system";
 import { CacheType } from "./settings";
 import { Sidecar } from "./sidecar";
@@ -30,6 +31,7 @@ export interface CommandArgs {
   update_transform: { scale: number; offsetX: number; offsetY: number };
   render_frame: null;
   should_render_frame: null;
+  get_renderer_inspection: null;
   set_render_state: { stateStr: "active" | "idle" | "paused" };
   clear_renderer: null;
   set_ratings: { entries: RatingEntry[] };
@@ -60,6 +62,7 @@ export interface CommandReturn {
   update_transform: void;
   render_frame: void;
   should_render_frame: boolean;
+  get_renderer_inspection: InspectionSnapshot | null;
   set_render_state: void;
   clear_renderer: void;
   set_ratings: void;

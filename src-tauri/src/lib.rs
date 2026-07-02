@@ -90,6 +90,7 @@ pub fn run() {
             commands::renderer::render_frame,
             commands::renderer::clear_renderer,
             commands::renderer::set_render_state,
+            commands::renderer::get_renderer_inspection,
             // Annotation Commands
             commands::annotations::set_ratings,
             commands::annotations::set_flags,

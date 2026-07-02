@@ -124,6 +124,16 @@ impl ImageTexture {
         self.height
     }
 
+    /// Returns this texture's diagnostic label.
+    pub(super) fn label(&self) -> &'static str {
+        self.label
+    }
+
+    /// Returns this texture's GPU format.
+    pub(super) fn format(&self) -> wgpu::TextureFormat {
+        self.format
+    }
+
     fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,

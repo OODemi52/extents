@@ -209,10 +209,15 @@ impl RendererManager {
         }
     }
 
-    pub(super) fn set_input_for_active_request(&mut self, request_id: u64, input: Input) {
+    pub(super) fn set_input_for_active_request(
+        &mut self,
+        request_id: u64,
+        input: Input,
+        input_build_ms: Option<f64>,
+    ) {
         if let Some(renderer) = self.renderer.as_mut() {
             if renderer.is_request_active(request_id) {
-                renderer.set_input(input);
+                renderer.set_input(input, input_build_ms);
                 renderer.render();
             }
         }
@@ -234,5 +239,12 @@ impl RendererManager {
         } else {
             handle.abort();
         }
+    }
+
+    /// Returns the current renderer inspection snapshot.
+    pub fn inspection_snapshot(&self) -> Option<crate::renderer::InspectionSnapshot> {
+        self.renderer
+            .as_ref()
+            .map(|renderer| renderer.inspection_snapshot())
     }
 }

@@ -1,4 +1,4 @@
-use crate::renderer::{RenderState, RendererManager};
+use crate::renderer::{InspectionSnapshot, RenderState, RendererManager};
 use crate::state::AppState;
 use log::{info, warn};
 use tauri::State;
@@ -127,4 +127,13 @@ pub fn set_render_state(state_str: String, state: State<AppState>) {
         Ok(mut manager) => manager.set_render_state(render_state),
         Err(error) => warn!("{error}"),
     }
+}
+
+#[tauri::command]
+pub fn get_renderer_inspection(
+    state: State<AppState>,
+) -> Result<Option<InspectionSnapshot>, String> {
+    let manager = RendererManager::lock(&state.renderer_manager)?;
+
+    Ok(manager.inspection_snapshot())
 }

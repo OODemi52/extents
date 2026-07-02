@@ -3,6 +3,7 @@ mod display_resources;
 mod image_load;
 mod image_request;
 mod input;
+mod inspection;
 mod manager;
 mod pipeline;
 mod processing_graph;
@@ -16,6 +17,7 @@ mod viewport;
 
 pub use context::GpuContext;
 pub use context::SurfaceContext;
+pub use inspection::InspectionSnapshot;
 pub use manager::{RendererManager, RendererManagerHandle};
 pub use renderer::Renderer;
 pub use schedule::RenderState;

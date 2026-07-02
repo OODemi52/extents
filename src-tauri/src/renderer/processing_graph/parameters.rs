@@ -45,6 +45,14 @@ impl DevelopmentParameters {
         })
     }
 
+    /// Returns the active 2x2 CFA pattern for RAW Bayer input, if present.
+    pub(in crate::renderer) fn raw_bayer_cfa_pattern(self) -> Option<[u32; 4]> {
+        match self {
+            Self::Raster(_) => None,
+            Self::RawBayer(parameters) => Some(parameters.cfa_pattern),
+        }
+    }
+
     fn to_uniform_block(self) -> DevelopmentUniformBlock {
         match self {
             Self::Raster(_) => DevelopmentUniformBlock::raster_srgb(),

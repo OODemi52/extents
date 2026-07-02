@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use log::{error, info};
 use tauri::async_runtime;
 
@@ -11,12 +13,15 @@ pub(crate) fn set_requested_input_from_path(
     request_id: u64,
     renderer_manager: &RendererManagerHandle,
 ) -> Result<(), String> {
+    let build_start = Instant::now();
+
     let input = match build_input_from_path(path) {
         Ok(input) => input,
         Err(error) => return Err(error.to_string()),
     };
+    let input_build_ms = elapsed_ms(build_start);
 
-    set_input_for_active_request(renderer_manager, request_id, input);
+    set_input_for_active_request(renderer_manager, request_id, input, Some(input_build_ms));
 
     Ok(())
 }
@@ -27,9 +32,14 @@ pub(crate) async fn swap_requested_input(
     request_id: u64,
     renderer_manager: RendererManagerHandle,
 ) -> Result<(), String> {
-    let input_result = async_runtime::spawn_blocking(move || build_input_from_path(&path)).await;
+    let input_result = async_runtime::spawn_blocking(move || {
+        let build_start = Instant::now();
 
-    let input = match input_result {
+        build_input_from_path(&path).map(|input| (input, elapsed_ms(build_start)))
+    })
+    .await;
+
+    let (input, input_build_ms) = match input_result {
         Ok(Ok(input)) => input,
         Ok(Err(error)) => return Err(error.to_string()),
         Err(join_error) => {
@@ -40,7 +50,7 @@ pub(crate) async fn swap_requested_input(
         }
     };
 
-    set_input_for_active_request(&renderer_manager, request_id, input);
+    set_input_for_active_request(&renderer_manager, request_id, input, Some(input_build_ms));
 
     Ok(())
 }
@@ -64,13 +74,17 @@ pub(crate) fn spawn_full_image_load(
     );
 
     let join_handle = async_runtime::spawn(async move {
-        let input_result =
-            async_runtime::spawn_blocking(move || build_input_from_path(&path)).await;
+        let input_result = async_runtime::spawn_blocking(move || {
+            let build_start = Instant::now();
+
+            build_input_from_path(&path).map(|input| (input, elapsed_ms(build_start)))
+        })
+        .await;
 
         match input_result {
-            Ok(Ok(input)) => match RendererManager::lock(&renderer_for_task) {
+            Ok(Ok((input, input_build_ms))) => match RendererManager::lock(&renderer_for_task) {
                 Ok(mut manager) => {
-                    manager.set_input_for_active_request(request_id, input);
+                    manager.set_input_for_active_request(request_id, input, Some(input_build_ms));
                     manager.complete_image_request(request_id);
                 }
                 Err(error) => error!("[Renderer] {error}"),
@@ -114,11 +128,16 @@ fn set_input_for_active_request(
     renderer_manager: &RendererManagerHandle,
     request_id: u64,
     input: Input,
+    input_build_ms: Option<f64>,
 ) {
     match RendererManager::lock(renderer_manager) {
         Ok(mut manager) => {
-            manager.set_input_for_active_request(request_id, input);
+            manager.set_input_for_active_request(request_id, input, input_build_ms);
         }
         Err(error) => error!("[Renderer] {error}"),
     }
+}
+
+fn elapsed_ms(start: Instant) -> f64 {
+    start.elapsed().as_secs_f64() * 1000.0
 }

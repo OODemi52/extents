@@ -245,13 +245,15 @@ export function BottomToolbar() {
               />
             </div>
           ) : null}
-          <ToolbarIconButton
-            className="ml-1 border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
-            icon={<InfoIcon size={16} />}
-            isActive={panels.infoPanel}
-            tooltip="Info Panel"
-            onPress={() => togglePanel("infoPanel")}
-          />
+          {activeLayout !== "inspector" ? (
+            <ToolbarIconButton
+              className="ml-1 border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
+              icon={<InfoIcon size={16} />}
+              isActive={panels.infoPanel}
+              tooltip="Info Panel"
+              onPress={() => togglePanel("infoPanel")}
+            />
+          ) : null}
         </div>
       </div>
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500 tracking-tight">

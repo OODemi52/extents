@@ -36,4 +36,6 @@ export const renderFrame = () => invokeTauri("render_frame", null);
 
 export const shouldRenderFrame = () => invokeTauri("should_render_frame", null);
 
+export const getInspection = () => invokeTauri("get_renderer_inspection", null);
+
 export const clearRenderer = () => invokeTauri("clear_renderer", null);

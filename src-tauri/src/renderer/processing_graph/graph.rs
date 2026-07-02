@@ -1,3 +1,4 @@
+use super::super::inspection::{TextureInspection, TextureResourceInspection};
 use super::super::texture::ImageTexture;
 use super::parameters::{
     AdjustmentParameters, AdjustmentParametersBuffer, DevelopmentParameters,
@@ -136,6 +137,27 @@ impl ImageProcessingGraph {
         self.output_texture.height()
     }
 
+    /// Returns graph texture state for the Inspector.
+    pub(in crate::renderer) fn texture_inspection(
+        &self,
+        surface_format: wgpu::TextureFormat,
+        surface_width: u32,
+        surface_height: u32,
+    ) -> TextureInspection {
+        TextureInspection {
+            source: texture_resource_inspection(&self.source_texture),
+            development_output: texture_resource_inspection(&self.development_output_texture),
+            adjustment_output: texture_resource_inspection(&self.adjustment_output_texture),
+            display_output: texture_resource_inspection(&self.output_texture),
+            surface: TextureResourceInspection::new(
+                "Window Surface",
+                surface_format,
+                surface_width,
+                surface_height,
+            ),
+        }
+    }
+
     fn rebind_stages(
         &mut self,
         device: &wgpu::Device,
@@ -194,4 +216,13 @@ impl ImageProcessingGraph {
             self.output_texture.height(),
         );
     }
+}
+
+fn texture_resource_inspection(texture: &ImageTexture) -> TextureResourceInspection {
+    TextureResourceInspection::new(
+        texture.label(),
+        texture.format(),
+        texture.width(),
+        texture.height(),
+    )
 }

@@ -18,3 +18,38 @@ export const formatBytes = (bytes: number | null | undefined) => {
 
   return `${formatted} ${units[index]}`;
 };
+
+export const formatDimensions = (
+  width: number | null | undefined,
+  height: number | null | undefined,
+) => {
+  if (!width || !height) {
+    return "-";
+  }
+
+  return `${width} x ${height}`;
+};
+
+export const formatBoolean = (value: boolean | null | undefined) => {
+  if (value == null) {
+    return "-";
+  }
+
+  return value ? "Yes" : "No";
+};
+
+export const formatEv = (value: number | null | undefined) => {
+  if (value == null) {
+    return "-";
+  }
+
+  return `${value.toFixed(2)} EV`;
+};
+
+export const formatMilliseconds = (value: number | null | undefined) => {
+  if (value == null) {
+    return "-";
+  }
+
+  return `${value.toFixed(2)} ms`;
+};

@@ -43,17 +43,6 @@ export const formatExposureBias = (value: number | null) => {
   return `${sign}${value.toFixed(1)} EV`;
 };
 
-export const formatDimensions = (
-  width: number | null,
-  height: number | null,
-) => {
-  if (!width || !height) {
-    return "-";
-  }
-
-  return `${width} x ${height}`;
-};
-
 export const formatDateTaken = (value: string | null) => {
   if (!value) {
     return "-";
