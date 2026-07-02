@@ -1,5 +1,6 @@
 import { GraphInspectionSection } from "./graph/graph-inspection-section";
 import { ImageInspectionSection } from "./image/image-inspection-section";
+import { RawMetadataSection } from "./image/raw-metadata-section";
 import { PipelineInspectionSection } from "./pipeline/pipeline-inspection-section";
 import { TimingInspectionSection } from "./timing/timing-inspection-section";
 
@@ -23,6 +24,7 @@ export function InspectorPanel() {
       {error ? <div className="text-xs text-red-400">{error}</div> : null}
 
       <ImageInspectionSection image={image} />
+      <RawMetadataSection raw={image?.raw ?? null} />
       <PipelineInspectionSection pipeline={pipeline} />
       <GraphInspectionSection textures={textures} />
       <TimingInspectionSection timings={timings} />

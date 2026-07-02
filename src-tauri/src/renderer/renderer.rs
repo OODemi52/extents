@@ -1,7 +1,9 @@
 use super::context::{GpuContext, SurfaceContext};
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
-use super::input::{DevelopmentSource, DisplayIntent, Input, OutputTransformSettings};
+use super::input::{
+    DevelopmentSource, DisplayIntent, Input, OutputTransformSettings, SourceMetadata,
+};
 use super::inspection::{
     ImageInspection, InspectionSnapshot, PipelineInspection, RawImageInspection,
 };
@@ -147,7 +149,7 @@ impl Renderer {
             dimensions.height(),
             image.has_transparency(),
             development_source,
-            development_parameters,
+            input.source_metadata(),
             output_transform,
         );
         self.inspection.timings.input_build_ms = input_build_ms;
@@ -347,7 +349,7 @@ impl Renderer {
         height: u32,
         has_transparency: bool,
         development_source: DevelopmentSource,
-        development_parameters: DevelopmentParameters,
+        source_metadata: &SourceMetadata,
         output_transform: OutputTransformSettings,
     ) {
         self.inspection.has_image = true;
@@ -356,9 +358,9 @@ impl Renderer {
             width,
             height,
             has_transparency,
-            raw: development_parameters
-                .raw_bayer_cfa_pattern()
-                .map(RawImageInspection::from_bayer_cfa_pattern),
+            raw: source_metadata
+                .raw_metadata()
+                .map(RawImageInspection::from_source_metadata),
         });
         self.inspection.pipeline = PipelineInspection {
             development_source: development_source_label(development_source).to_string(),

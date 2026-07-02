@@ -17,6 +17,7 @@ pub(super) struct Input {
     development_source: DevelopmentSource,
     development_parameters: DevelopmentParameters,
     output_transform: OutputTransformSettings,
+    source_metadata: SourceMetadata,
 }
 
 impl Input {
@@ -26,12 +27,14 @@ impl Input {
         development_source: DevelopmentSource,
         development_parameters: DevelopmentParameters,
         output_transform: OutputTransformSettings,
+        source_metadata: SourceMetadata,
     ) -> Self {
         Self {
             image,
             development_source,
             development_parameters,
             output_transform,
+            source_metadata,
         }
     }
 
@@ -53,6 +56,11 @@ impl Input {
     /// Returns how this input should be transformed for display.
     pub(super) fn output_transform(&self) -> OutputTransformSettings {
         self.output_transform
+    }
+
+    /// Returns source-domain metadata associated with this renderer input.
+    pub(super) fn source_metadata(&self) -> &SourceMetadata {
+        &self.source_metadata
     }
 }
 
@@ -112,6 +120,55 @@ pub(super) enum DisplayIntent {
 pub(super) struct OutputTransformSettings {
     display_intent: DisplayIntent,
     base_exposure_ev: f32,
+}
+
+/// Source-domain metadata retained for renderer inspection.
+#[derive(Debug, Clone, Default)]
+pub(in crate::renderer) struct SourceMetadata {
+    raw: Option<RawSourceMetadata>,
+}
+
+impl SourceMetadata {
+    /// Builds source metadata for raster input.
+    pub(in crate::renderer) fn raster() -> Self {
+        Self { raw: None }
+    }
+
+    /// Builds source metadata for RAW input.
+    pub(in crate::renderer) fn raw(raw: RawSourceMetadata) -> Self {
+        Self { raw: Some(raw) }
+    }
+
+    /// Returns RAW-specific metadata when the input came from a RAW source.
+    pub(in crate::renderer) fn raw_metadata(&self) -> Option<&RawSourceMetadata> {
+        self.raw.as_ref()
+    }
+}
+
+/// RAW source metadata used by the Inspector.
+#[derive(Debug, Clone)]
+pub(in crate::renderer) struct RawSourceMetadata {
+    pub(in crate::renderer) camera_make: String,
+    pub(in crate::renderer) camera_model: String,
+    pub(in crate::renderer) bits_per_sample: u32,
+    pub(in crate::renderer) sensor_dimensions: ImageDimensions,
+    pub(in crate::renderer) crop_area: SourceRect,
+    pub(in crate::renderer) cfa_pattern: [u32; 4],
+    pub(in crate::renderer) source_black_levels: [f32; 4],
+    pub(in crate::renderer) source_white_levels: [f32; 4],
+    pub(in crate::renderer) normalized_black_levels: [f32; 4],
+    pub(in crate::renderer) normalized_white_levels: [f32; 4],
+    pub(in crate::renderer) as_shot_white_balance: [f32; 4],
+    pub(in crate::renderer) headroom_white_balance: [f32; 3],
+}
+
+/// A rectangle in source image coordinates.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::renderer) struct SourceRect {
+    pub(in crate::renderer) x: u32,
+    pub(in crate::renderer) y: u32,
+    pub(in crate::renderer) width: u32,
+    pub(in crate::renderer) height: u32,
 }
 
 impl OutputTransformSettings {

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use image::RgbaImage;
 
-use super::{DevelopmentSource, Input, InputImage, OutputTransformSettings};
+use super::{DevelopmentSource, Input, InputImage, OutputTransformSettings, SourceMetadata};
 use crate::core::image::orientation::{apply_orientation, Orientation};
 use crate::core::image::source::{RasterSamples, RasterSource};
 use crate::core::image::ImageDimensions;
@@ -32,6 +32,7 @@ pub(super) fn build_input(raster: RasterSource) -> Result<Input> {
         DevelopmentSource::RasterSrgb,
         DevelopmentParameters::from_raster_srgb(),
         OutputTransformSettings::direct_sdr(),
+        SourceMetadata::raster(),
     ))
 }
 

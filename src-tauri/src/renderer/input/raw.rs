@@ -2,7 +2,10 @@ use anyhow::{anyhow, Result};
 use rawler::imgop::matrix::{multiply, normalize, pseudo_inverse};
 use rawler::imgop::xyz::Illuminant;
 
-use super::{DevelopmentSource, Input, InputImage, OutputTransformSettings};
+use super::{
+    DevelopmentSource, Input, InputImage, OutputTransformSettings, RawSourceMetadata,
+    SourceMetadata, SourceRect,
+};
 use crate::core::image::orientation::Orientation;
 use crate::core::image::source::{RawRect, RawSamples, RawSource};
 use crate::core::image::ImageDimensions;
@@ -51,7 +54,8 @@ pub(super) fn build_input(raw: RawSource) -> Result<Input> {
         Err(error) => return Err(error),
     };
 
-    let white_balance = resolve_headroom_white_balance(raw.white_balance_coefficients());
+    let as_shot_white_balance = raw.white_balance_coefficients();
+    let white_balance = resolve_headroom_white_balance(as_shot_white_balance);
 
     let camera_to_working = match build_camera_to_working_matrix(&raw) {
         Ok(camera_to_working) => camera_to_working,
@@ -69,13 +73,30 @@ pub(super) fn build_input(raw: RawSource) -> Result<Input> {
             camera_to_working,
         ),
         OutputTransformSettings::tone_map_to_sdr(RAW_DISPLAY_BASE_EXPOSURE_EV),
+        SourceMetadata::raw(RawSourceMetadata {
+            camera_make: raw.camera_make().to_string(),
+            camera_model: raw.camera_model().to_string(),
+            bits_per_sample: raw.bits_per_sample(),
+            sensor_dimensions: raw.dimensions(),
+            crop_area: packed_source.crop_area,
+            cfa_pattern: packed_source.cfa_pattern,
+            source_black_levels: packed_source.source_black_levels,
+            source_white_levels: packed_source.source_white_levels,
+            normalized_black_levels: packed_source.black_levels,
+            normalized_white_levels: packed_source.white_levels,
+            as_shot_white_balance,
+            headroom_white_balance: white_balance,
+        }),
     ))
 }
 
 /// Packed RAW upload data plus metadata needed by the development shader.
 struct PackedRawSourceImage {
     image: InputImage,
+    crop_area: SourceRect,
     cfa_pattern: [u32; 4],
+    source_black_levels: [f32; 4],
+    source_white_levels: [f32; 4],
     black_levels: [f32; 4],
     white_levels: [f32; 4],
 }
@@ -136,18 +157,24 @@ fn pack_raw_source_image(raw: &RawSource) -> Result<PackedRawSourceImage> {
 
     let cfa_pattern =
         oriented_cfa_values_for_crop(raw.cfa().pattern(), crop, output_width, orientation);
-    let black_levels = normalize_levels_for_upload(
-        oriented_cfa_values_for_crop(raw.black_levels().values(), crop, output_width, orientation),
-        sample_scale,
-    );
-    let white_levels = normalize_levels_for_upload(
-        oriented_cfa_values_for_crop(raw.white_levels().values(), crop, output_width, orientation),
-        sample_scale,
-    );
+    let source_black_levels =
+        oriented_cfa_values_for_crop(raw.black_levels().values(), crop, output_width, orientation);
+    let source_white_levels =
+        oriented_cfa_values_for_crop(raw.white_levels().values(), crop, output_width, orientation);
+    let black_levels = normalize_levels_for_upload(source_black_levels, sample_scale);
+    let white_levels = normalize_levels_for_upload(source_white_levels, sample_scale);
 
     Ok(PackedRawSourceImage {
         image: InputImage::new(texels, dimensions, false),
+        crop_area: SourceRect {
+            x: crop.x,
+            y: crop.y,
+            width: crop.width,
+            height: crop.height,
+        },
         cfa_pattern,
+        source_black_levels,
+        source_white_levels,
         black_levels,
         white_levels,
     })

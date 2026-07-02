@@ -15,10 +15,34 @@ export type ImageInspection = {
 };
 
 export type RawImageInspection = {
+  cameraMake: string;
+  cameraModel: string;
+  bitsPerSample: number;
+  sensorDimensions: DimensionsInspection;
+  cropArea: RectInspection;
   cfa: CfaPatternInspection;
+  sourceBlackLevels: number[];
+  sourceWhiteLevels: number[];
+  normalizedBlackLevels: number[];
+  normalizedWhiteLevels: number[];
+  asShotWhiteBalance: number[];
+  headroomWhiteBalance: number[];
+};
+
+export type DimensionsInspection = {
+  width: number;
+  height: number;
+};
+
+export type RectInspection = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 };
 
 export type CfaPatternInspection = {
+  name: string;
   width: number;
   height: number;
   cells: CfaCellInspection[];
