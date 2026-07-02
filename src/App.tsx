@@ -137,9 +137,7 @@ function App() {
                         : "opacity-0 pointer-events-none"
                     }`}
                   >
-                    {activeLayout === "inspector" ? (
-                      <InspectorLayout />
-                    ) : null}
+                    {activeLayout === "inspector" ? <InspectorLayout /> : null}
                   </div>
                 </div>
               </Allotment.Pane>
