@@ -1,10 +1,11 @@
 import "allotment/dist/style.css";
 import { Allotment } from "allotment";
 import { motion } from "framer-motion";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { ThumbnailGridLayout } from "./layouts/thumbnai-grid-layout";
 import { DetailLayout } from "./layouts/detail-layout";
+import { InspectorLayout } from "./layouts/inspector-layout";
 import { Sidebar } from "./components/sidebar";
 import { BottomToolbar } from "./components/bottom-toolbar";
 import {
@@ -32,8 +33,10 @@ function App() {
     activeLayout,
     panels,
     sidebarWidth,
+    inspectorEnabled,
     setSidebarWidth,
     setSidebarResizing,
+    setActiveLayout,
   } = useLayoutStore();
   const { openFolder } = useFolderScanner();
   const lastSidebarWidthRef = useRef(sidebarWidth);
@@ -41,6 +44,12 @@ function App() {
   const sidebarPreferredSize =
     lastSidebarWidthRef.current || SIDEBAR_DEFAULT_WIDTH;
   const sidebarMinSize = SIDEBAR_MIN_WIDTH;
+
+  useEffect(() => {
+    if (!inspectorEnabled && activeLayout === "inspector") {
+      setActiveLayout("detail");
+    }
+  }, [activeLayout, inspectorEnabled, setActiveLayout]);
 
   return (
     <div
@@ -108,7 +117,9 @@ function App() {
                         : "opacity-0 pointer-events-none"
                     }`}
                   >
-                    <ThumbnailGridLayout />
+                    {activeLayout === "thumbnails" ? (
+                      <ThumbnailGridLayout />
+                    ) : null}
                   </div>
                   <div
                     className={`absolute inset-0 ${
@@ -117,7 +128,18 @@ function App() {
                         : "opacity-0 pointer-events-none"
                     }`}
                   >
-                    <DetailLayout />
+                    {activeLayout === "detail" ? <DetailLayout /> : null}
+                  </div>
+                  <div
+                    className={`absolute inset-0 ${
+                      activeLayout === "inspector"
+                        ? "opacity-100 pointer-events-auto"
+                        : "opacity-0 pointer-events-none"
+                    }`}
+                  >
+                    {activeLayout === "inspector" ? (
+                      <InspectorLayout />
+                    ) : null}
                   </div>
                 </div>
               </Allotment.Pane>

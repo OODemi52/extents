@@ -9,6 +9,8 @@ export function useWGPURenderLoop() {
   useEffect(() => {
     let animationFrameId: number | null = null;
     let isActive = true;
+    const shouldRunRenderer =
+      activeLayout === "detail" || activeLayout === "inspector";
 
     const loop = () => {
       if (!isActive) {
@@ -45,6 +47,10 @@ export function useWGPURenderLoop() {
     };
 
     const setIdle = () => {
+      if (!shouldRunRenderer) {
+        return;
+      }
+
       if (!isActive) {
         isActive = true;
         animationFrameId = requestAnimationFrame(loop);
@@ -55,7 +61,7 @@ export function useWGPURenderLoop() {
       });
     };
 
-    if (activeLayout === "detail") {
+    if (shouldRunRenderer) {
       api.renderer.setRenderState({ stateStr: "idle" }).catch((err) => {
         console.error("Failed to resume renderer:", err);
       });

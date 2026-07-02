@@ -10,6 +10,7 @@ import {
   ImageSquareIcon,
   SquaresFourIcon,
   ColumnsIcon,
+  MagnifyingGlassIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { Tab, Tabs } from "@heroui/tabs";
 import { Tooltip } from "@heroui/tooltip";
@@ -28,6 +29,7 @@ export function BottomToolbar() {
     panels,
     activeLayout,
     activeEditTab,
+    inspectorEnabled,
     togglePanel,
     setActiveLayout,
     setActiveEditTab,
@@ -65,7 +67,11 @@ export function BottomToolbar() {
   };
 
   const handleLayoutChange = (key: string | number) => {
-    if (key === "detail" || key === "thumbnails") {
+    if (
+      key === "detail" ||
+      key === "thumbnails" ||
+      (key === "inspector" && inspectorEnabled)
+    ) {
       setActiveLayout(key);
     }
   };
@@ -175,6 +181,27 @@ export function BottomToolbar() {
                 </Tooltip>
               }
             />
+            {inspectorEnabled ? (
+              <Tab
+                key="inspector"
+                aria-label="Inspector view"
+                title={
+                  <Tooltip
+                    className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
+                    closeDelay={0}
+                    content="Inspector"
+                    delay={500}
+                    offset={8}
+                    radius="sm"
+                    size="sm"
+                  >
+                    <div className="flex items-center justify-center">
+                      <MagnifyingGlassIcon size={16} />
+                    </div>
+                  </Tooltip>
+                }
+              />
+            ) : null}
           </Tabs>
         </div>
         <div />

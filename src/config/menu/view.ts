@@ -2,11 +2,12 @@ import { CheckMenuItem, MenuItem, Submenu } from "@tauri-apps/api/menu";
 
 import { createSeparator, setExclusiveChecked } from "./standard";
 
-import { useLayoutStore } from "@/store/layout-store";
+import { useLayoutStore, type LayoutId } from "@/store/layout-store";
 import { useGalleryPreferencesStore } from "@/features/gallery/stores/gallery-preferences-store";
 
 export async function createViewSubmenu() {
   const separator = await createSeparator();
+  const { activeLayout, inspectorEnabled } = useLayoutStore.getState();
 
   const previousView = await MenuItem.new({
     id: "view.previous",
@@ -466,6 +467,7 @@ export async function createViewSubmenu() {
   const gridView = await CheckMenuItem.new({
     id: "view.grid",
     text: "Grid",
+    checked: activeLayout === "thumbnails",
     accelerator: "G",
     action: (id) => {
       useLayoutStore.getState().setActiveLayout("thumbnails");
@@ -473,23 +475,41 @@ export async function createViewSubmenu() {
     },
   });
 
-  const compareView = await CheckMenuItem.new({
-    id: "view.compare",
-    text: "Compare",
-    enabled: false,
-    accelerator: "Alt+C",
+  const detailView = await CheckMenuItem.new({
+    id: "view.detail",
+    text: "Detail",
+    checked: activeLayout === "detail",
+    accelerator: "D",
     action: (id) => {
-      useLayoutStore.getState().setActiveLayout("compare");
+      useLayoutStore.getState().setActiveLayout("detail");
       setExclusiveChecked(viewModeGroup, id);
     },
   });
 
-  const detailView = await CheckMenuItem.new({
-    id: "view.detail",
-    text: "Detail",
-    accelerator: "D",
+  const inspectorView = await CheckMenuItem.new({
+    id: "view.inspector",
+    text: "Inspector",
+    checked: inspectorEnabled && activeLayout === "inspector",
+    enabled: inspectorEnabled,
+    accelerator: "CmdOrCtrl+Shift+I",
     action: (id) => {
-      useLayoutStore.getState().setActiveLayout("detail");
+      if (!useLayoutStore.getState().inspectorEnabled) {
+        return;
+      }
+
+      useLayoutStore.getState().setActiveLayout("inspector");
+      setExclusiveChecked(viewModeGroup, id);
+    },
+  });
+
+  const compareView = await CheckMenuItem.new({
+    id: "view.compare",
+    text: "Compare",
+    checked: activeLayout === "compare",
+    enabled: false,
+    accelerator: "Alt+C",
+    action: (id) => {
+      useLayoutStore.getState().setActiveLayout("compare");
       setExclusiveChecked(viewModeGroup, id);
     },
   });
@@ -501,7 +521,31 @@ export async function createViewSubmenu() {
     action: (id) => setExclusiveChecked(viewModeGroup, id),
   });
 
-  viewModeGroup.push(gridView, compareView, detailView, detailFullscreen);
+  viewModeGroup.push(
+    gridView,
+    detailView,
+    compareView,
+    inspectorView,
+    detailFullscreen,
+  );
+
+  const setCheckedViewModeForLayout = (layout: LayoutId) => {
+    const inspectorIsEnabled = useLayoutStore.getState().inspectorEnabled;
+
+    if (layout === "thumbnails") {
+      setExclusiveChecked(viewModeGroup, "view.grid");
+    } else if (layout === "inspector" && inspectorIsEnabled) {
+      setExclusiveChecked(viewModeGroup, "view.inspector");
+    } else if (layout === "compare") {
+      setExclusiveChecked(viewModeGroup, "view.compare");
+    } else {
+      setExclusiveChecked(viewModeGroup, "view.detail");
+    }
+  };
+
+  useLayoutStore.subscribe((state) => {
+    setCheckedViewModeForLayout(state.activeLayout);
+  });
 
   const secondaryWindowGrid = await MenuItem.new({
     id: "view.secondaryWindow.grid",
@@ -574,6 +618,43 @@ export async function createViewSubmenu() {
     accelerator: "Space",
   });
 
+  const enableInspector = await CheckMenuItem.new({
+    id: "view.enableInspector",
+    text: "Enable Inspector",
+    checked: inspectorEnabled,
+    action: () => {
+      const { inspectorEnabled: currentInspectorEnabled, setInspectorEnabled } =
+        useLayoutStore.getState();
+      const nextInspectorEnabled = !currentInspectorEnabled;
+
+      setInspectorEnabled(nextInspectorEnabled);
+      void enableInspector.setChecked(nextInspectorEnabled);
+      void inspectorView.setEnabled(nextInspectorEnabled);
+
+      if (!nextInspectorEnabled) {
+        const { activeLayout, setActiveLayout } = useLayoutStore.getState();
+
+        if (activeLayout === "inspector") {
+          setActiveLayout("detail");
+          setCheckedViewModeForLayout("detail");
+        } else {
+          setCheckedViewModeForLayout(activeLayout);
+        }
+
+        void inspectorView.setChecked(false);
+      }
+    },
+  });
+
+  useLayoutStore.subscribe((state) => {
+    void enableInspector.setChecked(state.inspectorEnabled);
+    void inspectorView.setEnabled(state.inspectorEnabled);
+
+    if (!state.inspectorEnabled) {
+      void inspectorView.setChecked(false);
+    }
+  });
+
   return Submenu.new({
     text: "View",
     items: [
@@ -601,8 +682,9 @@ export async function createViewSubmenu() {
       compareBeforeAfter,
       separator,
       gridView,
-      compareView,
       detailView,
+      compareView,
+      inspectorView,
       detailFullscreen,
       separator,
       secondaryWindowSubmenu,
@@ -615,6 +697,7 @@ export async function createViewSubmenu() {
       zoomOut,
       toggleZoom,
       separator,
+      enableInspector,
     ],
   });
 }

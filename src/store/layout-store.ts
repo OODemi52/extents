@@ -17,7 +17,7 @@ export const FILMSTRIP_MAX_HEIGHT = FILMSTRIP_MAX_ITEM_SIZE + FILMSTRIP_GAP * 2;
 
 export type PanelId = "sidebar" | "filmstrip" | "editPanel" | "infoPanel";
 
-export type LayoutId = "detail" | "thumbnails" | "compare";
+export type LayoutId = "detail" | "thumbnails" | "compare" | "inspector";
 
 export type EditPanelTab =
   | "basic"
@@ -28,7 +28,7 @@ export type EditPanelTab =
   | "info";
 
 const normalizeLayoutId = (value: unknown): LayoutId => {
-  if (value === "thumbnails" || value === "compare") {
+  if (value === "thumbnails" || value === "compare" || value === "inspector") {
     return value;
   }
 
@@ -38,6 +38,10 @@ const normalizeLayoutId = (value: unknown): LayoutId => {
 interface LayoutState {
   activeLayout: LayoutId;
   panels: Record<PanelId, boolean>;
+
+  // Inspector is gated behind an explicit opt-in even though it is represented
+  // as a layout mode once enabled.
+  inspectorEnabled: boolean;
 
   activeEditTab: EditPanelTab;
 
@@ -52,6 +56,7 @@ interface LayoutState {
   setEditPanelWidth: (width: number) => void;
   setFilmstripHeight: (height: number) => void;
   setActiveLayout: (layout: LayoutId) => void;
+  setInspectorEnabled: (enabled: boolean) => void;
   setSidebarResizing: (isResizing: boolean) => void;
 }
 
@@ -62,6 +67,7 @@ export const useLayoutStore = create<LayoutState>()(
   persist(
     (set) => ({
       activeLayout: "detail",
+      inspectorEnabled: false,
       panels: {
         sidebar: true,
         filmstrip: true,
@@ -105,6 +111,7 @@ export const useLayoutStore = create<LayoutState>()(
           ),
         }),
       setActiveLayout: (layout) => set({ activeLayout: layout }),
+      setInspectorEnabled: (enabled) => set({ inspectorEnabled: enabled }),
       setSidebarResizing: (isResizing) =>
         set({ isSidebarResizing: isResizing }),
     }),
@@ -122,6 +129,7 @@ export const useLayoutStore = create<LayoutState>()(
       },
       partialize: (state) => ({
         activeLayout: state.activeLayout,
+        inspectorEnabled: state.inspectorEnabled,
         panels: state.panels,
         activeEditTab: state.activeEditTab,
         sidebarWidth: state.sidebarWidth,
