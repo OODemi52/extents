@@ -279,8 +279,7 @@ export function useViewportSync(
     let animationFrameId: number | null = null;
 
     const syncMeasuredViewport = () => {
-      const clientViewportDimensions =
-        viewportElement.getBoundingClientRect();
+      const clientViewportDimensions = viewportElement.getBoundingClientRect();
 
       noteViewportSize(
         clientViewportDimensions.width,
