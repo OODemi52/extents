@@ -11,7 +11,13 @@ import { FilterMenuBar } from "@/features/filter/components/menu-bar/menu-bar";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
 import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
 
-export function InteractionViewport() {
+type InteractionViewportProps = {
+  rendererActive?: boolean;
+};
+
+export function InteractionViewport({
+  rendererActive = true,
+}: InteractionViewportProps) {
   const { files, selectedIndex, isLoading, setSelectedIndex } = useImageStore();
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const filteredFiles = useFilteredImages();
@@ -32,10 +38,12 @@ export function InteractionViewport() {
     isLoading: isPreviewLoading,
     error: previewError,
   } = useImagePreview(imagePath, {
-    enabled: Boolean(imagePath) && !isScrubbing,
+    enabled: rendererActive && Boolean(imagePath) && !isScrubbing,
   });
 
-  const { thumbnailPath } = useViewportThumbnail(imagePath);
+  const { thumbnailPath } = useViewportThumbnail(
+    rendererActive ? imagePath : null,
+  );
   const { scale, offsetX, offsetY } = useImageTransform(imagePath);
 
   useViewportSync(
@@ -44,6 +52,7 @@ export function InteractionViewport() {
     thumbnailPath,
     imagePath,
     isScrubbing,
+    rendererActive,
     scale,
     offsetX,
     offsetY,
@@ -54,7 +63,7 @@ export function InteractionViewport() {
     scale,
     offsetX,
     offsetY,
-    Boolean(imagePath),
+    rendererActive && Boolean(imagePath),
   );
 
   const showEmptyState = !imagePath && !isLoading && !isPreviewLoading;

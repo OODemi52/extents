@@ -117,9 +117,7 @@ function App() {
                         : "opacity-0 pointer-events-none"
                     }`}
                   >
-                    {activeLayout === "thumbnails" ? (
-                      <ThumbnailGridLayout />
-                    ) : null}
+                    <ThumbnailGridLayout />
                   </div>
                   <div
                     className={`absolute inset-0 ${
@@ -128,7 +126,7 @@ function App() {
                         : "opacity-0 pointer-events-none"
                     }`}
                   >
-                    {activeLayout === "detail" ? <DetailLayout /> : null}
+                    <DetailLayout rendererActive={activeLayout === "detail"} />
                   </div>
                   <div
                     className={`absolute inset-0 ${
@@ -137,7 +135,11 @@ function App() {
                         : "opacity-0 pointer-events-none"
                     }`}
                   >
-                    {activeLayout === "inspector" ? <InspectorLayout /> : null}
+                    {inspectorEnabled ? (
+                      <InspectorLayout
+                        rendererActive={activeLayout === "inspector"}
+                      />
+                    ) : null}
                   </div>
                 </div>
               </Allotment.Pane>

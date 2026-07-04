@@ -6,6 +6,10 @@ const VIEWPORT_DEBOUNCE_MS = 100;
 const FULL_DECODE_DEBOUNCE_MS = 150;
 const MIN_VIEWPORT_CSS_SIZE = 32;
 
+// There is one WGPU renderer, but multiple mounted React viewports can point at it.
+// Track the renderer's current source image so view switches can reuse it.
+let currentRendererImagePath: string | null = null;
+
 type RendererViewport = {
   x: number;
   y: number;
@@ -47,6 +51,7 @@ export function useViewportSync(
   thumbnailPath: string | null,
   imagePath: string | null,
   isScrubbing: boolean,
+  isActive: boolean,
   scale: number,
   offsetX: number,
   offsetY: number,
@@ -59,15 +64,19 @@ export function useViewportSync(
     path: string;
     requestId: number;
   } | null>(null);
-  const scrubbingRef = useRef(isScrubbing);
   const viewportTimeoutRef = useRef<number | null>(null);
   const transformTimeoutRef = useRef<number | null>(null);
   const fullDecodeTimeoutRef = useRef<number | null>(null);
   const lastTransformRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
+  const isActiveRef = useRef(isActive);
   const lastViewportSizeRef = useRef<{ width: number; height: number } | null>(
     null,
   );
   const [viewportRevision, setViewportRevision] = useState(0);
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
 
   const noteViewportSize = useCallback((width: number, height: number) => {
     if (
@@ -98,6 +107,8 @@ export function useViewportSync(
   }, []);
 
   const updateViewport = useCallback(() => {
+    if (!isActive) return;
+
     if (viewportTimeoutRef.current !== null) {
       clearTimeout(viewportTimeoutRef.current);
     }
@@ -115,15 +126,39 @@ export function useViewportSync(
           console.error("[useViewportSync] update_viewport failed:", error),
         );
     }, VIEWPORT_DEBOUNCE_MS);
-  }, [viewportRef]);
+  }, [isActive, viewportRef]);
 
   useEffect(() => {
+    if (isActive) return;
+
+    setRequestId(null);
+
+    if (viewportTimeoutRef.current !== null) {
+      clearTimeout(viewportTimeoutRef.current);
+      viewportTimeoutRef.current = null;
+    }
+
+    if (transformTimeoutRef.current !== null) {
+      cancelAnimationFrame(transformTimeoutRef.current);
+      transformTimeoutRef.current = null;
+    }
+
+    if (fullDecodeTimeoutRef.current !== null) {
+      clearTimeout(fullDecodeTimeoutRef.current);
+      fullDecodeTimeoutRef.current = null;
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    if (!isActive) return;
+
     if (!viewportRef.current || !imagePath) {
       lastLoadKeyRef.current = null;
       lastSwapPathRef.current = null;
       activeImagePathRef.current = null;
       setRequestId(null);
       pendingFullRequestRef.current = null;
+      currentRendererImagePath = null;
       void api.renderer.clearRenderer();
 
       return;
@@ -132,7 +167,16 @@ export function useViewportSync(
     const proxyPath = thumbnailPath ?? preview?.path ?? null;
     const loadKey = `${imagePath}|${proxyPath || "none"}`;
 
-    if (lastLoadKeyRef.current === loadKey) return;
+    if (
+      lastLoadKeyRef.current === loadKey ||
+      currentRendererImagePath === imagePath
+    ) {
+      lastLoadKeyRef.current = loadKey;
+      activeImagePathRef.current = imagePath;
+      updateViewport();
+
+      return;
+    }
 
     lastLoadKeyRef.current = loadKey;
     lastSwapPathRef.current = null;
@@ -159,6 +203,8 @@ export function useViewportSync(
         return;
       }
 
+      currentRendererImagePath = imagePath;
+
       api.renderer
         .loadImage({
           path: imagePath,
@@ -170,7 +216,12 @@ export function useViewportSync(
           deferFullImageLoad: shouldDeferFull,
         })
         .then((nextRequestId) => {
-          if (activeImagePathRef.current !== imagePath) return;
+          if (
+            !isActiveRef.current ||
+            activeImagePathRef.current !== imagePath
+          ) {
+            return;
+          }
 
           setRequestId(nextRequestId);
           updateViewport();
@@ -183,6 +234,10 @@ export function useViewportSync(
           }
         })
         .catch((error) => {
+          if (currentRendererImagePath === imagePath) {
+            currentRendererImagePath = null;
+          }
+
           console.error("[ViewportSync] load_image failed:", error);
         });
     });
@@ -200,18 +255,18 @@ export function useViewportSync(
     thumbnailPath,
     preview?.path,
     viewportRevision,
+    isActive,
   ]);
 
   // Scrubbing / full decode
   useEffect(() => {
-    scrubbingRef.current = isScrubbing;
-
     if (fullDecodeTimeoutRef.current !== null) {
       clearTimeout(fullDecodeTimeoutRef.current);
 
       fullDecodeTimeoutRef.current = null;
     }
 
+    if (!isActive) return;
     if (isScrubbing) return;
 
     fullDecodeTimeoutRef.current = window.setTimeout(() => {
@@ -247,10 +302,11 @@ export function useViewportSync(
         fullDecodeTimeoutRef.current = null;
       }
     };
-  }, [isScrubbing]);
+  }, [isScrubbing, isActive]);
 
   // Swapping Images (thumb -> preview)
   useEffect(() => {
+    if (!isActive) return;
     if (!requestId) return;
 
     const proxyPath = preview?.path ?? thumbnailPath;
@@ -268,10 +324,12 @@ export function useViewportSync(
           error,
         ),
       );
-  }, [preview?.path, requestId, thumbnailPath]);
+  }, [preview?.path, requestId, thumbnailPath, isActive]);
 
   // Resize Listeners
   useEffect(() => {
+    if (!isActive) return;
+
     const viewportElement = viewportRef.current;
 
     if (!viewportElement) return;
@@ -318,10 +376,11 @@ export function useViewportSync(
         viewportTimeoutRef.current = null;
       }
     };
-  }, [noteViewportSize, updateViewport, viewportRef]);
+  }, [noteViewportSize, updateViewport, viewportRef, isActive]);
 
   // Image Transform
   useEffect(() => {
+    if (!isActive) return;
     if (!preview) return;
 
     const lastTransform = lastTransformRef.current;
@@ -353,5 +412,5 @@ export function useViewportSync(
         cancelAnimationFrame(transformTimeoutRef.current);
       }
     };
-  }, [scale, offsetX, offsetY, preview]);
+  }, [scale, offsetX, offsetY, preview, isActive]);
 }

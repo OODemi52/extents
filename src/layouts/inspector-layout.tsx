@@ -4,7 +4,13 @@ import { InspectorPanel } from "@/features/inspector/components/inspector-panel"
 import { InteractionViewport } from "@/features/interaction-viewport/components/interaction-viewport";
 import { EDIT_PANEL_DEFAULT_WIDTH, MAIN_MIN_WIDTH } from "@/store/layout-store";
 
-export function InspectorLayout() {
+type InspectorLayoutProps = {
+  rendererActive?: boolean;
+};
+
+export function InspectorLayout({
+  rendererActive = true,
+}: InspectorLayoutProps) {
   return (
     <div className="h-full">
       <Allotment
@@ -14,7 +20,7 @@ export function InspectorLayout() {
         vertical={false}
       >
         <Allotment.Pane minSize={MAIN_MIN_WIDTH}>
-          <InteractionViewport />
+          <InteractionViewport rendererActive={rendererActive} />
         </Allotment.Pane>
         <Allotment.Pane
           maxSize={EDIT_PANEL_DEFAULT_WIDTH}

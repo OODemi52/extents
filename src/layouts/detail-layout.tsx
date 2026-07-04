@@ -14,7 +14,11 @@ import {
   useLayoutStore,
 } from "@/store/layout-store";
 
-export function DetailLayout() {
+type DetailLayoutProps = {
+  rendererActive?: boolean;
+};
+
+export function DetailLayout({ rendererActive = true }: DetailLayoutProps) {
   const { panels, filmstripHeight, setFilmstripHeight } = useLayoutStore();
   const isRightPanelOpen = panels.editPanel || panels.infoPanel;
   const showOverlayInfo = panels.editPanel && panels.infoPanel;
@@ -42,7 +46,7 @@ export function DetailLayout() {
                   }}
                 >
                   <Allotment.Pane minSize={240}>
-                    <InteractionViewport />
+                    <InteractionViewport rendererActive={rendererActive} />
                   </Allotment.Pane>
                   <Allotment.Pane
                     maxSize={FILMSTRIP_MAX_HEIGHT}
