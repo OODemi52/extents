@@ -12,8 +12,8 @@
           "fill" : "none",
           "glass" : true,
           "hidden" : false,
-          "image-name" : "ExtentsLogo00089102.png",
-          "name" : "ExtentsLogo00089102",
+          "image-name" : "ExtentsIconForeground.png",
+          "name" : "ExtentsIconForeground",
           "position" : {
             "scale" : 0.47,
             "translation-in-points" : [
