@@ -1,0 +1,15 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "build": {
+    "beforeBuildCommand": "./scripts/compile-macos-icon.sh && npm run build"
+  },
+  "bundle": {
+    "macOS": {
+      "minimumSystemVersion": "10.13"
+    },
+    "resources": {
+      "mac-assets/generated/Assets.car": "Assets.car",
+      "mac-assets/generated/ExtentsIcon.icns": "ExtentsIcon.icns"
+    }
+  }
+}

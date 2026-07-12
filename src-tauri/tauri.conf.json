@@ -50,17 +50,13 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "mac-assets/Assets.car": "mac-assets/Assets.car",
       "../legal/THIRD_PARTY_NOTICES.md": "legal/THIRD_PARTY_NOTICES.md",
       "../legal/LICENSING.md": "legal/EXTENTS-LICENSING.md",
       "../legal/LGPL-2.1.txt": "legal/RAWLER-LGPL-2.1.txt",
       "../legal/RELINKING.md": "legal/RAWLER-RELINKING.md"
     },
     "macOS": {
-      "bundleName": "Extents",
-      "files": {
-        "Info.plist": "mac-assets/Info.plist"
-      }
+      "bundleName": "Extents"
     }
   }
 }
