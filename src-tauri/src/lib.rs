@@ -91,6 +91,14 @@ pub fn run() {
             commands::renderer::clear_renderer,
             commands::renderer::set_render_state,
             commands::renderer::get_renderer_inspection,
+            // Inspection Commands
+            commands::inspection::capture_inspection_checkpoint_artifact,
+            commands::inspection::create_inspection_checkpoint_set,
+            commands::inspection::delete_all_inspection_checkpoints,
+            commands::inspection::delete_inspection_checkpoint,
+            commands::inspection::delete_inspection_checkpoints_for_source,
+            commands::inspection::list_inspection_checkpoints,
+            commands::inspection::list_inspection_checkpoints_for_source,
             // Annotation Commands
             commands::annotations::set_ratings,
             commands::annotations::set_flags,

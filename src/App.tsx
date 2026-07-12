@@ -22,6 +22,7 @@ import { useExifMetadata } from "./hooks/use-exif-metadata";
 import { SettingsModal } from "./features/settings/components/settings-modal";
 import { useCacheSize } from "./features/settings/system/hooks/use-cache-size";
 import { useActiveSidecar } from "./features/sidecar/hooks/use-active-sidecar";
+import { useInspectionWorkspaceStore } from "./features/inspector/store/inspection-workspace-store";
 
 function App() {
   useAnnotations();
@@ -38,12 +39,18 @@ function App() {
     setSidebarResizing,
     setActiveLayout,
   } = useLayoutStore();
+  const selectedCheckpoint = useInspectionWorkspaceStore(
+    (state) => state.selectedCheckpoint,
+  );
   const { openFolder } = useFolderScanner();
   const lastSidebarWidthRef = useRef(sidebarWidth);
   const isSidebarOpen = panels.sidebar;
   const sidebarPreferredSize =
     lastSidebarWidthRef.current || SIDEBAR_DEFAULT_WIDTH;
   const sidebarMinSize = SIDEBAR_MIN_WIDTH;
+  const useOpaqueAppBackground =
+    activeLayout === "thumbnails" ||
+    (activeLayout === "inspector" && Boolean(selectedCheckpoint));
 
   useEffect(() => {
     if (!inspectorEnabled && activeLayout === "inspector") {
@@ -53,7 +60,7 @@ function App() {
 
   return (
     <div
-      className={`flex h-screen flex-col shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] ${activeLayout === "thumbnails" ? "bg-[#191919]" : ""}`}
+      className={`flex h-screen flex-col shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] ${useOpaqueAppBackground ? "bg-[#191919]" : ""}`}
     >
       <div className="pointer-events-none w-10/12 mx-auto absolute inset-x-0 top-0 z-20 h-px bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.1),rgba(255,255,255,0))]" />
       <TitleBar onPickFolder={() => openFolder(null, "picker")} />

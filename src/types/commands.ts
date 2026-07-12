@@ -2,6 +2,12 @@ import { FileAnnotation, FlagEntry, RatingEntry } from "./file-annotations";
 import { ImageExifEntry } from "./exif";
 import { HistogramData } from "./histogram";
 import { InspectionSnapshot } from "./inspection";
+import {
+  CaptureInspectionCheckpointArtifactRequest,
+  CreateInspectionCheckpointSetRequest,
+  InspectionCheckpointArtifact,
+  InspectionCheckpoint,
+} from "./inspection-checkpoint";
 import { TreeNode } from "./file-system";
 import { CacheType } from "./settings";
 import { Sidecar } from "./sidecar";
@@ -32,6 +38,26 @@ export interface CommandArgs {
   render_frame: null;
   should_render_frame: null;
   get_renderer_inspection: null;
+  create_inspection_checkpoint_set: {
+    request: CreateInspectionCheckpointSetRequest;
+  };
+  capture_inspection_checkpoint_artifact: {
+    request: CaptureInspectionCheckpointArtifactRequest;
+  };
+  list_inspection_checkpoints: { limit?: number | null };
+  list_inspection_checkpoints_for_source: {
+    request: {
+      sourcePath: string;
+      limit?: number | null;
+    };
+  };
+  delete_inspection_checkpoint: { id: number };
+  delete_inspection_checkpoints_for_source: {
+    request: {
+      sourcePath: string;
+    };
+  };
+  delete_all_inspection_checkpoints: null;
   set_render_state: { stateStr: "active" | "idle" | "paused" };
   clear_renderer: null;
   set_ratings: { entries: RatingEntry[] };
@@ -63,6 +89,13 @@ export interface CommandReturn {
   render_frame: void;
   should_render_frame: boolean;
   get_renderer_inspection: InspectionSnapshot | null;
+  create_inspection_checkpoint_set: InspectionCheckpoint;
+  capture_inspection_checkpoint_artifact: InspectionCheckpointArtifact;
+  list_inspection_checkpoints: InspectionCheckpoint[];
+  list_inspection_checkpoints_for_source: InspectionCheckpoint[];
+  delete_inspection_checkpoint: void;
+  delete_inspection_checkpoints_for_source: void;
+  delete_all_inspection_checkpoints: void;
   set_render_state: void;
   clear_renderer: void;
   set_ratings: void;

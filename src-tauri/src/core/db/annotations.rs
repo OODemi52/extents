@@ -2,8 +2,9 @@ use rusqlite::{params, Connection};
 use std::error::Error;
 use tracing::info;
 
-use crate::core::db::util::now_timestamp;
+use crate::core::db::util::{now_timestamp, sql_placeholders};
 
+/// Persisted rating and flag state for one image.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ImageAnnotationEntry {
     pub file_path: String,
@@ -11,6 +12,7 @@ pub struct ImageAnnotationEntry {
     pub flag: String,
 }
 
+/// Batch annotation update entry for one file path.
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct AnnotationEntry<T> {
     pub path: String,
@@ -20,6 +22,7 @@ pub struct AnnotationEntry<T> {
 pub type RatingEntry = AnnotationEntry<i64>;
 pub type FlagEntry = AnnotationEntry<String>;
 
+/// Initializes the image annotation table.
 pub fn init_annotations_table(connection: &Connection) -> Result<(), Box<dyn Error>> {
     connection.execute(
         "
@@ -41,6 +44,7 @@ pub fn init_annotations_table(connection: &Connection) -> Result<(), Box<dyn Err
     Ok(())
 }
 
+/// Persists rating values for multiple image paths.
 pub fn set_rating_values(
     connection: &mut Connection,
     entries: &[RatingEntry],
@@ -78,6 +82,7 @@ pub fn set_rating_values(
     Ok(())
 }
 
+/// Persists one flag value for an image path.
 pub fn set_flag_value(
     connection: &Connection,
     path: &str,
@@ -107,6 +112,7 @@ pub fn set_flag_value(
     Ok(())
 }
 
+/// Persists flag values for multiple image paths.
 pub fn set_flag_values(
     connection: &mut Connection,
     entries: &[FlagEntry],
@@ -146,6 +152,7 @@ pub fn set_flag_values(
     Ok(())
 }
 
+/// Returns annotation values for the requested image paths.
 pub fn get_annotation_values(
     connection: &Connection,
     paths: &[String],
@@ -156,10 +163,7 @@ pub fn get_annotation_values(
 
     let mut results = Vec::new();
 
-    let placeholders = std::iter::repeat("?")
-        .take(paths.len())
-        .collect::<Vec<_>>()
-        .join(", ");
+    let placeholders = sql_placeholders(paths.len());
 
     let sql = format!(
         "SELECT file_path, rating, flag FROM image_annotations WHERE file_path IN ({})",

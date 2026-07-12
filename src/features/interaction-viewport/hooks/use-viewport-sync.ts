@@ -69,44 +69,40 @@ export function useViewportSync(
   const fullDecodeTimeoutRef = useRef<number | null>(null);
   const lastTransformRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
   const isActiveRef = useRef(isActive);
-  const lastViewportSizeRef = useRef<{ width: number; height: number } | null>(
-    null,
-  );
-  const [viewportRevision, setViewportRevision] = useState(0);
+  const [isViewportReady, setIsViewportReady] = useState(false);
 
   useEffect(() => {
     isActiveRef.current = isActive;
   }, [isActive]);
 
-  const noteViewportSize = useCallback((width: number, height: number) => {
-    if (
-      !Number.isFinite(width) ||
-      !Number.isFinite(height) ||
-      width < MIN_VIEWPORT_CSS_SIZE ||
-      height < MIN_VIEWPORT_CSS_SIZE
-    ) {
-      return;
-    }
+  const updateViewportReadiness = useCallback(
+    (width: number, height: number) => {
+      const isReady =
+        Number.isFinite(width) &&
+        Number.isFinite(height) &&
+        width >= MIN_VIEWPORT_CSS_SIZE &&
+        height >= MIN_VIEWPORT_CSS_SIZE;
 
-    const nextSize = {
-      width: Math.round(width),
-      height: Math.round(height),
-    };
+      setIsViewportReady(isReady);
+    },
+    [],
+  );
 
-    const lastSize = lastViewportSizeRef.current;
+  const syncRendererViewport = useCallback(() => {
+    if (!isActive) return;
 
-    if (
-      lastSize?.width === nextSize.width &&
-      lastSize.height === nextSize.height
-    ) {
-      return;
-    }
+    const viewport = measureRendererViewport(viewportRef.current);
 
-    lastViewportSizeRef.current = nextSize;
-    setViewportRevision((revision) => revision + 1);
-  }, []);
+    if (!viewport) return;
 
-  const updateViewport = useCallback(() => {
+    api.renderer
+      .syncViewport(viewport)
+      .catch((error) =>
+        console.error("[useViewportSync] update_viewport failed:", error),
+      );
+  }, [isActive, viewportRef]);
+
+  const scheduleRendererViewportSync = useCallback(() => {
     if (!isActive) return;
 
     if (viewportTimeoutRef.current !== null) {
@@ -115,23 +111,15 @@ export function useViewportSync(
 
     viewportTimeoutRef.current = window.setTimeout(() => {
       viewportTimeoutRef.current = null;
-
-      const viewport = measureRendererViewport(viewportRef.current);
-
-      if (!viewport) return;
-
-      api.renderer
-        .syncViewport(viewport)
-        .catch((error) =>
-          console.error("[useViewportSync] update_viewport failed:", error),
-        );
+      syncRendererViewport();
     }, VIEWPORT_DEBOUNCE_MS);
-  }, [isActive, viewportRef]);
+  }, [isActive, syncRendererViewport]);
 
   useEffect(() => {
     if (isActive) return;
 
     setRequestId(null);
+    setIsViewportReady(false);
 
     if (viewportTimeoutRef.current !== null) {
       clearTimeout(viewportTimeoutRef.current);
@@ -150,7 +138,7 @@ export function useViewportSync(
   }, [isActive]);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || !isViewportReady) return;
 
     if (!viewportRef.current || !imagePath) {
       lastLoadKeyRef.current = null;
@@ -173,7 +161,7 @@ export function useViewportSync(
     ) {
       lastLoadKeyRef.current = loadKey;
       activeImagePathRef.current = imagePath;
-      updateViewport();
+      syncRendererViewport();
 
       return;
     }
@@ -224,7 +212,7 @@ export function useViewportSync(
           }
 
           setRequestId(nextRequestId);
-          updateViewport();
+          syncRendererViewport();
 
           if (shouldDeferFull) {
             pendingFullRequestRef.current = {
@@ -250,12 +238,12 @@ export function useViewportSync(
   }, [
     imagePath,
     viewportRef,
-    updateViewport,
     isScrubbing,
     thumbnailPath,
     preview?.path,
-    viewportRevision,
+    isViewportReady,
     isActive,
+    syncRendererViewport,
   ]);
 
   // Scrubbing / full decode
@@ -339,15 +327,15 @@ export function useViewportSync(
     const syncMeasuredViewport = () => {
       const clientViewportDimensions = viewportElement.getBoundingClientRect();
 
-      noteViewportSize(
+      updateViewportReadiness(
         clientViewportDimensions.width,
         clientViewportDimensions.height,
       );
 
-      updateViewport();
+      scheduleRendererViewportSync();
     };
 
-    const scheduleViewportSync = () => {
+    const scheduleViewportMeasurement = () => {
       if (animationFrameId !== null) return;
 
       animationFrameId = window.requestAnimationFrame(() => {
@@ -356,15 +344,15 @@ export function useViewportSync(
       });
     };
 
-    const resizeObserver = new ResizeObserver(scheduleViewportSync);
+    const resizeObserver = new ResizeObserver(scheduleViewportMeasurement);
 
     resizeObserver.observe(viewportElement);
-    window.addEventListener("resize", scheduleViewportSync);
-    scheduleViewportSync();
+    window.addEventListener("resize", scheduleViewportMeasurement);
+    scheduleViewportMeasurement();
 
     return () => {
       resizeObserver.disconnect();
-      window.removeEventListener("resize", scheduleViewportSync);
+      window.removeEventListener("resize", scheduleViewportMeasurement);
 
       if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId);
@@ -376,7 +364,12 @@ export function useViewportSync(
         viewportTimeoutRef.current = null;
       }
     };
-  }, [noteViewportSize, updateViewport, viewportRef, isActive]);
+  }, [
+    updateViewportReadiness,
+    scheduleRendererViewportSync,
+    viewportRef,
+    isActive,
+  ]);
 
   // Image Transform
   useEffect(() => {

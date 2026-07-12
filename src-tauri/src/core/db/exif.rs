@@ -1,5 +1,5 @@
 use crate::core::db::connection::DbConnection;
-use crate::core::db::util::now_timestamp;
+use crate::core::db::util::{json_to_sql_error, now_timestamp, sql_placeholders};
 use crate::core::image::exif::{extract_exif_metadata, ExifMetadata};
 use rusqlite::{params, Connection};
 use std::collections::HashMap;
@@ -8,6 +8,7 @@ use std::fs;
 use std::time::SystemTime;
 use tracing::{info, warn};
 
+/// Persisted EXIF metadata and file signature for one image.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ImageExifEntry {
     pub file_path: String,
@@ -16,6 +17,7 @@ pub struct ImageExifEntry {
     pub metadata: ExifMetadata,
 }
 
+/// Initializes the image EXIF cache table.
 pub fn init_exif_table(connection: &Connection) -> Result<(), Box<dyn Error>> {
     connection.execute(
         "
@@ -38,6 +40,7 @@ pub fn init_exif_table(connection: &Connection) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Returns cached EXIF entries for the requested image paths.
 pub fn get_exif_entries(
     connection: &Connection,
     paths: &[String],
@@ -46,10 +49,7 @@ pub fn get_exif_entries(
         return Ok(Vec::new());
     }
 
-    let placeholders = std::iter::repeat("?")
-        .take(paths.len())
-        .collect::<Vec<_>>()
-        .join(", ");
+    let placeholders = sql_placeholders(paths.len());
 
     let sql = format!(
         "SELECT file_path, file_size, modified_time, metadata_json FROM image_exif WHERE file_path IN ({})",
@@ -60,9 +60,8 @@ pub fn get_exif_entries(
 
     let rows = statement.query_map(rusqlite::params_from_iter(paths), |row| {
         let metadata_json: String = row.get(3)?;
-        let metadata: ExifMetadata = serde_json::from_str(&metadata_json).map_err(|err| {
-            rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(err))
-        })?;
+        let metadata: ExifMetadata =
+            serde_json::from_str(&metadata_json).map_err(json_to_sql_error)?;
 
         Ok(ImageExifEntry {
             file_path: row.get(0)?,
@@ -81,6 +80,7 @@ pub fn get_exif_entries(
     Ok(results)
 }
 
+/// Inserts or updates cached EXIF entries.
 pub fn upsert_exif_entries(
     connection: &mut Connection,
     entries: &[ImageExifEntry],
@@ -124,6 +124,7 @@ pub fn upsert_exif_entries(
     Ok(())
 }
 
+/// Builds a borrowed lookup map for EXIF entries by path.
 pub fn map_exif_entries_by_path(rows: &[ImageExifEntry]) -> HashMap<&str, &ImageExifEntry> {
     let mut map = HashMap::new();
     for row in rows {
@@ -132,6 +133,7 @@ pub fn map_exif_entries_by_path(rows: &[ImageExifEntry]) -> HashMap<&str, &Image
     map
 }
 
+/// Refreshes EXIF rows by re-reading files whose signatures have changed.
 pub fn refresh_exif_entries(
     db: &DbConnection,
     paths: &[String],

@@ -58,7 +58,8 @@ impl ImageTexture {
             "Display Output Texture",
             wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::STORAGE_BINDING
-                | wgpu::TextureUsages::COPY_DST,
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC,
             DISPLAY_TEXTURE_FORMAT,
         )
     }
@@ -112,6 +113,11 @@ impl ImageTexture {
     /// Returns this texture's default view.
     pub(super) fn view(&self) -> &wgpu::TextureView {
         &self.current_view
+    }
+
+    /// Returns the current GPU texture.
+    pub(super) fn texture(&self) -> &wgpu::Texture {
+        &self.current_texture
     }
 
     /// Returns the current image texture width.

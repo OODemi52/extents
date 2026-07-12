@@ -11,6 +11,8 @@ import {
   SquaresFourIcon,
   ColumnsIcon,
   MagnifyingGlassIcon,
+  ImagesIcon,
+  ListMagnifyingGlassIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { Tab, Tabs } from "@heroui/tabs";
 import { Tooltip } from "@heroui/tooltip";
@@ -23,6 +25,7 @@ import {
   useLayoutStore,
 } from "@/store/layout-store";
 import { useImageStore } from "@/store/image-store";
+import { useInspectionWorkspaceStore } from "@/features/inspector/store/inspection-workspace-store";
 
 export function BottomToolbar() {
   const {
@@ -34,6 +37,12 @@ export function BottomToolbar() {
     setActiveLayout,
     setActiveEditTab,
   } = useLayoutStore();
+  const inspectorPanelMode = useInspectionWorkspaceStore(
+    (state) => state.inspectorPanelMode,
+  );
+  const setInspectorPanelMode = useInspectionWorkspaceStore(
+    (state) => state.setInspectorPanelMode,
+  );
   const { files, selectedIndex, selectedPaths, deselectAll } = useImageStore();
 
   const selectedFile = selectedIndex !== null ? files[selectedIndex] : null;
@@ -48,6 +57,7 @@ export function BottomToolbar() {
       : (selectedFile?.fileName ?? fallbackSelectedName ?? "");
   const deselectLabel = `Deselect ${selectionCount} file${selectionCount === 1 ? "" : "s"}`;
   const isDetailLayout = activeLayout === "detail";
+  const isInspectorLayout = activeLayout === "inspector";
 
   const sidebarColumnWidth = `${SIDEBAR_DEFAULT_WIDTH}px`;
   const editColumnWidth = `${EDIT_PANEL_DEFAULT_WIDTH}px`;
@@ -100,7 +110,7 @@ export function BottomToolbar() {
             tooltip="File Browser"
             onPress={() => togglePanel("sidebar")}
           />
-          {isDetailLayout && selectionCount > 0 ? (
+          {(isDetailLayout || isInspectorLayout) && selectionCount > 0 ? (
             <ToolbarIconButton
               className="mr-1 border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
               icon={<FilmStripIcon size={16} />}
@@ -242,6 +252,23 @@ export function BottomToolbar() {
                 isActive={activeEditTab === "detail" && panels.editPanel}
                 tooltip="Detail / Retouch"
                 onPress={() => toggleToTab("detail")}
+              />
+            </div>
+          ) : null}
+          {isInspectorLayout ? (
+            <div className="flex items-center border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-xl drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]">
+              <ToolbarIconButton
+                icon={<ListMagnifyingGlassIcon size={16} />}
+                isActive={inspectorPanelMode === "inspect"}
+                tooltip="Inspect"
+                onPress={() => setInspectorPanelMode("inspect")}
+              />
+
+              <ToolbarIconButton
+                icon={<ImagesIcon size={16} />}
+                isActive={inspectorPanelMode === "checkpoints"}
+                tooltip="Checkpoints"
+                onPress={() => setInspectorPanelMode("checkpoints")}
               />
             </div>
           ) : null}

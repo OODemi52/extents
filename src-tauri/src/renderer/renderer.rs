@@ -13,6 +13,7 @@ use super::viewer::Viewer;
 use crate::core::editing::EditRecipe;
 use anyhow::{Context, Result};
 use log::{error, info};
+use std::path::Path;
 use tauri::async_runtime::JoinHandle;
 use tauri::WebviewWindow;
 
@@ -324,6 +325,12 @@ impl Renderer {
     /// Returns the current Inspector snapshot.
     pub fn inspection_snapshot(&self) -> InspectionSnapshot {
         self.inspection.clone()
+    }
+
+    /// Captures the current display output texture to a PNG artifact.
+    pub fn capture_display_output_png(&self, path: &Path) -> Result<(u32, u32)> {
+        self.processing_graph
+            .capture_display_output_png(&self.gpu.device, &self.gpu.queue, path)
     }
 
     fn apply_transform(&mut self) {

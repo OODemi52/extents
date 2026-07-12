@@ -1,4 +1,4 @@
-use super::super::inspection::{TextureInspection, TextureResourceInspection};
+use super::super::inspection::{capture_output_png, TextureInspection, TextureResourceInspection};
 use super::super::texture::ImageTexture;
 use super::parameters::{
     AdjustmentParameters, AdjustmentParametersBuffer, DevelopmentParameters,
@@ -6,6 +6,8 @@ use super::parameters::{
 };
 use super::stages::{AdjustmentStage, DevelopmentStage, OutputTransformStage};
 use crate::renderer::input::DevelopmentSource;
+use anyhow::Result;
+use std::path::Path;
 
 /// GPU-side image processing graph for the active renderer image.
 ///
@@ -135,6 +137,23 @@ impl ImageProcessingGraph {
     /// Returns the current graph output height.
     pub(in crate::renderer) fn output_height(&self) -> u32 {
         self.output_texture.height()
+    }
+
+    /// Captures the current display output texture to an 8-bit sRGB PNG.
+    pub(in crate::renderer) fn capture_display_output_png(
+        &self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        path: &Path,
+    ) -> Result<(u32, u32)> {
+        capture_output_png(
+            device,
+            queue,
+            self.output_texture.texture(),
+            self.output_texture.width(),
+            self.output_texture.height(),
+            path,
+        )
     }
 
     /// Returns graph texture state for the Inspector.

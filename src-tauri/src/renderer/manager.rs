@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use log::{info, warn};
@@ -246,5 +247,38 @@ impl RendererManager {
         self.renderer
             .as_ref()
             .map(|renderer| renderer.inspection_snapshot())
+    }
+
+    /// Captures the current display output texture as a PNG file.
+    pub fn capture_display_output_png(&self, path: &Path) -> Result<(u32, u32), String> {
+        match self.renderer.as_ref() {
+            Some(renderer) => renderer
+                .capture_display_output_png(path)
+                .map_err(|error| error.to_string()),
+            None => Err("Renderer not initialized".to_string()),
+        }
+    }
+
+    /// Captures one display-output variant while restoring the live edit recipe afterward.
+    ///
+    /// This temporarily mutates the live renderer. A future offscreen capture/export
+    /// path should replace this once the app can process recipe variants independently.
+    pub fn capture_display_output_png_variant(
+        &mut self,
+        recipe: &EditRecipe,
+        path: &Path,
+        restore_recipe: &EditRecipe,
+    ) -> Result<(u32, u32), String> {
+        let Some(renderer) = self.renderer.as_mut() else {
+            return Err("Renderer not initialized".to_string());
+        };
+
+        renderer.update_edit_recipe(recipe);
+        let capture_result = renderer
+            .capture_display_output_png(path)
+            .map_err(|error| error.to_string());
+
+        renderer.update_edit_recipe(restore_recipe);
+        capture_result
     }
 }
