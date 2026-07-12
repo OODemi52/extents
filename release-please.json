@@ -7,7 +7,7 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": false,
       "pull-request-title-pattern": "Release v${version} – Extents",
-      "extra-files": ["src-tauri/Cargo.toml", "src-tauri/tauri.conf.json"],
+      "extra-files": ["src-tauri/tauri.conf.json"],
       "changelog-sections": [
         { "type": "feat", "section": "New Features" },
         { "type": "fix", "section": "Bug Fixes" },
