@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/OODemi52/extents/compare/Extents-v0.4.0...Extents-v0.4.1) (2026-07-12)
+
+
+### Bug Fixes
+
+* persist and restore window size and position ([c08188a](https://github.com/OODemi52/extents/commit/c08188ad628c0d09cff7ffa5740ddcd2bc519d22))
+
+
+### Documentation
+
+* update project readme ([e0eeda2](https://github.com/OODemi52/extents/commit/e0eeda27d672f1b8c806b3d482e6bb750d9a228e))
+
 ## [0.4.0](https://github.com/OODemi52/extents/compare/Extents-v0.3.0...Extents-v0.4.0) (2026-07-12)
 
 
