@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.0](https://github.com/OODemi52/extents/compare/Extents-v0.3.0...Extents-v0.4.0) (2026-07-12)
+
+
+### New Features
+
+* add gated inspector workspace ([3ee9f18](https://github.com/OODemi52/extents/commit/3ee9f183fa2388755ddb110d5c93484049019993))
+* add gated inspector workspace ([ae9a775](https://github.com/OODemi52/extents/commit/ae9a775999c0a0f7a3a60b9fb48692d5c897186e))
+* add inspector checkpoint capture and review ([785f563](https://github.com/OODemi52/extents/commit/785f563d913a66a15d42cfc2bfbe518c1fe7788e))
+* exposed inspector metadata ([a3e2c7b](https://github.com/OODemi52/extents/commit/a3e2c7b531523ad91139949e46e51ef6a7746715))
+
+
+### Bug Fixes
+
+* keep image workspaces mounted during view switches ([b6978bc](https://github.com/OODemi52/extents/commit/b6978bc2ee1e1030ee8a431977b1719514458725))
+* stabilize renderer viewport sizing ([ed08fa9](https://github.com/OODemi52/extents/commit/ed08fa9806f4dc6b0d352e86322093eddbe2db52))
+* stabilize renderer viewport sizing ([526c57f](https://github.com/OODemi52/extents/commit/526c57f994d91b12f9e16ad7e947fc8a32049ba7))
+
 ## [0.3.0](https://github.com/OODemi52/extents/compare/Extents-v0.2.0...Extents-v0.3.0) (2026-07-01)
 
 
