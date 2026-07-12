@@ -105,4 +105,4 @@ Unsolicited pull requests may be closed without review. This policy will be revi
 
 ## License
 
-Extents' original source code is distributed under the MIT License. See [`LICENSE`](LICENSE) for details. Third-party dependencies and bundled components remain subject to their respective licenses.
+Extents' original source code is distributed under the MIT License. See [`LICENSE`](LICENSE) for details. Third-party dependencies and bundled components remain subject to their respective licenses. See [`legal/THIRD_PARTY_NOTICES.md`](legal/THIRD_PARTY_NOTICES.md) and [`legal/LICENSING.md`](legal/LICENSING.md) for dependency notices and release-source information.

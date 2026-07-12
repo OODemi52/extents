@@ -49,6 +49,17 @@ jobs:
           release_id=$(gh release view "$TAG_NAME" --json id -q .id)
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
 
+      - name: Prepare source and license materials
+        env:
+          TAG_NAME: ${{ steps.tag.outputs.tag_name }}
+        run: ./scripts/prepare-release-legal-artifacts.sh "$TAG_NAME" "${{ github.sha }}"
+
+      - name: Upload source and license materials
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.tag.outputs.tag_name }}
+        run: gh release upload "$TAG_NAME" legal-dist/* --clobber
+
   nightly:
     needs: prepare
     strategy:
