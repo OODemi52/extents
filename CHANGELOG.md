@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/OODemi52/extents/compare/Extents-v0.4.2...Extents-v0.4.3) (2026-07-12)
+
+
+### Bug Fixes
+
+* improve release download presentation ([022592c](https://github.com/OODemi52/extents/commit/022592ca9f4f79e109e5b1577d462bc57efc5da4))
+
 ## [0.4.2](https://github.com/OODemi52/extents/compare/Extents-v0.4.1...Extents-v0.4.2) (2026-07-12)
 
 
