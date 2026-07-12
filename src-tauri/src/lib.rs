@@ -1,11 +1,11 @@
+pub mod app;
 pub mod commands;
 pub mod core;
 pub mod renderer;
-pub mod state;
 
+use crate::app::{show_main_window, AppState};
 use crate::core::cache::manager::CacheManager;
 use crate::core::db::connection::DbConnection;
-use crate::state::AppState;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -21,6 +21,16 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Info)
+                .build(),
+        )
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::SIZE
+                        | tauri_plugin_window_state::StateFlags::POSITION
+                        | tauri_plugin_window_state::StateFlags::MAXIMIZED
+                        | tauri_plugin_window_state::StateFlags::FULLSCREEN,
+                )
                 .build(),
         )
         .setup(move |app| {
@@ -58,6 +68,11 @@ pub fn run() {
                     }
                 }
             });
+
+            match show_main_window(&window) {
+                Ok(()) => {}
+                Err(error) => return Err(error.into()),
+            }
 
             Ok(())
         })

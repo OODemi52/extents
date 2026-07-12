@@ -1,8 +1,8 @@
+use crate::app::AppState;
 use crate::core::db::annotations::{
     get_annotation_values, set_flag_values, set_rating_values, FlagEntry, ImageAnnotationEntry,
     RatingEntry,
 };
-use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]

@@ -1,5 +1,5 @@
+use crate::app::AppState;
 use crate::renderer::{InspectionSnapshot, RenderState, RendererManager};
-use crate::state::AppState;
 use log::{info, warn};
 use tauri::State;
 

@@ -1,7 +1,9 @@
+use std::sync::{Arc, Mutex};
+
+use tauri::{WebviewWindow, Wry};
+
 use crate::core::db::connection::DbConnection;
 use crate::renderer::{RendererManager, RendererManagerHandle};
-use std::sync::{Arc, Mutex};
-use tauri::{WebviewWindow, Wry};
 
 pub struct AppState {
     pub db: DbConnection,

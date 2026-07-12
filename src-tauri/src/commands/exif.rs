@@ -1,5 +1,5 @@
+use crate::app::AppState;
 use crate::core::db::exif::{refresh_exif_entries, ImageExifEntry};
-use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]

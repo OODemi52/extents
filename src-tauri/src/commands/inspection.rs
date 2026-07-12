@@ -2,6 +2,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use tauri::{Manager, State};
 
+use crate::app::AppState;
 use crate::core::db::checkpoints::{InspectionCheckpoint, InspectionCheckpointArtifact};
 use crate::core::inspection::checkpoints::{
     capture_checkpoint_artifact, checkpoint_artifact_dir, create_checkpoint_set,
@@ -9,7 +10,6 @@ use crate::core::inspection::checkpoints::{
     list_checkpoints_for_source_path, list_recent_checkpoints,
     InspectionCheckpointArtifactCaptureInput, InspectionCheckpointSetInput,
 };
-use crate::state::AppState;
 
 /// Delete request for source-scoped inspection checkpoints.
 #[derive(Debug, Deserialize)]

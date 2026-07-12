@@ -15,6 +15,7 @@
       {
         "hiddenTitle": true,
         "title": "Extents",
+        "visible": false,
         "transparent": true,
         "titleBarStyle": "Overlay",
         "width": 1280,

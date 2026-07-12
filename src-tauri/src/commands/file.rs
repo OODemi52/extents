@@ -5,9 +5,9 @@ use tauri::Emitter;
 use tauri::Manager;
 use unicase::UniCase;
 
+use crate::app::AppState;
 use crate::core::cache::manager::CacheManager;
 use crate::core::db::exif::refresh_exif_entries;
-use crate::state::AppState;
 
 #[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

@@ -1,8 +1,8 @@
+use crate::app::AppState;
 use crate::core::sidecar::{
     load_sidecar as load_sidecar_document, save_sidecar as save_sidecar_document, Sidecar,
 };
 use crate::renderer::RendererManager;
-use crate::state::AppState;
 use log::warn;
 use tauri::State;
 

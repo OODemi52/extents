@@ -50,6 +50,7 @@ tokio = "1.48.0"
 rawler = "0.7.1"
 unicase = "2.8.1"
 tauri-plugin-opener = "2"
+tauri-plugin-window-state = "2.4.1"
 half = { version = "2.4.1", features = ["bytemuck"] }
 
 
