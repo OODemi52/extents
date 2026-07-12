@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/OODemi52/extents/compare/Extents-v0.4.1...Extents-v0.4.2) (2026-07-12)
+
+
+### Documentation
+
+* add LGPL compliance materials ([719f154](https://github.com/OODemi52/extents/commit/719f154fc24e33373ac73c5c4f93c3778905e3c2))
+
 ## [0.4.1](https://github.com/OODemi52/extents/compare/Extents-v0.4.0...Extents-v0.4.1) (2026-07-12)
 
 
