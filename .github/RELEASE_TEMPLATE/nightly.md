@@ -24,18 +24,12 @@ ${asset_table}
 
 ---
 
-### Source and Third-Party Licensing
-
-Extents' original source code is licensed under the MIT License. Extents uses
-Rawler for RAW decoding; Rawler is licensed under the GNU LGPL, version 2.1.
-The exact Extents source, corresponding Rawler source, license text, notices,
-checksums, and rebuild instructions are attached to this nightly release.
-
----
-
 ### Running Extents for the First Time
 
-Because **Extents is not yet code-signed/notarized**, your operating system may display security warnings the first time you try to open it. This is expected, and you can follow the steps below for your operating system to run the application successfully.
+> [!WARNING]
+> Extents is not yet code-signed or notarized. Your operating system may display
+> security warnings the first time you open it. Follow the instructions for your
+> operating system below.
 
 <details>
 <summary><b>macOS Instructions</b></summary>
@@ -86,3 +80,25 @@ On most Linux distributions, you can run the application directly.
     ./Extents*.AppImage
     ```
 </details>
+
+---
+
+### Source and Third-Party Licensing
+
+> [!IMPORTANT]
+> Extents' original source code is licensed under the MIT License. Extents uses
+> Rawler for RAW decoding; Rawler is licensed under the GNU LGPL, version 2.1.
+> The exact Extents source, corresponding Rawler source, license text, notices,
+> checksums, and rebuild instructions are attached to this nightly release.
+
+<table>
+  <thead>
+    <tr>
+      <th>Material</th>
+      <th>Download</th>
+    </tr>
+  </thead>
+  <tbody>
+${material_table}
+  </tbody>
+</table>

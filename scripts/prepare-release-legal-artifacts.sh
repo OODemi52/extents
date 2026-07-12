@@ -6,7 +6,8 @@ release_name="${1:?usage: prepare-release-legal-artifacts.sh <release-name> [sou
 source_ref="${2:-HEAD}"
 output_directory="${3:-legal-dist}"
 repository_root="$(git rev-parse --show-toplevel)"
-artifact_label="${release_name//\//-}"
+artifact_label="${release_name#Extents-}"
+artifact_label="${artifact_label//\//-}"
 archive_root="Extents-$artifact_label"
 
 locked_rawler_field() {

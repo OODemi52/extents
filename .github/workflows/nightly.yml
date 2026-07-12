@@ -224,7 +224,18 @@ jobs:
             fi
           }
 
+          add_material_row() {
+            local material="$1"
+            local asset="$2"
+            local url
+            url=$(asset_url "$asset")
+            if [ -n "$url" ]; then
+              MATERIAL_ROWS="${MATERIAL_ROWS}    <tr><td>${material}</td><td><a href=\"${url}\">${asset}</a></td></tr>"$'\n'
+            fi
+          }
+
           ROWS=""
+          MATERIAL_ROWS=""
 
           add_row "macOS (Apple Silicon)" ".dmg" "Extents-macos-arm64-nightly-${SHORT_SHA}.dmg"
           add_row "macOS (Intel)" ".dmg" "Extents-macos-x86_64-nightly-${SHORT_SHA}.dmg"
@@ -240,11 +251,24 @@ jobs:
           add_row "Linux (x86_64)" ".rpm" "Extents-linux-x86_64-nightly-${SHORT_SHA}.rpm"
           add_row "Linux (ARM64)" ".rpm" "Extents-linux-aarch64-nightly-${SHORT_SHA}.rpm"
 
+          RAWLER_SOURCE_ASSET=$(echo "$ASSETS" | jq -r '[.[] | .name | select(startswith("rawler-") and endswith(".crate"))][0] // empty')
+
+          add_material_row "Extents source" "Extents-${TAG_NAME}-source.tar.gz"
+          if [ -n "$RAWLER_SOURCE_ASSET" ]; then
+            add_material_row "Rawler source" "$RAWLER_SOURCE_ASSET"
+          fi
+          add_material_row "Licensing overview" "EXTENTS-LICENSING.md"
+          add_material_row "Third-party notices" "THIRD_PARTY_NOTICES.md"
+          add_material_row "Rawler LGPL-2.1 license" "RAWLER-LGPL-2.1.txt"
+          add_material_row "Rawler rebuild instructions" "RAWLER-RELINKING.md"
+          add_material_row "SHA-256 checksums" "SHA256SUMS.txt"
+
           TEMPLATE=$(cat .github/RELEASE_TEMPLATE/nightly.md)
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
           SHA_SUBST_TEMPLATE="${TEMPLATE//\$\{sha\}/$COMMIT_SHA}"
           TIMESTAMP_SUBST_TEMPLATE="${SHA_SUBST_TEMPLATE//\$\{timestamp\}/$TIMESTAMP}"
-          FINAL_BODY="${TIMESTAMP_SUBST_TEMPLATE//\$\{asset_table\}/$ROWS}"
+          ASSET_TABLE_SUBST_TEMPLATE="${TIMESTAMP_SUBST_TEMPLATE//\$\{asset_table\}/$ROWS}"
+          FINAL_BODY="${ASSET_TABLE_SUBST_TEMPLATE//\$\{material_table\}/$MATERIAL_ROWS}"
 
           gh release edit "$TAG_NAME" --notes "$FINAL_BODY"
