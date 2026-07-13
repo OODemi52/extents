@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.4](https://github.com/OODemi52/extents/compare/Extents-v0.4.3...Extents-v0.4.4) (2026-07-13)
+
+
+### Bug Fixes
+
+* properly integrate macOS Icon Composer assets ([b5d49b7](https://github.com/OODemi52/extents/commit/b5d49b737ce06f5b8fc1854a69b603426462e327))
+
 ## [0.4.3](https://github.com/OODemi52/extents/compare/Extents-v0.4.2...Extents-v0.4.3) (2026-07-12)
 
 
