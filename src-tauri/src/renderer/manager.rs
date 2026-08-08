@@ -162,6 +162,7 @@ impl RendererManager {
         if let Some(renderer) = self.renderer.as_mut() {
             renderer.update_proxy_viewport(x, y, width, height);
             renderer.update_vertices();
+            renderer.render();
         }
     }
 
