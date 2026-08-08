@@ -105,6 +105,8 @@ pub fn run() {
             commands::renderer::render_frame,
             commands::renderer::clear_renderer,
             commands::renderer::set_render_state,
+            commands::renderer::suspend_renderer_presentation,
+            commands::renderer::resume_renderer_presentation,
             commands::renderer::get_renderer_inspection,
             // Inspection Commands
             commands::inspection::capture_inspection_checkpoint_artifact,

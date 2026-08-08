@@ -9,6 +9,13 @@ export const initRenderer = () => invokeTauri("init_renderer", null);
 export const setRenderState = (args: CommandArgs["set_render_state"]) =>
   invokeTauri("set_render_state", args);
 
+export const suspendPresentation = () =>
+  invokeTauri("suspend_renderer_presentation", null);
+
+export const resumePresentation = (
+  args: CommandArgs["resume_renderer_presentation"],
+) => invokeTauri("resume_renderer_presentation", args);
+
 export const syncViewport = (args: CommandArgs["update_viewport"]) =>
   invokeTauri("update_viewport", args);
 

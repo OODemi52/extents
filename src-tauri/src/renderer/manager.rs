@@ -202,6 +202,35 @@ impl RendererManager {
         }
     }
 
+    /// Hides the live image from the window while retaining all renderer resources.
+    pub fn suspend_renderer_presentation(&mut self) {
+        if let Some(renderer) = self.renderer.as_mut() {
+            if renderer.set_presentation_suspended(true) {
+                renderer.render();
+            }
+        }
+    }
+
+    /// Restores presentation after atomically applying the active viewport state.
+    pub fn resume_renderer_presentation(
+        &mut self,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        scale: f32,
+        offset_x: f32,
+        offset_y: f32,
+    ) {
+        if let Some(renderer) = self.renderer.as_mut() {
+            renderer.update_proxy_viewport(x, y, width, height);
+            renderer.update_vertices();
+            renderer.update_transform(scale, offset_x, offset_y);
+            renderer.set_presentation_suspended(false);
+            renderer.render();
+        }
+    }
+
     /// Applies sidecar recipe parameters and renders.
     pub fn sync_sidecar(&mut self, recipe: &EditRecipe) {
         if let Some(renderer) = self.renderer.as_mut() {

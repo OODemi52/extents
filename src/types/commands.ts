@@ -59,6 +59,16 @@ export interface CommandArgs {
   };
   delete_all_inspection_checkpoints: null;
   set_render_state: { stateStr: "active" | "idle" | "paused" };
+  suspend_renderer_presentation: null;
+  resume_renderer_presentation: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    scale: number;
+    offsetX: number;
+    offsetY: number;
+  };
   clear_renderer: null;
   set_ratings: { entries: RatingEntry[] };
   set_flags: { entries: FlagEntry[] };
@@ -97,6 +107,8 @@ export interface CommandReturn {
   delete_inspection_checkpoints_for_source: void;
   delete_all_inspection_checkpoints: void;
   set_render_state: void;
+  suspend_renderer_presentation: void;
+  resume_renderer_presentation: void;
   clear_renderer: void;
   set_ratings: void;
   set_flags: void;

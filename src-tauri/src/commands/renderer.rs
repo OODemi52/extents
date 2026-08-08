@@ -130,6 +130,33 @@ pub fn set_render_state(state_str: String, state: State<AppState>) {
 }
 
 #[tauri::command]
+pub fn suspend_renderer_presentation(state: State<AppState>) {
+    match RendererManager::lock(&state.renderer_manager) {
+        Ok(mut manager) => manager.suspend_renderer_presentation(),
+        Err(error) => warn!("{error}"),
+    }
+}
+
+#[tauri::command]
+pub fn resume_renderer_presentation(
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    scale: f32,
+    offset_x: f32,
+    offset_y: f32,
+    state: State<AppState>,
+) {
+    match RendererManager::lock(&state.renderer_manager) {
+        Ok(mut manager) => {
+            manager.resume_renderer_presentation(x, y, width, height, scale, offset_x, offset_y)
+        }
+        Err(error) => warn!("{error}"),
+    }
+}
+
+#[tauri::command]
 pub fn get_renderer_inspection(
     state: State<AppState>,
 ) -> Result<Option<InspectionSnapshot>, String> {

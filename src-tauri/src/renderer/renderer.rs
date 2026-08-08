@@ -27,6 +27,7 @@ pub struct Renderer {
     render_schedule: RenderSchedule,
     inspection: InspectionSnapshot,
     has_image: bool,
+    presentation_suspended: bool,
 }
 
 impl Renderer {
@@ -75,6 +76,7 @@ impl Renderer {
             render_schedule,
             inspection,
             has_image: false,
+            presentation_suspended: false,
         };
 
         renderer.refresh_texture_inspection();
@@ -249,6 +251,18 @@ impl Renderer {
         self.render_schedule.set_state(state);
     }
 
+    /// Controls only whether the retained image is composited onto the window.
+    /// Image and processing resources remain resident while presentation is suspended.
+    pub fn set_presentation_suspended(&mut self, suspended: bool) -> bool {
+        if self.presentation_suspended == suspended {
+            return false;
+        }
+
+        self.presentation_suspended = suspended;
+
+        true
+    }
+
     pub fn render(&mut self) {
         if self.render_schedule.is_paused() {
             return;
@@ -310,7 +324,7 @@ impl Renderer {
                 1.0,
             );
 
-            if self.has_image {
+            if self.has_image && !self.presentation_suspended {
                 self.display_resources.draw(&mut render_pass);
             }
         }
