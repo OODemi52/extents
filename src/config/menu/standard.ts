@@ -11,6 +11,17 @@ export const setExclusiveChecked = (
   });
 };
 
+export const hasEditableMenuFocus = () => {
+  const activeElement = document.activeElement;
+
+  return (
+    activeElement instanceof HTMLElement &&
+    activeElement.matches(
+      'input, textarea, select, [contenteditable="true"], [role="textbox"], [role="combobox"]',
+    )
+  );
+};
+
 // All
 export const createSeparator = () =>
   PredefinedMenuItem.new({

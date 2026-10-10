@@ -4,8 +4,12 @@ import { api } from "@/services/api";
 import { useImageStore } from "@/store/image-store";
 import { useExifStore } from "@/store/exif-store";
 
+const EMPTY_FILES: ReturnType<typeof useImageStore.getState>["files"] = [];
+
 export function useExifMetadata() {
-  const files = useImageStore((state) => state.files);
+  const files = useImageStore((state) =>
+    state.isLoading ? EMPTY_FILES : state.files,
+  );
   const isLoading = useImageStore((state) => state.isLoading);
   const setEntries = useExifStore((state) => state.setEntries);
   const clearEntries = useExifStore((state) => state.clearEntries);

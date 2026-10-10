@@ -1,4 +1,4 @@
-import { Button, ButtonGroup } from "@heroui/button";
+import { Button, ButtonGroup } from "@heroui/react";
 import { useState } from "react";
 
 import { useFlagStore } from "../store/use-flagging-store";
@@ -8,12 +8,14 @@ import { FlagValue } from "@/types/file-annotations";
 
 interface FlagControlsProps {
   path: string;
+  isKeyboardAccessible: boolean;
   className?: string;
   size?: "sm" | "md";
 }
 
 export function FlagControls({
   path,
+  isKeyboardAccessible,
   className,
   size = "sm",
 }: FlagControlsProps) {
@@ -22,14 +24,20 @@ export function FlagControls({
   const [hovered, setHovered] = useState<FlagValue | null>(null);
 
   return (
-    <ButtonGroup className={`${className ?? ""} gap-0 z-30`}>
+    <ButtonGroup
+      aria-label="Photo flag"
+      className={`${className ?? ""} z-30 gap-0`}
+      data-gallery-annotation-control="true"
+      onKeyDown={(event) => event.stopPropagation()}
+    >
       <Button
-        disableRipple
         isIconOnly
-        className="!min-w-7 !w-7 !h-7 px-0 transition-opacity !hover:bg-transparent"
+        aria-label={flag === "rejected" ? "Clear reject flag" : "Reject photo"}
+        aria-pressed={flag === "rejected"}
+        className="editor-focus-ring h-7 w-7 min-w-7 rounded-xl bg-transparent px-0 transition-opacity hover:bg-white/[0.055]"
         size={size}
-        title={flag === "rejected" ? "Clear reject" : "Reject"}
-        variant="light"
+        excludeFromTabOrder={!isKeyboardAccessible}
+        variant="ghost"
         onMouseEnter={() => setHovered("rejected")}
         onMouseLeave={() => setHovered(null)}
         onPress={() =>
@@ -47,12 +55,13 @@ export function FlagControls({
       </Button>
 
       <Button
-        disableRipple
         isIconOnly
-        className="!min-w-7 !w-7 !h-7 px-0 transition-opacity !hover:bg-transparent"
+        aria-label={flag === "picked" ? "Clear pick flag" : "Pick photo"}
+        aria-pressed={flag === "picked"}
+        className="editor-focus-ring h-7 w-7 min-w-7 rounded-xl bg-transparent px-0 transition-opacity hover:bg-white/[0.055]"
         size={size}
-        title={flag === "picked" ? "Clear pick" : "Pick"}
-        variant="light"
+        excludeFromTabOrder={!isKeyboardAccessible}
+        variant="ghost"
         onMouseEnter={() => setHovered("picked")}
         onMouseLeave={() => setHovered(null)}
         onPress={() =>

@@ -1,10 +1,10 @@
-import { Card } from "@heroui/card";
+import { Card } from "@heroui/react";
 import {
   EqualsIcon,
   GreaterThanOrEqualIcon,
   LessThanOrEqualIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { Button, ButtonGroup } from "@heroui/button";
+import { Button, ButtonGroup } from "@heroui/react";
 import { StarIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { useFilterStore } from "../../stores/filter-store";
@@ -51,28 +51,42 @@ export function RatingFilter() {
     return <GreaterThanOrEqualIcon />;
   };
 
+  const operationLabel =
+    currentOperation === "gte"
+      ? "Rating is at least"
+      : currentOperation === "lte"
+        ? "Rating is at most"
+        : "Rating equals";
+
   return (
-    <Card className="flex flex-row items-center gap-x-2 p-[6px] rounded-[16px] border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]">
-      <Button isIconOnly size="sm" onPress={handleToggleOperation}>
+    <Card className="editor-control-surface flex flex-row items-center gap-1 rounded-[16px] p-1 shadow-none">
+      <Button
+        isIconOnly
+        aria-label={`${operationLabel}. Change comparison`}
+        className="editor-focus-ring h-7 w-7 min-w-7 rounded-xl bg-transparent text-zinc-400 hover:bg-white/[0.055]"
+        size="sm"
+        variant="ghost"
+        onPress={handleToggleOperation}
+      >
         {renderOperationIcon()}
       </Button>
-      <ButtonGroup className="gap-0">
+      <ButtonGroup aria-label="Rating value" className="gap-0">
         {STAR_VALUES.map((value) => (
           <Button
             key={value}
-            disableRipple
             isIconOnly
-            className={`!min-w-4 !w-4 bg-transparent !hover:bg-transparent ${
-              rating?.value === value ? "!text-white" : ""
+            aria-label={`${value} star${value > 1 ? "s" : ""}`}
+            aria-pressed={rating?.value === value}
+            className={`editor-focus-ring h-7 w-6 min-w-6 rounded-xl bg-transparent px-0 hover:bg-white/[0.055] ${
+              rating?.value === value ? "text-zinc-100" : "text-zinc-500"
             }`}
             size="sm"
-            title={`${value} Star${value > 1 ? "s" : ""}`}
-            variant="light"
+            variant="ghost"
             onPress={() => handleSelectRating(value)}
           >
             <StarIcon
               className="scale-x-[-1]"
-              size={12}
+              size={14}
               weight={rating && rating.value >= value ? "fill" : "regular"}
             />
           </Button>

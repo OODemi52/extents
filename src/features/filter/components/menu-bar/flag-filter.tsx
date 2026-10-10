@@ -1,5 +1,4 @@
-import { Button, ButtonGroup } from "@heroui/button";
-import { Card } from "@heroui/card";
+import { Button, ButtonGroup, Card } from "@heroui/react";
 
 import { useFilterStore } from "../../stores/filter-store";
 
@@ -23,14 +22,15 @@ export function FlagFilter() {
   };
 
   return (
-    <Card className="p-2 rounded-[16px] border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]">
-      <div className="flex items-center gap-2">
-        <ButtonGroup className="gap-1">
+    <Card className="editor-control-surface rounded-[16px] p-1 shadow-none">
+      <div className="flex items-center">
+        <ButtonGroup aria-label="Flag status" className="gap-0.5">
           <Button
-            disableRipple
             isIconOnly
-            className="!min-w-7 !w-7 !h-7 px-0"
-            variant="light"
+            aria-label="Show picked photos"
+            aria-pressed={activeFlags.includes("picked")}
+            className="editor-focus-ring h-7 w-7 min-w-7 rounded-xl bg-transparent px-0 hover:bg-white/[0.055]"
+            variant="ghost"
             onPress={() => toggleFlag("picked")}
           >
             <FlagApproveIcon
@@ -42,10 +42,11 @@ export function FlagFilter() {
           </Button>
 
           <Button
-            disableRipple
             isIconOnly
-            className="!min-w-7 !w-7 !h-7 px-0"
-            variant="light"
+            aria-label="Show unflagged photos"
+            aria-pressed={activeFlags.includes("unflagged")}
+            className="editor-focus-ring h-7 w-7 min-w-7 rounded-xl bg-transparent px-0 hover:bg-white/[0.055]"
+            variant="ghost"
             onPress={() => toggleFlag("unflagged")}
           >
             <FlagNeutralIcon
@@ -56,10 +57,11 @@ export function FlagFilter() {
           </Button>
 
           <Button
-            disableRipple
             isIconOnly
-            className="!min-w-7 !w-7 !h-7 px-0"
-            variant="light"
+            aria-label="Show rejected photos"
+            aria-pressed={activeFlags.includes("rejected")}
+            className="editor-focus-ring h-7 w-7 min-w-7 rounded-xl bg-transparent px-0 hover:bg-white/[0.055]"
+            variant="ghost"
             onPress={() => toggleFlag("rejected")}
           >
             <FlagRejectIcon

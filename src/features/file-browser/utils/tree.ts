@@ -12,6 +12,8 @@ type FsNodeMap = Record<
 
 export interface FlatNode extends TreeNode {
   level: number;
+  ancestorGuideContinuations: boolean[];
+  hasNextSibling: boolean;
 }
 
 export function transformMapToTree(nodes: FsNodeMap): TreeNode[] {
@@ -52,16 +54,34 @@ export const flattenTreeList = (
   nodes: TreeNode[],
   expandedKeys: Selection,
   level = 0,
+  ancestorGuideContinuations: boolean[] = [],
 ): FlatNode[] => {
   let flattened: FlatNode[] = [];
 
-  nodes.forEach((node) => {
-    flattened.push({ ...node, level });
+  nodes.forEach((node, index) => {
+    const hasNextSibling = index < nodes.length - 1;
+
+    flattened.push({
+      ...node,
+      level,
+      ancestorGuideContinuations,
+      hasNextSibling,
+    });
     const isExpanded = expandedKeys instanceof Set && expandedKeys.has(node.id);
 
     if (isExpanded && node.children?.length) {
+      const childAncestorGuideContinuations =
+        level === 0
+          ? ancestorGuideContinuations
+          : [...ancestorGuideContinuations, hasNextSibling];
+
       flattened = flattened.concat(
-        flattenTreeList(node.children, expandedKeys, level + 1),
+        flattenTreeList(
+          node.children,
+          expandedKeys,
+          level + 1,
+          childAncestorGuideContinuations,
+        ),
       );
     }
   });

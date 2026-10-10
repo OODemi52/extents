@@ -5,13 +5,23 @@ import { FileMetadata } from "../types/image";
 
 import { useImageTransformStore } from "./transform-store";
 
+export type FileCollectionChange = {
+  kind: "replace" | "append" | "update";
+  previousRevision: number;
+  revision: number;
+  startIndex: number;
+};
+
 interface ImageStore {
   files: FileMetadata[];
+  fileCollectionRevision: number;
+  lastFileCollectionChange: FileCollectionChange | null;
   selectedIndex: number | null;
   selectedPaths: Set<string>;
   currentImageData: string | null;
   isLoading: boolean;
   isScrubbing: boolean;
+  folderScanError: string | null;
 
   currentFolderPath: string | null;
   folderList: string[];
@@ -30,6 +40,7 @@ interface ImageStore {
   setCurrentImageData: (data: string | null) => void;
   setIsLoading: (loading: boolean) => void;
   setIsScrubbing: (scrubbing: boolean) => void;
+  setFolderScanError: (error: string | null) => void;
   setThumbnailPath: (originalPath: string, cachePath: string) => void;
 
   setCurrentFolderPath: (path: string | null) => void;
@@ -116,6 +127,12 @@ export const useImageStore = create<ImageStore>((set, get) => {
         nextSelected.add(path);
       }
 
+      if (nextSelected.size === 0) {
+        useImageTransformStore.getState().resetTransform();
+
+        return { selectedIndex: null, selectedPaths: nextSelected };
+      }
+
       return { selectedPaths: nextSelected };
     });
   };
@@ -134,11 +151,14 @@ export const useImageStore = create<ImageStore>((set, get) => {
 
   return {
     files: [],
+    fileCollectionRevision: 0,
+    lastFileCollectionChange: null,
     selectedIndex: null,
     selectedPaths: new Set(),
     currentImageData: null,
     isLoading: false,
     isScrubbing: false,
+    folderScanError: null,
 
     currentFolderPath: null,
     folderList: [],
@@ -149,13 +169,38 @@ export const useImageStore = create<ImageStore>((set, get) => {
         const nextSelectedPaths = new Set(
           [...state.selectedPaths].filter((path) => nextPaths.has(path)),
         );
+        const revision = state.fileCollectionRevision + 1;
 
-        return { files: list, selectedPaths: nextSelectedPaths };
+        return {
+          files: list,
+          fileCollectionRevision: revision,
+          lastFileCollectionChange: {
+            kind: "replace",
+            previousRevision: state.fileCollectionRevision,
+            revision,
+            startIndex: 0,
+          },
+          selectedPaths: nextSelectedPaths,
+        };
       }),
-    appendFiles: (list) =>
-      set((state) => ({
-        files: [...state.files, ...list],
-      })),
+    appendFiles: (list) => {
+      if (!list.length) return;
+
+      set((state) => {
+        const revision = state.fileCollectionRevision + 1;
+
+        return {
+          files: [...state.files, ...list],
+          fileCollectionRevision: revision,
+          lastFileCollectionChange: {
+            kind: "append",
+            previousRevision: state.fileCollectionRevision,
+            revision,
+            startIndex: state.files.length,
+          },
+        };
+      });
+    },
     setSelectedIndex: (index: number | null) => {
       if (index === null) {
         set({ selectedIndex: null, selectedPaths: new Set() });
@@ -244,7 +289,12 @@ export const useImageStore = create<ImageStore>((set, get) => {
 
         let nextIndex = state.selectedIndex;
 
-        if (nextIndex === null && nextSelected.size > 0) {
+        if (nextSelected.size === 0) {
+          if (state.selectedIndex !== null) {
+            useImageTransformStore.getState().resetTransform();
+          }
+          nextIndex = null;
+        } else if (nextIndex === null) {
           const firstSelected = paths.find((path) => nextSelected.has(path));
 
           if (firstSelected) {
@@ -260,20 +310,47 @@ export const useImageStore = create<ImageStore>((set, get) => {
       });
     },
     deselectAll: () =>
-      set((state) =>
-        state.selectedPaths.size ? { selectedPaths: new Set() } : {},
-      ),
+      set((state) => {
+        if (state.selectedIndex === null && state.selectedPaths.size === 0) {
+          return {};
+        }
+
+        useImageTransformStore.getState().resetTransform();
+
+        return { selectedIndex: null, selectedPaths: new Set() };
+      }),
     setCurrentImageData: (data) => set({ currentImageData: data }),
     setIsLoading: (loading) => set({ isLoading: loading }),
     setIsScrubbing: (scrubbing) => set({ isScrubbing: scrubbing }),
+    setFolderScanError: (error) => set({ folderScanError: error }),
     setThumbnailPath: (originalPath, cachePath) => {
-      set((state) => ({
-        files: state.files.map((file) =>
-          file.path === originalPath
-            ? { ...file, thumbnailPath: convertFileSrc(cachePath) }
-            : file,
-        ),
-      }));
+      const thumbnailPath = convertFileSrc(cachePath);
+
+      set((state) => {
+        const index = state.files.findIndex(
+          (file) => file.path === originalPath,
+        );
+
+        if (index < 0 || state.files[index].thumbnailPath === thumbnailPath) {
+          return {};
+        }
+
+        const files = [...state.files];
+        const revision = state.fileCollectionRevision + 1;
+
+        files[index] = { ...files[index], thumbnailPath };
+
+        return {
+          files,
+          fileCollectionRevision: revision,
+          lastFileCollectionChange: {
+            kind: "update",
+            previousRevision: state.fileCollectionRevision,
+            revision,
+            startIndex: index,
+          },
+        };
+      });
     },
 
     setCurrentFolderPath: (path) => set({ currentFolderPath: path }),

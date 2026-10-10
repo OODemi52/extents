@@ -1,6 +1,9 @@
-import { useMemo } from "react";
-import { Card } from "@heroui/card";
+import type { ReactNode } from "react";
 
+import { memo, useId, useRef } from "react";
+import { InfoIcon } from "@phosphor-icons/react";
+
+import { EmptyState } from "@/components/ui/empty-state";
 import { useExifStore } from "@/store/exif-store";
 import { useImageStore } from "@/store/image-store";
 import {
@@ -14,37 +17,90 @@ import {
 import { formatBytes, formatDimensions } from "@/lib/formatters";
 
 const InfoRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex items-center justify-between gap-3 text-xs text-zinc-400">
-    <span className="shrink-0">{label}</span>
-    <span className="text-zinc-200 truncate">{value}</span>
+  <div className="flex items-baseline justify-between gap-3 text-xs">
+    <dt className="shrink-0 text-zinc-400">{label}</dt>
+    <dd
+      className="app-selectable-text min-w-0 truncate text-right tabular-nums text-zinc-200"
+      title={value}
+    >
+      {value}
+    </dd>
   </div>
 );
 
-export function InfoPanel() {
-  const { files, selectedIndex, selectedPaths } = useImageStore();
-  const entriesByPath = useExifStore((state) => state.entriesByPath);
-  const selectionCount = selectedPaths.size;
+const panelClassName =
+  "editor-panel relative flex h-full flex-col overflow-y-auto p-4";
 
-  const selectedFile = useMemo(() => {
-    if (selectedIndex === null) {
-      return null;
-    }
+const InfoSection = ({
+  children,
+  id,
+  title,
+}: {
+  children: ReactNode;
+  id: string;
+  title: string;
+}) => (
+  <section aria-labelledby={id}>
+    <h3 className="mb-2 text-xs font-semibold text-zinc-300" id={id}>
+      {title}
+    </h3>
+    <dl className="space-y-2">{children}</dl>
+  </section>
+);
 
-    return files[selectedIndex] ?? null;
-  }, [files, selectedIndex]);
+type InfoPanelProps = {
+  active?: boolean;
+};
 
-  const exifEntry = selectedFile ? entriesByPath[selectedFile.path] : undefined;
+const getSelectedFile = (state: ReturnType<typeof useImageStore.getState>) =>
+  state.selectedIndex !== null
+    ? (state.files[state.selectedIndex] ?? null)
+    : null;
+
+export const InfoPanel = memo(function InfoPanel({
+  active = true,
+}: InfoPanelProps) {
+  const retainedSelectedFileRef = useRef(
+    getSelectedFile(useImageStore.getState()),
+  );
+  const selectedFile = useImageStore((state) =>
+    active ? getSelectedFile(state) : retainedSelectedFileRef.current,
+  );
+  const retainedExifEntryRef = useRef(
+    selectedFile
+      ? useExifStore.getState().entriesByPath[selectedFile.path]
+      : undefined,
+  );
+  const exifEntry = useExifStore((state) =>
+    active && selectedFile
+      ? state.entriesByPath[selectedFile.path]
+      : retainedExifEntryRef.current,
+  );
+  const panelTitleId = useId();
+
+  if (active) {
+    retainedSelectedFileRef.current = selectedFile;
+    retainedExifEntryRef.current = exifEntry;
+  }
 
   const metadata = exifEntry?.metadata;
 
   if (!selectedFile) {
     return (
-      <aside className="h-full border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] rounded-3xl flex flex-col p-4">
-        <div className="pointer-events-none w-10/12 mx-auto absolute inset-x-0 top-0 z-20 h-px bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.08),rgba(255,255,255,0))]" />
-        <div className="text-sm text-zinc-300 mb-2">Info</div>
-        <div className="text-sm text-zinc-500">
-          Select an image to see its metadata.
-        </div>
+      <aside aria-labelledby={panelTitleId} className={panelClassName}>
+        <h2 className="text-xs font-semibold text-zinc-200" id={panelTitleId}>
+          Info
+        </h2>
+        <EmptyState
+          compact
+          className="flex-1"
+          graphic={
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-zinc-500">
+              <InfoIcon size={20} weight="duotone" />
+            </span>
+          }
+          title="No photo selected"
+        />
       </aside>
     );
   }
@@ -55,66 +111,85 @@ export function InfoPanel() {
   const lensLabel = [metadata?.lensMake, metadata?.lensModel]
     .filter(Boolean)
     .join(" ");
+  const hasCameraMetadata = Boolean(cameraLabel || lensLabel);
+  const hasExposureMetadata = Boolean(
+    metadata?.iso != null ||
+      metadata?.shutterSpeed != null ||
+      metadata?.aperture != null ||
+      metadata?.focalLength != null ||
+      metadata?.exposureBias != null,
+  );
+  const hasLocationMetadata =
+    metadata?.gpsLatitude != null && metadata?.gpsLongitude != null;
 
   return (
-    <Card className="h-full border border-white/5 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] rounded-3xl flex flex-col p-4 gap-4 overflow-y-auto">
-      <div className="text-sm text-zinc-300">Info</div>
-      <div>
-        <div className="text-sm text-zinc-300 mb-2">File</div>
-        <div className="space-y-2">
-          <InfoRow label="Name" value={selectedFile.fileName || "-"} />
-          <InfoRow label="Size" value={formatBytes(selectedFile.fileSize)} />
-          <InfoRow
-            label="Dimensions"
-            value={formatDimensions(
-              metadata?.width ?? null,
-              metadata?.height ?? null,
-            )}
-          />
-          <InfoRow
-            label="Date Taken"
-            value={formatDateTaken(metadata?.dateTaken ?? null)}
-          />
-        </div>
-      </div>
+    <aside aria-labelledby={panelTitleId} className={`${panelClassName} gap-4`}>
+      <h2 className="text-xs font-semibold text-zinc-200" id={panelTitleId}>
+        Info
+      </h2>
 
-      <div>
-        <div className="text-sm text-zinc-300 mb-2">Camera</div>
-        <div className="space-y-2">
-          <InfoRow label="Body" value={cameraLabel || "-"} />
-          <InfoRow label="Lens" value={lensLabel || "-"} />
-        </div>
-      </div>
+      <InfoSection id={`${panelTitleId}-file`} title="File">
+        <InfoRow label="Name" value={selectedFile.fileName || "-"} />
+        <InfoRow label="Size" value={formatBytes(selectedFile.fileSize)} />
+        {metadata ? (
+          <>
+            {metadata.width != null || metadata.height != null ? (
+              <InfoRow
+                label="Dimensions"
+                value={formatDimensions(metadata.width, metadata.height)}
+              />
+            ) : null}
+            {metadata.dateTaken ? (
+              <InfoRow
+                label="Date Taken"
+                value={formatDateTaken(metadata.dateTaken)}
+              />
+            ) : null}
+          </>
+        ) : null}
+      </InfoSection>
 
-      <div>
-        <div className="text-sm text-zinc-300 mb-2">Exposure</div>
-        <div className="space-y-2">
-          <InfoRow
-            label="ISO"
-            value={metadata?.iso ? `ISO ${metadata.iso}` : "-"}
-          />
-          <InfoRow
-            label="Shutter"
-            value={formatShutterSpeed(metadata?.shutterSpeed ?? null)}
-          />
-          <InfoRow
-            label="Aperture"
-            value={formatAperture(metadata?.aperture ?? null)}
-          />
-          <InfoRow
-            label="Focal Length"
-            value={formatFocalLength(metadata?.focalLength ?? null)}
-          />
-          <InfoRow
-            label="Exposure Bias"
-            value={formatExposureBias(metadata?.exposureBias ?? null)}
-          />
-        </div>
-      </div>
+      {hasCameraMetadata ? (
+        <InfoSection id={`${panelTitleId}-camera`} title="Camera">
+          {cameraLabel ? <InfoRow label="Body" value={cameraLabel} /> : null}
+          {lensLabel ? <InfoRow label="Lens" value={lensLabel} /> : null}
+        </InfoSection>
+      ) : null}
 
-      <div>
-        <div className="text-sm text-zinc-300 mb-2">Location</div>
-        <div className="space-y-2">
+      {hasExposureMetadata ? (
+        <InfoSection id={`${panelTitleId}-exposure`} title="Exposure">
+          {metadata?.iso != null ? (
+            <InfoRow label="ISO" value={`ISO ${metadata.iso}`} />
+          ) : null}
+          {metadata?.shutterSpeed != null ? (
+            <InfoRow
+              label="Shutter"
+              value={formatShutterSpeed(metadata.shutterSpeed)}
+            />
+          ) : null}
+          {metadata?.aperture != null ? (
+            <InfoRow
+              label="Aperture"
+              value={formatAperture(metadata.aperture)}
+            />
+          ) : null}
+          {metadata?.focalLength != null ? (
+            <InfoRow
+              label="Focal Length"
+              value={formatFocalLength(metadata.focalLength)}
+            />
+          ) : null}
+          {metadata?.exposureBias != null ? (
+            <InfoRow
+              label="Exposure Bias"
+              value={formatExposureBias(metadata.exposureBias)}
+            />
+          ) : null}
+        </InfoSection>
+      ) : null}
+
+      {hasLocationMetadata ? (
+        <InfoSection id={`${panelTitleId}-location`} title="Location">
           <InfoRow
             label="GPS"
             value={formatGPS(
@@ -122,14 +197,14 @@ export function InfoPanel() {
               metadata?.gpsLongitude ?? null,
             )}
           />
-        </div>
-      </div>
-
-      {selectionCount > 1 ? (
-        <div className="text-xs text-zinc-500">
-          {selectionCount} images selected
-        </div>
+        </InfoSection>
       ) : null}
-    </Card>
+
+      {!metadata ? (
+        <p className="rounded-xl border border-white/5 bg-white/[0.025] px-3 py-2 text-[11px] leading-4 text-zinc-400">
+          Camera metadata is unavailable for this photo.
+        </p>
+      ) : null}
+    </aside>
   );
-}
+});

@@ -1,54 +1,57 @@
 import { create } from "zustand";
 
+import {
+  FIT_IMAGE_TRANSFORM,
+  type ImageTransform,
+  type ImageTransformMode,
+} from "@/types/image-transform";
+
+export type {
+  ImageTransform,
+  ImageTransformMode,
+} from "@/types/image-transform";
+
 type TransformUpdate = {
   scale?: number;
   offsetX?: number;
   offsetY?: number;
 };
 
-interface TransformState {
-  scale: number;
-  offsetX: number;
-  offsetY: number;
-  setScale: (scale: number) => void;
-  setOffset: (offset: { x: number; y: number }) => void;
+interface TransformState extends ImageTransform {
+  mode: ImageTransformMode;
+  setMode: (mode: ImageTransformMode) => void;
+  setTransform: (transform: ImageTransform, mode?: ImageTransformMode) => void;
   resetTransform: (override?: TransformUpdate) => void;
 }
 
 export const useImageTransformStore = create<TransformState>((set) => ({
-  scale: 1,
-  offsetX: 0,
-  offsetY: 0,
+  ...FIT_IMAGE_TRANSFORM,
+  mode: "fit",
 
-  setScale: (scale) =>
+  setMode: (mode) => set((state) => (state.mode === mode ? state : { mode })),
+
+  setTransform: (transform, mode = "manual") =>
     set((state) => {
-      if (state.scale === scale) {
+      if (
+        state.mode === mode &&
+        state.scale === transform.scale &&
+        state.offsetX === transform.offsetX &&
+        state.offsetY === transform.offsetY
+      ) {
         return state;
       }
 
-      return { ...state, scale };
-    }),
-
-  setOffset: (offset) =>
-    set((state) => {
-      if (state.offsetX === offset.x && state.offsetY === offset.y) {
-        return state;
-      }
-
-      return {
-        ...state,
-        offsetX: offset.x,
-        offsetY: offset.y,
-      };
+      return { ...transform, mode };
     }),
 
   resetTransform: (override) =>
     set((state) => {
-      const nextScale = override?.scale ?? 1;
-      const nextOffsetX = override?.offsetX ?? 0;
-      const nextOffsetY = override?.offsetY ?? 0;
+      const nextScale = override?.scale ?? FIT_IMAGE_TRANSFORM.scale;
+      const nextOffsetX = override?.offsetX ?? FIT_IMAGE_TRANSFORM.offsetX;
+      const nextOffsetY = override?.offsetY ?? FIT_IMAGE_TRANSFORM.offsetY;
 
       if (
+        state.mode === "fit" &&
         state.scale === nextScale &&
         state.offsetX === nextOffsetX &&
         state.offsetY === nextOffsetY
@@ -58,6 +61,7 @@ export const useImageTransformStore = create<TransformState>((set) => ({
 
       return {
         ...state,
+        mode: "fit",
         scale: nextScale,
         offsetX: nextOffsetX,
         offsetY: nextOffsetY,

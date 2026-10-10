@@ -1,37 +1,60 @@
-import { useState } from "react";
-import { Tab, Tabs } from "@heroui/tabs";
+import { memo, useState } from "react";
+import { Tabs } from "@heroui/react";
+import { ImagesIcon } from "@phosphor-icons/react";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { FileTree } from "@/features/file-browser/components/file-tree";
 
-export function Sidebar() {
+export const Sidebar = memo(function Sidebar() {
   const [selectedTab, setSelectedTab] = useState("browse");
 
   return (
-    <aside className="w-full h-full border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] rounded-3xl flex flex-col pl-2 p-2 gap-y-1 overflow-scroll overflow-x-hidden">
-      <div className="pointer-events-none w-10/12 mx-auto absolute inset-x-0 top-0 z-20 h-px bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.08),rgba(255,255,255,0))]" />
+    <aside className="editor-panel flex h-full w-full flex-col gap-y-1 overflow-hidden p-2">
       <Tabs
-        disableCursorAnimation
-        aria-label="File Tabs"
-        className="flex flex-col min-h-0 text-muted"
-        classNames={{
-          panel: "overflow-y-auto flex-1",
-          tabList:
-            "flex-shrink-0 rounded-[16px] border border-zinc-900/30 bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
-          tab: "text-whitedata-selected:border data-selected:border-zinc-700/30 data-selected:shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] data-selected:bg-[rgba(30,30,30,0.99)] data-selected:drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] data-selected:rounded-xl",
-        }}
+        aria-label="Library sections"
+        className="flex min-h-0 flex-col text-muted"
         selectedKey={selectedTab}
-        variant="solid"
+        variant="secondary"
         onSelectionChange={(key) => setSelectedTab(key as string)}
       >
-        <Tab key="collections" title="Collections">
-          <h1 className="text-center text-xs bg-zinc-500/50 text-white rounded-md p-4 mt-8">
-            Collections Comming Soon...
-          </h1>
-        </Tab>
-        <Tab key="browse" title="Browse">
+        <Tabs.ListContainer className="editor-surface shrink-0 rounded-[16px] p-1">
+          <Tabs.List className="grid grid-cols-2 gap-1 bg-transparent p-0">
+            <Tabs.Tab
+              className="h-8 rounded-xl text-xs text-zinc-400 data-[selected=true]:bg-white/[0.06] data-[selected=true]:text-zinc-100"
+              id="collections"
+            >
+              Collections
+            </Tabs.Tab>
+            <Tabs.Tab
+              className="h-8 rounded-xl text-xs text-zinc-400 data-[selected=true]:bg-white/[0.06] data-[selected=true]:text-zinc-100"
+              id="browse"
+            >
+              Browse
+            </Tabs.Tab>
+          </Tabs.List>
+        </Tabs.ListContainer>
+        <Tabs.Panel
+          className="min-h-0 flex-1 overflow-y-auto px-0.5"
+          id="collections"
+        >
+          <EmptyState
+            compact
+            className="mt-6"
+            graphic={
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] text-zinc-500">
+                <ImagesIcon size={20} weight="duotone" />
+              </span>
+            }
+            title="Collections unavailable"
+          />
+        </Tabs.Panel>
+        <Tabs.Panel
+          className="min-h-0 flex-1 overflow-y-auto px-0.5"
+          id="browse"
+        >
           <FileTree />
-        </Tab>
+        </Tabs.Panel>
       </Tabs>
     </aside>
   );
-}
+});

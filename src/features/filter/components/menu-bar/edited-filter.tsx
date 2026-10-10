@@ -1,4 +1,4 @@
-import { Select, SelectItem } from "@heroui/select";
+import { ListBox, Select } from "@heroui/react";
 
 import { useFilterStore } from "../../stores/filter-store";
 
@@ -29,28 +29,35 @@ export function EditedFilter() {
     }
   };
 
-  const selectedKeys =
-    edited === null ? new Set<string>() : new Set([edited ? "yes" : "no"]);
+  const selectedValue = edited === null ? null : edited ? "yes" : "no";
 
   return (
     <Select
-      className="max-w-24"
-      classNames={{
-        trigger:
-          "rounded-[16px] border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
-      }}
-      items={options}
-      label="Edited"
+      aria-label="Filter by edit status"
+      className="w-28"
       placeholder="Edited"
-      selectedKeys={selectedKeys}
-      size="sm"
-      onSelectionChange={(keys) => {
-        const next = Array.from(keys).at(0) ?? null;
-
-        handleChange(next);
-      }}
+      value={selectedValue}
+      variant="secondary"
+      onChange={handleChange}
     >
-      {(option) => <SelectItem>{option.label}</SelectItem>}
+      <Select.Trigger className="editor-control-surface h-9 min-h-9 rounded-[16px] shadow-none">
+        <Select.Value className="text-xs text-zinc-300" />
+        <Select.Indicator className="text-zinc-500" />
+      </Select.Trigger>
+      <Select.Popover className="editor-tooltip rounded-xl p-1">
+        <ListBox>
+          {options.map((option) => (
+            <ListBox.Item
+              key={option.key}
+              className="rounded-lg px-2 py-1.5 text-xs text-zinc-300 data-[focused=true]:bg-white/[0.07] data-[selected=true]:text-zinc-100"
+              id={option.key}
+              textValue={option.label}
+            >
+              {option.label}
+            </ListBox.Item>
+          ))}
+        </ListBox>
+      </Select.Popover>
     </Select>
   );
 }

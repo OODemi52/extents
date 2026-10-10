@@ -1,6 +1,8 @@
-import { Accordion, AccordionItem } from "@heroui/accordion";
+import { Accordion } from "@heroui/react";
 import { ExportIcon } from "@phosphor-icons/react";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { EditPanelSection } from "@/features/edit-panel/components/edit-panel-section";
 import { EDIT_PANEL_ACCORDION_PROPS } from "@/features/edit-panel/utils/accordion";
 
 export const GeometryPanel = () => {
@@ -9,17 +11,13 @@ export const GeometryPanel = () => {
       {...EDIT_PANEL_ACCORDION_PROPS}
       defaultExpandedKeys={["geometry-crop"]}
     >
-      <AccordionItem
-        key="geometry-crop"
-        aria-label="Crop & Transform"
-        className="w-full rounded-xl bg-zinc-800"
-        startContent={<ExportIcon />}
+      <EditPanelSection
+        icon={<ExportIcon />}
+        id="geometry-crop"
         title="Crop & Transform"
       >
-        <div className="p-4 text-center text-sm text-zinc-500">
-          Crop tools coming soon...
-        </div>
-      </AccordionItem>
+        <EmptyState compact title="Crop and transform unavailable" />
+      </EditPanelSection>
     </Accordion>
   );
 };

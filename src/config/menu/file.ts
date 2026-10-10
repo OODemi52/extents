@@ -4,6 +4,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { createSeparator } from "./standard";
 
 import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
+import { useImageStore } from "@/store/image-store";
 
 export async function createFileSubmenu() {
   const separator = await createSeparator();
@@ -31,6 +32,8 @@ export async function createFileSubmenu() {
     text: "Open Folder...",
     accelerator: "Shift+CmdOrCtrl+O",
     action: async () => {
+      if (useImageStore.getState().isLoading) return;
+
       const folderPath = await open({ directory: true });
 
       if (!folderPath) return;

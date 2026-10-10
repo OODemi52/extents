@@ -1,7 +1,7 @@
-import { Button } from "@heroui/button";
-import { Tooltip } from "@heroui/tooltip";
+import { Button } from "@heroui/react";
 
 import { cn } from "@/lib/cn";
+import { EditorTooltip } from "@/components/ui/editor-tooltip";
 
 interface ToolbarIconButtonProps {
   tooltip: string;
@@ -15,27 +15,22 @@ interface ToolbarIconButtonProps {
 export function ToolbarIconButton({
   tooltip,
   icon,
-  isActive = false,
+  isActive,
   onPress,
   isDisabled,
   className,
 }: ToolbarIconButtonProps) {
   return (
-    <Tooltip
-      className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
-      closeDelay={0}
-      content={tooltip}
-      delay={500}
-      offset={0}
-      radius="sm"
-      size="sm"
-    >
+    <EditorTooltip content={tooltip}>
       <Button
-        disableRipple
         isIconOnly
+        aria-label={tooltip}
+        aria-pressed={typeof isActive === "boolean" ? isActive : undefined}
         className={cn(
-          "transition-colors bg-transparent",
-          isActive ? "text-blue-500" : "hover:text-white",
+          "editor-focus-ring h-8 w-8 min-w-8 rounded-xl bg-transparent text-zinc-400 transition-colors",
+          isActive
+            ? "bg-blue-500/10 text-blue-400"
+            : "hover:bg-white/[0.055] hover:text-zinc-100",
           className,
         )}
         isDisabled={isDisabled}
@@ -44,6 +39,6 @@ export function ToolbarIconButton({
       >
         {icon}
       </Button>
-    </Tooltip>
+    </EditorTooltip>
   );
 }

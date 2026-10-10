@@ -4,7 +4,11 @@ import { RatingFilter } from "./rating-filter";
 
 export function FilterMenuBar() {
   return (
-    <div className="w-full flex items-center py-1 px-4 gap-4">
+    <div
+      aria-label="Photo filters"
+      className="flex h-12 w-full items-center gap-2 px-4 py-1"
+      role="toolbar"
+    >
       <RatingFilter />
       <FlagFilter />
       <EditedFilter />

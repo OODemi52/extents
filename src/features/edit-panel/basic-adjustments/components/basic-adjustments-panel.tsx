@@ -1,46 +1,52 @@
-import { Accordion, AccordionItem } from "@heroui/accordion";
+import { Accordion } from "@heroui/react";
 import { SunDimIcon, PaletteIcon } from "@phosphor-icons/react";
 
 import { CenteredSlider } from "@/components/ui/sliders/center-slider";
 import { useExposureAdjustment } from "@/features/edit-panel/basic-adjustments/hooks/use-exposure-adjustment";
+import { EditPanelSection } from "@/features/edit-panel/components/edit-panel-section";
 import { EDIT_PANEL_ACCORDION_PROPS } from "@/features/edit-panel/utils/accordion";
 
-export const BasicAdjustmentsPanel = () => {
-  const { exposureEv, setExposure } = useExposureAdjustment();
+const TONAL_TRACK = "bg-linear-to-r from-zinc-700 to-zinc-500";
+
+type BasicAdjustmentsPanelProps = {
+  active?: boolean;
+};
+
+export const BasicAdjustmentsPanel = ({
+  active = true,
+}: BasicAdjustmentsPanelProps) => {
+  const { exposureEv, setExposure } = useExposureAdjustment(active);
 
   return (
     <Accordion
       {...EDIT_PANEL_ACCORDION_PROPS}
       defaultExpandedKeys={["basic-adjustments", "color-grading"]}
     >
-      <AccordionItem
-        key="basic-adjustments"
-        aria-label="Basic Adjustments"
-        className="w-full rounded-xl bg-zinc-800"
-        startContent={<SunDimIcon />}
+      <EditPanelSection
+        icon={<SunDimIcon />}
+        id="basic-adjustments"
         title="Basic Adjustments"
       >
         <CenteredSlider
           defaultValue={exposureEv}
           label="Exposure"
           range={5}
+          trackColor={TONAL_TRACK}
           onValueChange={(exposureEv) => {
             setExposure(exposureEv);
           }}
         />
-        <CenteredSlider label="Contrast" range={2} />
-        <CenteredSlider label="Highlights" range={2} />
-        <CenteredSlider label="Shadows" range={2} />
-        <CenteredSlider label="Whites" range={1} />
-        <CenteredSlider label="Blacks" range={1} />
-      </AccordionItem>
+        <CenteredSlider label="Contrast" range={2} trackColor={TONAL_TRACK} />
+        <CenteredSlider label="Highlights" range={2} trackColor={TONAL_TRACK} />
+        <CenteredSlider label="Shadows" range={2} trackColor={TONAL_TRACK} />
+        <CenteredSlider label="Whites" range={1} trackColor={TONAL_TRACK} />
+        <CenteredSlider label="Blacks" range={1} trackColor={TONAL_TRACK} />
+      </EditPanelSection>
 
-      <AccordionItem
-        key="color-grading"
+      <EditPanelSection
         isDisabled
-        aria-label="Color Grading"
-        className="w-full rounded-xl bg-zinc-800"
-        startContent={<PaletteIcon />}
+        icon={<PaletteIcon />}
+        id="color-grading"
         title="Color Grading"
       >
         <CenteredSlider
@@ -55,7 +61,7 @@ export const BasicAdjustmentsPanel = () => {
         />
         <CenteredSlider label="Vibrance" range={2} />
         <CenteredSlider label="Saturation" range={2} />
-      </AccordionItem>
+      </EditPanelSection>
     </Accordion>
   );
 };

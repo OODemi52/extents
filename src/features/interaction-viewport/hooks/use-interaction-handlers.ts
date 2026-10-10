@@ -1,41 +1,351 @@
-import { useEffect, useRef, useCallback } from "react";
+import type { RefObject } from "react";
+import type {
+  ImageTransform,
+  ImageTransformMode,
+} from "@/store/transform-store";
 
-import { useImageTransformStore } from "@/store/transform-store";
+import { useCallback, useEffect, useRef } from "react";
 
-const MIN_SCALE = 0.01;
-const MAX_SCALE = 30;
+import {
+  CLICK_ZOOM_SCALE,
+  FIT_SCALE,
+  isFitScale,
+  MAX_SCALE,
+  MIN_SCALE,
+} from "../constants";
+
 const PAN_SPEED = 1.5;
+const WHEEL_COMMIT_DELAY_MS = 120;
+const CLICK_MOVEMENT_THRESHOLD_PX = 4;
+const DISCRETE_ZOOM_DURATION_MS = 190;
+
+type InteractionHandlersOptions = {
+  commitTransform: (
+    transform: ImageTransform,
+    mode: ImageTransformMode,
+  ) => void;
+  enabled: boolean;
+  getTransform: () => ImageTransform;
+  imagePath: string | null;
+  mode: ImageTransformMode;
+  setMode: (mode: ImageTransformMode) => void;
+  updateTransform: (transform: ImageTransform) => void;
+};
+
+type TransformAnimationOptions = {
+  anchor?: { x: number; y: number };
+};
+
+function transformsMatch(left: ImageTransform, right: ImageTransform) {
+  return (
+    left.scale === right.scale &&
+    left.offsetX === right.offsetX &&
+    left.offsetY === right.offsetY
+  );
+}
+
+function isZoomedIn(transform: ImageTransform) {
+  return transform.scale > FIT_SCALE && !isFitScale(transform.scale);
+}
+
+function getIdleCursor(transform: ImageTransform) {
+  return isZoomedIn(transform) ? "zoom-out" : "zoom-in";
+}
+
+function normalizeWheelDelta(
+  delta: number,
+  deltaMode: number,
+  pageSize: number,
+) {
+  if (deltaMode === WheelEvent.DOM_DELTA_LINE) return delta * 16;
+  if (deltaMode === WheelEvent.DOM_DELTA_PAGE) return delta * pageSize;
+
+  return delta;
+}
+
+function easeOutCubic(progress: number) {
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function interpolateTransform(
+  from: ImageTransform,
+  to: ImageTransform,
+  progress: number,
+  anchor?: { x: number; y: number },
+): ImageTransform {
+  const scale =
+    from.scale > 0 && to.scale > 0
+      ? from.scale * Math.pow(to.scale / from.scale, progress)
+      : from.scale + (to.scale - from.scale) * progress;
+
+  if (anchor) {
+    const scaleFactor = scale / from.scale;
+
+    return {
+      scale,
+      offsetX: anchor.x + (from.offsetX - anchor.x) * scaleFactor,
+      offsetY: anchor.y + (from.offsetY - anchor.y) * scaleFactor,
+    };
+  }
+
+  return {
+    scale,
+    offsetX: from.offsetX + (to.offsetX - from.offsetX) * progress,
+    offsetY: from.offsetY + (to.offsetY - from.offsetY) * progress,
+  };
+}
 
 export function useInteractionHandlers(
-  viewportRef: React.RefObject<HTMLDivElement>,
-  scale: number,
-  offsetX: number,
-  offsetY: number,
-  hasImage: boolean,
+  viewportRef: RefObject<HTMLDivElement | null>,
+  {
+    commitTransform,
+    enabled,
+    getTransform,
+    imagePath,
+    mode,
+    setMode,
+    updateTransform,
+  }: InteractionHandlersOptions,
 ) {
-  const setScale = useImageTransformStore((state) => state.setScale);
-
-  const setOffset = useImageTransformStore((state) => state.setOffset);
+  const enabledRef = useRef(enabled);
+  const imagePathRef = useRef(imagePath);
+  const modeRef = useRef(mode);
   const isDraggingRef = useRef(false);
   const isHoveringRef = useRef(false);
-
+  const interactionDirtyRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const dragViewportSizeRef = useRef<{ width: number; height: number } | null>(
+    null,
+  );
+  const wheelCommitTimerRef = useRef<number | null>(null);
+  const transformAnimationFrameRef = useRef<number | null>(null);
+  const reducedMotionRef = useRef(false);
+
+  enabledRef.current = enabled;
+  imagePathRef.current = imagePath;
+  modeRef.current = mode;
+
+  const clearWheelCommitTimer = useCallback(() => {
+    if (wheelCommitTimerRef.current === null) return;
+
+    window.clearTimeout(wheelCommitTimerRef.current);
+    wheelCommitTimerRef.current = null;
+  }, []);
+
+  const commitPendingTransform = useCallback(() => {
+    clearWheelCommitTimer();
+
+    if (!interactionDirtyRef.current) return;
+
+    interactionDirtyRef.current = false;
+    commitTransform(getTransform(), modeRef.current);
+  }, [clearWheelCommitTimer, commitTransform, getTransform]);
+
+  const cancelPendingTransform = useCallback(() => {
+    clearWheelCommitTimer();
+    interactionDirtyRef.current = false;
+  }, [clearWheelCommitTimer]);
+
+  const applyLiveTransform = useCallback(
+    (transform: ImageTransform) => {
+      if (transformsMatch(getTransform(), transform)) return;
+
+      interactionDirtyRef.current = true;
+      updateTransform(transform);
+    },
+    [getTransform, updateTransform],
+  );
+
+  const setTransformMode = useCallback(
+    (nextMode: ImageTransformMode) => {
+      if (modeRef.current === nextMode) return;
+
+      modeRef.current = nextMode;
+      setMode(nextMode);
+    },
+    [setMode],
+  );
+
+  const cancelTransformAnimation = useCallback(() => {
+    if (transformAnimationFrameRef.current === null) return;
+
+    window.cancelAnimationFrame(transformAnimationFrameRef.current);
+    transformAnimationFrameRef.current = null;
+  }, []);
+
+  const scheduleWheelCommit = useCallback(() => {
+    clearWheelCommitTimer();
+
+    wheelCommitTimerRef.current = window.setTimeout(() => {
+      wheelCommitTimerRef.current = null;
+
+      if (!enabledRef.current || !imagePathRef.current) return;
+
+      commitPendingTransform();
+    }, WHEEL_COMMIT_DELAY_MS);
+  }, [clearWheelCommitTimer, commitPendingTransform]);
 
   const setCursor = useCallback(
     (cursor: string) => {
       const viewer = viewportRef.current;
 
       if (!viewer) return;
-      viewer.style.cursor = hasImage ? cursor : "";
+      viewer.style.cursor = enabledRef.current ? cursor : "";
     },
-    [viewportRef, hasImage],
+    [viewportRef],
   );
 
   const setGlobalCursor = useCallback((isActive: boolean) => {
     document.body.classList.toggle("cursor-grabbing", isActive);
   }, []);
+
+  const setIdleCursor = useCallback(
+    (transform = getTransform()) => {
+      setCursor(getIdleCursor(transform));
+    },
+    [getTransform, setCursor],
+  );
+
+  const animateTransform = useCallback(
+    (
+      target: ImageTransform,
+      targetMode: ImageTransformMode,
+      options: TransformAnimationOptions = {},
+    ) => {
+      clearWheelCommitTimer();
+      cancelTransformAnimation();
+      setTransformMode(targetMode);
+
+      const from = getTransform();
+
+      if (transformsMatch(from, target)) {
+        interactionDirtyRef.current = false;
+        commitTransform(target, targetMode);
+        setIdleCursor(target);
+
+        return;
+      }
+
+      if (reducedMotionRef.current) {
+        applyLiveTransform(target);
+        commitPendingTransform();
+        setIdleCursor(target);
+
+        return;
+      }
+
+      const startedAt = performance.now();
+
+      const tick = (timestamp: number) => {
+        const linearProgress = Math.min(
+          1,
+          Math.max(0, (timestamp - startedAt) / DISCRETE_ZOOM_DURATION_MS),
+        );
+        const next = interpolateTransform(
+          from,
+          target,
+          easeOutCubic(linearProgress),
+          options.anchor,
+        );
+
+        applyLiveTransform(next);
+
+        if (linearProgress < 1) {
+          transformAnimationFrameRef.current =
+            window.requestAnimationFrame(tick);
+
+          return;
+        }
+
+        transformAnimationFrameRef.current = null;
+        applyLiveTransform(target);
+        commitPendingTransform();
+        setIdleCursor(target);
+      };
+
+      setIdleCursor(target);
+      transformAnimationFrameRef.current = window.requestAnimationFrame(tick);
+    },
+    [
+      applyLiveTransform,
+      cancelTransformAnimation,
+      clearWheelCommitTimer,
+      commitPendingTransform,
+      commitTransform,
+      getTransform,
+      setIdleCursor,
+      setTransformMode,
+    ],
+  );
+
+  const resetPointerInteraction = useCallback(() => {
+    const pointerId = activePointerIdRef.current;
+    const viewer = viewportRef.current;
+
+    isDraggingRef.current = false;
+    hasDraggedRef.current = false;
+    activePointerIdRef.current = null;
+    pointerStartRef.current = null;
+    lastPointerRef.current = null;
+    dragViewportSizeRef.current = null;
+    setGlobalCursor(false);
+
+    if (pointerId === null || !viewer?.hasPointerCapture?.(pointerId)) return;
+
+    try {
+      viewer.releasePointerCapture(pointerId);
+    } catch (error) {
+      console.warn(
+        "[useInteractionHandlers] releasePointerCapture failed:",
+        error,
+      );
+    }
+  }, [setGlobalCursor, viewportRef]);
+
+  const toggleClickZoom = useCallback(
+    (clientX: number, clientY: number) => {
+      const viewer = viewportRef.current;
+
+      if (!viewer) return;
+
+      const current = getTransform();
+      let next: ImageTransform;
+
+      if (modeRef.current === "fit") {
+        const boundingRect = viewer.getBoundingClientRect();
+        const cursorX =
+          ((clientX - boundingRect.left) / boundingRect.width) * 2 - 1;
+        const cursorY = -(
+          ((clientY - boundingRect.top) / boundingRect.height) * 2 -
+          1
+        );
+        const scaleFactor = CLICK_ZOOM_SCALE / current.scale;
+
+        next = {
+          scale: CLICK_ZOOM_SCALE,
+          offsetX:
+            current.offsetX + (1 - scaleFactor) * (cursorX - current.offsetX),
+          offsetY:
+            current.offsetY + (1 - scaleFactor) * (cursorY - current.offsetY),
+        };
+
+        animateTransform(next, "manual", {
+          anchor: { x: cursorX, y: cursorY },
+        });
+      } else {
+        next = { scale: FIT_SCALE, offsetX: 0, offsetY: 0 };
+        animateTransform(next, "fit");
+      }
+    },
+    [animateTransform, getTransform, viewportRef],
+  );
+
   const handleWheel = useCallback(
     (wheelEvent: WheelEvent) => {
+      if (!enabledRef.current) return;
       if (
         wheelEvent.target instanceof HTMLElement &&
         wheelEvent.target.closest('[data-filter-ui="true"]')
@@ -43,63 +353,87 @@ export function useInteractionHandlers(
         return;
       }
 
-      wheelEvent.preventDefault();
-
       const viewer = viewportRef.current;
 
       if (!viewer) return;
 
-      const boundingRect = viewer.getBoundingClientRect();
-      const cursorX =
-        ((wheelEvent.clientX - boundingRect.left) / boundingRect.width) * 2 - 1;
-      const cursorY = -(
-        ((wheelEvent.clientY - boundingRect.top) / boundingRect.height) * 2 -
-        1
-      );
+      wheelEvent.preventDefault();
+      cancelTransformAnimation();
+      setTransformMode("manual");
+
+      const current = getTransform();
+      let next: ImageTransform;
 
       if (wheelEvent.ctrlKey || wheelEvent.metaKey) {
-        // Zoom
+        const boundingRect = viewer.getBoundingClientRect();
+        const cursorX =
+          ((wheelEvent.clientX - boundingRect.left) / boundingRect.width) * 2 -
+          1;
+        const cursorY = -(
+          ((wheelEvent.clientY - boundingRect.top) / boundingRect.height) * 2 -
+          1
+        );
         const zoomFactor = wheelEvent.deltaY > 0 ? 0.9 : 1.1;
-
-        const newScale = Math.min(
-          Math.max(MIN_SCALE, scale * zoomFactor),
+        const scale = Math.min(
+          Math.max(MIN_SCALE, current.scale * zoomFactor),
           MAX_SCALE,
         );
+        const scaleFactor = scale / current.scale;
 
-        const scaleFactor = newScale / scale;
-
-        setScale(newScale);
-
-        setOffset({
-          x: offsetX + (1 - scaleFactor) * (cursorX - offsetX),
-          y: offsetY + (1 - scaleFactor) * (cursorY - offsetY),
-        });
+        next = {
+          scale,
+          offsetX:
+            current.offsetX + (1 - scaleFactor) * (cursorX - current.offsetX),
+          offsetY:
+            current.offsetY + (1 - scaleFactor) * (cursorY - current.offsetY),
+        };
       } else {
-        // Pan
-        setOffset({
-          x:
-            offsetX -
-            (wheelEvent.deltaX * PAN_SPEED) / (viewer.clientWidth || 1),
-          y:
-            offsetY +
-            (wheelEvent.deltaY * PAN_SPEED) / (viewer.clientHeight || 1),
-        });
+        const deltaX = normalizeWheelDelta(
+          wheelEvent.deltaX,
+          wheelEvent.deltaMode,
+          viewer.clientWidth || 1,
+        );
+        const deltaY = normalizeWheelDelta(
+          wheelEvent.deltaY,
+          wheelEvent.deltaMode,
+          viewer.clientHeight || 1,
+        );
+
+        next = {
+          ...current,
+          offsetX:
+            current.offsetX - (deltaX * PAN_SPEED) / (viewer.clientWidth || 1),
+          offsetY:
+            current.offsetY + (deltaY * PAN_SPEED) / (viewer.clientHeight || 1),
+        };
+      }
+
+      applyLiveTransform(next);
+      scheduleWheelCommit();
+      if (!isDraggingRef.current) {
+        setIdleCursor(next);
       }
     },
-    [scale, offsetX, offsetY, setScale, setOffset, viewportRef],
+    [
+      applyLiveTransform,
+      cancelTransformAnimation,
+      getTransform,
+      scheduleWheelCommit,
+      setIdleCursor,
+      setTransformMode,
+      viewportRef,
+    ],
   );
 
   const handlePointerDown = useCallback(
     (pointerDownEvent: PointerEvent) => {
+      if (!enabledRef.current) return;
       if (
         pointerDownEvent.target instanceof HTMLElement &&
         pointerDownEvent.target.closest('[data-filter-ui="true"]')
       ) {
         return;
       }
-
-      if (!hasImage) return;
-
       if (pointerDownEvent.button !== 0) return;
 
       const viewer = viewportRef.current;
@@ -107,126 +441,156 @@ export function useInteractionHandlers(
       if (!viewer) return;
 
       pointerDownEvent.preventDefault();
+      viewer.focus({ preventScroll: true });
+      clearWheelCommitTimer();
+      cancelTransformAnimation();
 
       isDraggingRef.current = true;
+      hasDraggedRef.current = false;
+      activePointerIdRef.current = pointerDownEvent.pointerId;
       setGlobalCursor(true);
       setCursor("grabbing");
-
       lastPointerRef.current = {
         x: pointerDownEvent.clientX,
-
         y: pointerDownEvent.clientY,
+      };
+      pointerStartRef.current = {
+        x: pointerDownEvent.clientX,
+        y: pointerDownEvent.clientY,
+      };
+      dragViewportSizeRef.current = {
+        width: viewer.clientWidth || 1,
+        height: viewer.clientHeight || 1,
       };
 
       try {
         viewer.setPointerCapture?.(pointerDownEvent.pointerId);
-      } catch (err) {
-        console.warn("[useInteractionHandlers] setPointerCapture failed:", err);
+      } catch (error) {
+        console.warn(
+          "[useInteractionHandlers] setPointerCapture failed:",
+          error,
+        );
       }
     },
-    [viewportRef, setCursor, setGlobalCursor, hasImage],
+    [
+      cancelTransformAnimation,
+      clearWheelCommitTimer,
+      setCursor,
+      setGlobalCursor,
+      viewportRef,
+    ],
   );
 
   const handlePointerMove = useCallback(
     (pointerMoveEvent: PointerEvent) => {
-      if (
-        pointerMoveEvent.target instanceof HTMLElement &&
-        pointerMoveEvent.target.closest('[data-filter-ui="true"]')
-      ) {
-        return;
-      }
+      if (!enabledRef.current || !isDraggingRef.current) return;
 
-      if (!hasImage) return;
+      const viewer = viewportRef.current;
+      const lastPointer = lastPointerRef.current;
+      const pointerStart = pointerStartRef.current;
+      const viewportSize = dragViewportSizeRef.current;
 
-      if (!isDraggingRef.current || !viewportRef.current) return;
+      if (!viewer || !lastPointer || !pointerStart || !viewportSize) return;
 
       pointerMoveEvent.preventDefault();
 
-      const last = lastPointerRef.current;
+      if (!hasDraggedRef.current) {
+        const distanceX = pointerMoveEvent.clientX - pointerStart.x;
+        const distanceY = pointerMoveEvent.clientY - pointerStart.y;
 
-      if (!last) {
-        lastPointerRef.current = {
-          x: pointerMoveEvent.clientX,
+        if (
+          distanceX * distanceX + distanceY * distanceY <
+          CLICK_MOVEMENT_THRESHOLD_PX * CLICK_MOVEMENT_THRESHOLD_PX
+        ) {
+          return;
+        }
 
-          y: pointerMoveEvent.clientY,
-        };
-
-        return;
+        hasDraggedRef.current = true;
+        setTransformMode("manual");
       }
 
-      const deltaX = pointerMoveEvent.clientX - last.x;
-
-      const deltaY = pointerMoveEvent.clientY - last.y;
+      const deltaX = pointerMoveEvent.clientX - lastPointer.x;
+      const deltaY = pointerMoveEvent.clientY - lastPointer.y;
 
       lastPointerRef.current = {
         x: pointerMoveEvent.clientX,
-
         y: pointerMoveEvent.clientY,
       };
 
-      const viewer = viewportRef.current;
+      const current = getTransform();
 
-      const width = viewer.clientWidth || 1;
-
-      const height = viewer.clientHeight || 1;
-
-      const { offsetX: currentX, offsetY: currentY } =
-        useImageTransformStore.getState();
-
-      setOffset({
-        x: currentX + (deltaX * PAN_SPEED) / width,
-
-        y: currentY - (deltaY * PAN_SPEED) / height,
+      applyLiveTransform({
+        ...current,
+        offsetX: current.offsetX + (deltaX * PAN_SPEED) / viewportSize.width,
+        offsetY: current.offsetY - (deltaY * PAN_SPEED) / viewportSize.height,
       });
     },
-    [setOffset, viewportRef, hasImage],
+    [applyLiveTransform, getTransform, setTransformMode, viewportRef],
   );
 
   const handlePointerUp = useCallback(
     (pointerUpEvent: PointerEvent) => {
-      if (
-        pointerUpEvent.target instanceof HTMLElement &&
-        pointerUpEvent.target.closest('[data-filter-ui="true"]')
-      ) {
-        return;
-      }
-
       if (!isDraggingRef.current) return;
 
-      isDraggingRef.current = false;
-      setGlobalCursor(false);
+      const hasDragged = hasDraggedRef.current;
 
-      if (isHoveringRef.current) {
-        setCursor("grab");
-      } else {
-        setCursor("");
+      if (hasDragged) {
+        commitPendingTransform();
       }
 
-      lastPointerRef.current = null;
+      resetPointerInteraction();
 
-      try {
-        viewportRef.current?.releasePointerCapture?.(pointerUpEvent.pointerId);
-      } catch (err) {
-        console.warn(
-          "[useInteractionHandlers] releasePointerCapture failed:",
-          err,
-        );
+      if (hasDragged) {
+        setCursor(isHoveringRef.current ? getIdleCursor(getTransform()) : "");
+      } else {
+        toggleClickZoom(pointerUpEvent.clientX, pointerUpEvent.clientY);
       }
     },
-    [viewportRef, setCursor, setGlobalCursor],
+    [
+      commitPendingTransform,
+      getTransform,
+      resetPointerInteraction,
+      setCursor,
+      toggleClickZoom,
+    ],
   );
+
+  const handlePointerCancel = useCallback(() => {
+    if (!isDraggingRef.current) return;
+
+    commitPendingTransform();
+    resetPointerInteraction();
+    setCursor(isHoveringRef.current ? getIdleCursor(getTransform()) : "");
+  }, [
+    commitPendingTransform,
+    getTransform,
+    resetPointerInteraction,
+    setCursor,
+  ]);
 
   const handlePointerEnter = useCallback(() => {
     isHoveringRef.current = true;
     if (isDraggingRef.current) return;
-    setCursor("grab");
-  }, [setCursor]);
+    setIdleCursor();
+  }, [setIdleCursor]);
 
   const handlePointerLeave = useCallback(() => {
     isHoveringRef.current = false;
     if (isDraggingRef.current) return;
     setCursor("");
   }, [setCursor]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updateReducedMotion = () => {
+      reducedMotionRef.current = mediaQuery.matches;
+    };
+
+    updateReducedMotion();
+    mediaQuery.addEventListener("change", updateReducedMotion);
+
+    return () => mediaQuery.removeEventListener("change", updateReducedMotion);
+  }, []);
 
   useEffect(() => {
     const viewer = viewportRef.current;
@@ -237,7 +601,7 @@ export function useInteractionHandlers(
     viewer.addEventListener("pointerdown", handlePointerDown);
     viewer.addEventListener("pointermove", handlePointerMove);
     viewer.addEventListener("pointerup", handlePointerUp);
-    viewer.addEventListener("pointercancel", handlePointerUp);
+    viewer.addEventListener("pointercancel", handlePointerCancel);
     viewer.addEventListener("pointerenter", handlePointerEnter);
     viewer.addEventListener("pointerleave", handlePointerLeave);
 
@@ -246,23 +610,68 @@ export function useInteractionHandlers(
       viewer.removeEventListener("pointerdown", handlePointerDown);
       viewer.removeEventListener("pointermove", handlePointerMove);
       viewer.removeEventListener("pointerup", handlePointerUp);
-      viewer.removeEventListener("pointercancel", handlePointerUp);
+      viewer.removeEventListener("pointercancel", handlePointerCancel);
       viewer.removeEventListener("pointerenter", handlePointerEnter);
       viewer.removeEventListener("pointerleave", handlePointerLeave);
+      cancelTransformAnimation();
+
+      if (enabledRef.current && imagePathRef.current) {
+        commitPendingTransform();
+      } else {
+        cancelPendingTransform();
+      }
+
+      resetPointerInteraction();
+      viewer.style.removeProperty("cursor");
     };
   }, [
-    handleWheel,
+    cancelPendingTransform,
+    cancelTransformAnimation,
+    commitPendingTransform,
     handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
+    handlePointerCancel,
     handlePointerEnter,
     handlePointerLeave,
+    handlePointerMove,
+    handlePointerUp,
+    handleWheel,
+    resetPointerInteraction,
+    viewportRef,
   ]);
 
+  const previousInteractionRef = useRef({ enabled, imagePath });
+
   useEffect(() => {
-    return () => {
-      viewportRef.current?.style.removeProperty("cursor");
-      document.body.classList.remove("cursor-grabbing");
-    };
-  }, [viewportRef]);
+    const previous = previousInteractionRef.current;
+    const imageChanged = previous.imagePath !== imagePath;
+
+    if (imageChanged) {
+      cancelTransformAnimation();
+      cancelPendingTransform();
+      resetPointerInteraction();
+    } else if (previous.enabled && !enabled) {
+      cancelTransformAnimation();
+      commitPendingTransform();
+      resetPointerInteraction();
+    }
+
+    if (!enabled) {
+      setCursor("");
+    } else if (isHoveringRef.current) {
+      setIdleCursor();
+    }
+
+    previousInteractionRef.current = { enabled, imagePath };
+  }, [
+    cancelPendingTransform,
+    cancelTransformAnimation,
+    commitPendingTransform,
+    enabled,
+    imagePath,
+    resetPointerInteraction,
+    setCursor,
+    setIdleCursor,
+  ]);
+
+  return { animateTransform };
 }

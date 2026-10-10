@@ -1,6 +1,8 @@
-import { Accordion, AccordionItem } from "@heroui/accordion";
+import { Accordion } from "@heroui/react";
 import { PaletteIcon } from "@phosphor-icons/react";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { EditPanelSection } from "@/features/edit-panel/components/edit-panel-section";
 import { EDIT_PANEL_ACCORDION_PROPS } from "@/features/edit-panel/utils/accordion";
 
 export const MaskingPanel = () => {
@@ -9,17 +11,9 @@ export const MaskingPanel = () => {
       {...EDIT_PANEL_ACCORDION_PROPS}
       defaultExpandedKeys={["masking"]}
     >
-      <AccordionItem
-        key="masking"
-        aria-label="Masking"
-        className="w-full rounded-xl bg-zinc-800"
-        startContent={<PaletteIcon />}
-        title="Masking"
-      >
-        <div className="p-4 text-center text-sm text-zinc-500">
-          Masking tools coming soon...
-        </div>
-      </AccordionItem>
+      <EditPanelSection icon={<PaletteIcon />} id="masking" title="Masking">
+        <EmptyState compact title="Masking unavailable" />
+      </EditPanelSection>
     </Accordion>
   );
 };

@@ -33,7 +33,7 @@ const addChildrenToNode = (
 
 export const useVisibleNodes = () => {
   const [tree, setTree] = useState<TreeNode[]>([]);
-  const { expandedKeys } = useFileSystemStore();
+  const expandedKeys = useFileSystemStore((state) => state.expandedKeys);
   const queryClient = useQueryClient();
   const prevExpandedKeysRef = useRef<Selection>(new Set());
 

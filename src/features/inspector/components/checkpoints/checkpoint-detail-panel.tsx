@@ -6,7 +6,7 @@ import type { TextureResourceInspection } from "@/types/inspection";
 
 import { useCallback, useState } from "react";
 import { ArrowLeftIcon, TrashIcon } from "@phosphor-icons/react/dist/ssr";
-import { Button } from "@heroui/button";
+import { Button } from "@heroui/react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { CompactInspectorValue, InspectorRow } from "../shared/inspector-row";
@@ -17,6 +17,7 @@ import {
   selectedCheckpointArtifact,
 } from "./checkpoint-artifacts";
 import { CheckpointConfirmationModal } from "./checkpoint-action-modal";
+
 import { useInspectionWorkspaceStore } from "@/features/inspector/store/inspection-workspace-store";
 import { useInspectionCheckpoints } from "@/features/inspector/hooks/use-inspection-checkpoints";
 import { cn } from "@/lib/cn";
@@ -65,7 +66,6 @@ export function CheckpointDetailPanel({
     <>
       <div className="flex items-center justify-between gap-3">
         <Button
-          disableRipple
           isIconOnly
           aria-label="Back to capture sets"
           className="h-8 w-8 min-w-8 rounded-[16px] border border-zinc-700/50 bg-[rgba(30,30,30,0.99)] p-0 text-[11px] text-zinc-300 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] hover:bg-[rgba(50,50,50,0.99)] hover:text-white"
@@ -83,7 +83,6 @@ export function CheckpointDetailPanel({
           </div>
         </div>
         <Button
-          disableRipple
           isIconOnly
           aria-label="Delete capture set"
           className={cn(
@@ -231,7 +230,7 @@ export function CheckpointDetailPanel({
 
       {checkpoint.notes ? (
         <InspectorSection title="Notes">
-          <div className="whitespace-pre-wrap text-xs text-zinc-300">
+          <div className="app-selectable-text whitespace-pre-wrap text-xs text-zinc-300">
             {checkpoint.notes}
           </div>
         </InspectorSection>
@@ -270,7 +269,7 @@ function CheckpointVariantSection({
           <button
             key={artifact.id}
             className={cn(
-              "min-w-0 rounded-[16px] p-1 text-left outline-none transition hover:bg-[rgba(50,50,50,0.99)] focus-visible:ring-2 focus-visible:ring-blue-500",
+              "min-w-0 rounded-[16px] p-1 text-left outline-none transition hover:bg-[rgba(50,50,50,0.99)]",
               "border border-zinc-700/50 bg-[rgba(30,30,30,0.99)] shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
               selectedArtifact?.id === artifact.id
                 ? "ring-2 ring-blue-500"

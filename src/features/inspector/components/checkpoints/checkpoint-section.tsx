@@ -2,9 +2,14 @@ import type { InspectionCheckpoint } from "@/types/inspection-checkpoint";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraIcon, TrashIcon } from "@phosphor-icons/react/dist/ssr";
-import { Button } from "@heroui/button";
-import { Card, CardBody, CardFooter } from "@heroui/card";
-import { Tab, Tabs } from "@heroui/tabs";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardFooter,
+  Skeleton,
+  Tabs,
+} from "@heroui/react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { InspectorSection } from "../shared/inspector-section";
@@ -15,6 +20,7 @@ import {
   CheckpointConfirmationModal,
   type CheckpointCaptureProgress,
 } from "./checkpoint-action-modal";
+
 import { useInspectionCheckpoints } from "@/features/inspector/hooks/use-inspection-checkpoints";
 import { useInspectionWorkspaceStore } from "@/features/inspector/store/inspection-workspace-store";
 import { cn } from "@/lib/cn";
@@ -174,52 +180,55 @@ export function CheckpointSection() {
           Capture an exposure sweep for visual review.
         </div>
         <Button
-          disableRipple
           className="h-8 shrink-0 rounded-[16px] border border-zinc-700/50 bg-[rgba(30,30,30,0.99)] px-3 text-[11px] text-zinc-300 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] hover:bg-[rgba(50,50,50,0.99)] hover:text-white"
           isDisabled={!canCapture || isCapturing}
           size="sm"
-          startContent={<CameraIcon size={14} />}
           onPress={handleCapture}
         >
+          <CameraIcon size={14} />
           Capture Set
         </Button>
       </div>
 
       <Tabs
-        disableCursorAnimation
-        fullWidth
         aria-label="Capture set scope"
-        className="flex flex-col min-h-0 text-muted"
-        classNames={{
-          tabList:
-            "flex-shrink-0 rounded-[16px] border border-zinc-900/30 bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
-          tab: "h-7 text-[11px] text-zinc-500 data-selected:border data-selected:border-zinc-700/30 data-selected:shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] data-selected:bg-[rgba(30,30,30,0.99)] data-selected:drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] data-selected:rounded-xl",
-          tabContent: "group-data-[selected=true]:text-zinc-100",
-        }}
+        className="flex min-h-0 flex-col text-muted"
         selectedKey={checkpointScope}
-        size="sm"
-        variant="solid"
+        variant="secondary"
         onSelectionChange={(key) => {
           if (key === "current" || key === "all") {
             setCheckpointScope(key);
           }
         }}
       >
-        <Tab key="current" title="Current Image" />
-        <Tab key="all" title="All" />
+        <Tabs.ListContainer className="shrink-0 rounded-[16px] border border-zinc-900/30 bg-[rgba(30,30,30,0.99)] p-0.5 drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]">
+          <Tabs.List className="grid grid-cols-2 gap-0.5 bg-transparent p-0">
+            <Tabs.Tab
+              className="h-7 rounded-xl text-[11px] text-zinc-500 data-[selected=true]:border data-[selected=true]:border-zinc-700/30 data-[selected=true]:bg-[rgba(30,30,30,0.99)] data-[selected=true]:text-zinc-100 data-[selected=true]:shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset]"
+              id="current"
+            >
+              Current Image
+            </Tabs.Tab>
+            <Tabs.Tab
+              className="h-7 rounded-xl text-[11px] text-zinc-500 data-[selected=true]:border data-[selected=true]:border-zinc-700/30 data-[selected=true]:bg-[rgba(30,30,30,0.99)] data-[selected=true]:text-zinc-100 data-[selected=true]:shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset]"
+              id="all"
+            >
+              All
+            </Tabs.Tab>
+          </Tabs.List>
+        </Tabs.ListContainer>
       </Tabs>
 
       <Button
-        disableRipple
         className={cn(
           "h-8 w-full rounded-[16px] border border-zinc-700/50 bg-[rgba(30,30,30,0.99)] px-3 text-[11px] text-zinc-300 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] hover:bg-[rgba(50,50,50,0.99)] hover:text-white",
           "text-red-300 hover:text-red-200",
         )}
         isDisabled={!canClearCheckpoints}
         size="sm"
-        startContent={<TrashIcon size={13} />}
         onPress={() => setPendingDeleteAction(clearAction)}
       >
+        <TrashIcon size={13} />
         Clear All
       </Button>
 
@@ -238,18 +247,29 @@ export function CheckpointSection() {
       ) : null}
 
       {isLoading ? (
-        <div className="text-xs text-zinc-500">Loading checkpoints...</div>
-      ) : null}
-
-      <div className="grid grid-cols-2 gap-2">
-        {checkpoints.map((checkpoint) => (
-          <CheckpointCard
-            key={checkpoint.id}
-            checkpoint={checkpoint}
-            onSelect={selectCheckpoint}
-          />
-        ))}
-      </div>
+        <div
+          aria-label="Loading capture sets"
+          className="grid grid-cols-2 gap-2"
+          role="status"
+        >
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton
+              key={index}
+              className="aspect-square rounded-[16px] bg-zinc-800/70"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {checkpoints.map((checkpoint) => (
+            <CheckpointCard
+              key={checkpoint.id}
+              checkpoint={checkpoint}
+              onSelect={selectCheckpoint}
+            />
+          ))}
+        </div>
+      )}
 
       {!isLoading && checkpoints.length === 0 ? (
         <div className="text-xs text-zinc-500">{emptyMessage}</div>
@@ -284,16 +304,13 @@ function CheckpointCard({
 
   return (
     <Card
-      disableAnimation
-      disableRipple
-      isPressable
       className={cn(
-        "group relative overflow-hidden rounded-[16px] p-0 text-left outline-none transition hover:bg-[rgba(50,50,50,0.99)] focus-visible:ring-2 focus-visible:ring-blue-500",
+        "group relative overflow-hidden rounded-[16px] p-0 text-left outline-none transition hover:bg-[rgba(50,50,50,0.99)]",
         "border border-zinc-700/50 bg-[rgba(30,30,30,0.99)] shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
       )}
-      onPress={() => onSelect(checkpoint)}
+      onClick={() => onSelect(checkpoint)}
     >
-      <CardBody className="p-2">
+      <CardContent className="p-2">
         <div className="flex aspect-square items-center justify-center overflow-hidden rounded-sm bg-zinc-950/70">
           {artifactSrc ? (
             <img
@@ -307,7 +324,7 @@ function CheckpointCard({
             </div>
           )}
         </div>
-      </CardBody>
+      </CardContent>
       <CardFooter className="block space-y-1 px-2 pb-2 pt-0">
         <div className="truncate text-[11px] text-zinc-200">
           {checkpoint.label || checkpoint.sourcePath.split("/").pop() || "-"}

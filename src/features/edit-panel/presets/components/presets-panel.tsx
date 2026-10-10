@@ -1,6 +1,8 @@
-import { Accordion, AccordionItem } from "@heroui/accordion";
+import { Accordion } from "@heroui/react";
 import { PaletteIcon } from "@phosphor-icons/react";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { EditPanelSection } from "@/features/edit-panel/components/edit-panel-section";
 import { EDIT_PANEL_ACCORDION_PROPS } from "@/features/edit-panel/utils/accordion";
 
 export const PresetsPanel = () => {
@@ -9,17 +11,9 @@ export const PresetsPanel = () => {
       {...EDIT_PANEL_ACCORDION_PROPS}
       defaultExpandedKeys={["presets"]}
     >
-      <AccordionItem
-        key="presets"
-        aria-label="Presets"
-        className="w-full rounded-xl bg-zinc-800"
-        startContent={<PaletteIcon />}
-        title="Presets"
-      >
-        <div className="p-4 text-center text-sm text-zinc-500">
-          Presets coming soon...
-        </div>
-      </AccordionItem>
+      <EditPanelSection icon={<PaletteIcon />} id="presets" title="Presets">
+        <EmptyState compact title="Presets unavailable" />
+      </EditPanelSection>
     </Accordion>
   );
 };

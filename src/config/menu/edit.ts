@@ -1,25 +1,50 @@
-import { MenuItem, Submenu } from "@tauri-apps/api/menu";
+import { MenuItem, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
 
 import { createSeparator } from "./standard";
 
 import { getFilteredPaths } from "@/features/filter/hooks/use-filtered-files";
 import { useImageStore } from "@/store/image-store";
 
+const selectFocusedEditableContent = () => {
+  const activeElement = document.activeElement;
+
+  if (
+    activeElement instanceof HTMLInputElement ||
+    activeElement instanceof HTMLTextAreaElement
+  ) {
+    activeElement.select();
+
+    return true;
+  }
+
+  if (activeElement instanceof HTMLElement && activeElement.isContentEditable) {
+    const selection = window.getSelection();
+
+    if (!selection) return false;
+
+    const range = document.createRange();
+
+    range.selectNodeContents(activeElement);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    return true;
+  }
+
+  return false;
+};
+
 export async function createEditSubmenu() {
   const separator = await createSeparator();
 
-  const undo = await MenuItem.new({
-    id: "undo",
-    text: "Undo [action]",
-    enabled: false,
-    accelerator: "CmdOrCtrl+Z",
+  const undo = await PredefinedMenuItem.new({
+    item: "Undo",
+    text: "Undo",
   });
 
-  const redo = await MenuItem.new({
-    id: "redo",
-    text: "Redo [undone action]",
-    enabled: false,
-    accelerator: "Shift+CmdOrCtrl+Z",
+  const redo = await PredefinedMenuItem.new({
+    item: "Redo",
+    text: "Redo",
   });
 
   const revert = await MenuItem.new({
@@ -29,25 +54,19 @@ export async function createEditSubmenu() {
     accelerator: "Alt + R",
   });
 
-  const cut = await MenuItem.new({
-    id: "cut",
+  const cut = await PredefinedMenuItem.new({
+    item: "Cut",
     text: "Cut",
-    enabled: false,
-    accelerator: "CmdOrCtrl + X",
   });
 
-  const copy = await MenuItem.new({
-    id: "copy",
+  const copy = await PredefinedMenuItem.new({
+    item: "Copy",
     text: "Copy",
-    enabled: false,
-    accelerator: "CmdOrCtrl + C",
   });
 
-  const paste = await MenuItem.new({
-    id: "paste",
+  const paste = await PredefinedMenuItem.new({
+    item: "Paste",
     text: "Paste",
-    enabled: false,
-    accelerator: "CmdOrCtrl + V",
   });
 
   const selectAll = await MenuItem.new({
@@ -56,6 +75,8 @@ export async function createEditSubmenu() {
     enabled: true,
     accelerator: "CmdOrCtrl + A",
     action: () => {
+      if (selectFocusedEditableContent()) return;
+
       useImageStore.getState().selectAll(getFilteredPaths());
     },
   });

@@ -70,10 +70,10 @@ impl RendererManager {
         handle: RendererManagerHandle,
         path: String,
         preview_path: Option<String>,
-        viewport_x: u32,
-        viewport_y: u32,
-        viewport_width: u32,
-        viewport_height: u32,
+        viewport_x: f32,
+        viewport_y: f32,
+        viewport_width: f32,
+        viewport_height: f32,
         defer_full_image_load: bool,
     ) -> Result<u64, String> {
         let preview_label = preview_path.as_deref().unwrap_or("<none>");
@@ -84,12 +84,7 @@ impl RendererManager {
                 return Err("Renderer not initialized".to_string());
             };
 
-            renderer.update_proxy_viewport(
-                viewport_x as f32,
-                viewport_y as f32,
-                viewport_width as f32,
-                viewport_height as f32,
-            );
+            renderer.update_proxy_viewport(viewport_x, viewport_y, viewport_width, viewport_height);
 
             let request_id = renderer.begin_image_request();
             info!(

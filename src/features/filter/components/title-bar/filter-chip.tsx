@@ -1,4 +1,5 @@
-import { Chip } from "@heroui/chip";
+import { Chip } from "@heroui/react";
+import { XIcon } from "@phosphor-icons/react";
 import { ReactNode } from "react";
 
 type FilterChipProps = {
@@ -10,17 +11,23 @@ type FilterChipProps = {
 export function FilterChip({ label, icon, onClear }: FilterChipProps) {
   return (
     <Chip
-      className="bg-zinc-800 text-gray-100 border border-zinc-700"
-      color="default"
-      isCloseable={Boolean(onClear)}
-      radius="full"
+      className="flex items-center gap-1 border border-zinc-700 bg-zinc-800 text-gray-100"
       size="sm"
-      startContent={icon}
-      variant="faded"
-      onClose={onClear}
+      variant="secondary"
       onMouseDown={(e) => e.preventDefault()}
     >
-      {label}
+      {icon ? <span className="shrink-0">{icon}</span> : null}
+      <Chip.Label className="truncate">{label}</Chip.Label>
+      {onClear ? (
+        <button
+          aria-label={`Remove ${label} filter`}
+          className="-mr-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+          type="button"
+          onClick={onClear}
+        >
+          <XIcon size={10} weight="bold" />
+        </button>
+      ) : null}
     </Chip>
   );
 }

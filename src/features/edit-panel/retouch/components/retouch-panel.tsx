@@ -1,6 +1,8 @@
-import { Accordion, AccordionItem } from "@heroui/accordion";
+import { Accordion } from "@heroui/react";
 import { SunDimIcon } from "@phosphor-icons/react";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { EditPanelSection } from "@/features/edit-panel/components/edit-panel-section";
 import { EDIT_PANEL_ACCORDION_PROPS } from "@/features/edit-panel/utils/accordion";
 
 export const RetouchPanel = () => {
@@ -9,17 +11,13 @@ export const RetouchPanel = () => {
       {...EDIT_PANEL_ACCORDION_PROPS}
       defaultExpandedKeys={["retouch-detail"]}
     >
-      <AccordionItem
-        key="retouch-detail"
-        aria-label="Detail & Retouch"
-        className="w-full rounded-xl bg-zinc-800"
-        startContent={<SunDimIcon />}
+      <EditPanelSection
+        icon={<SunDimIcon />}
+        id="retouch-detail"
         title="Detail & Retouch"
       >
-        <div className="p-4 text-center text-sm text-zinc-500">
-          Detail tools coming soon...
-        </div>
-      </AccordionItem>
+        <EmptyState compact title="Detail and retouch unavailable" />
+      </EditPanelSection>
     </Accordion>
   );
 };

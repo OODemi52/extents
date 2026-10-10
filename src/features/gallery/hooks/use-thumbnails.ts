@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchThumbnail } from "../thumbnail/fetch-thumbnail";
@@ -50,10 +50,14 @@ export function useClearThumbnailCache() {
   };
 }
 
-export function usePrefetchThumbnails() {
-  const currentFolderPath = useImageStore((state) => state.currentFolderPath);
+export function usePrefetchThumbnails(active = true) {
+  const currentFolderPath = useImageStore((state) =>
+    active ? state.currentFolderPath : null,
+  );
 
   useEffect(() => {
+    if (!active) return;
+
     if (activeFolderPath !== currentFolderPath) {
       activeFolderPath = currentFolderPath;
       prefetchedPaths.clear();
@@ -63,9 +67,9 @@ export function usePrefetchThumbnails() {
         prefetchTimer = null;
       }
     }
-  }, [currentFolderPath]);
+  }, [active, currentFolderPath]);
 
-  return (imagePaths: string | string[]) => {
+  return useCallback((imagePaths: string | string[]) => {
     const paths = Array.isArray(imagePaths) ? imagePaths : [imagePaths];
 
     if (!paths.length) return;
@@ -99,5 +103,5 @@ export function usePrefetchThumbnails() {
         console.error("[usePrefetchThumbnails] batch prefetch failed:", error);
       });
     }, PREFETCH_FLUSH_DELAY_MS);
-  };
+  }, []);
 }

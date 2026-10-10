@@ -1,9 +1,11 @@
+import type { ReactElement } from "react";
+
 import { useMemo, useState } from "react";
-import { Input } from "@heroui/input";
-import { Button } from "@heroui/button";
+import { Button, InputGroup } from "@heroui/react";
 import {
   FlagIcon,
   FolderSimpleIcon,
+  MagnifyingGlassIcon,
   PencilSimpleIcon,
   ScalesIcon,
   StarIcon,
@@ -20,7 +22,7 @@ import { FlagValue } from "@/types/file-annotations";
 type Chip = {
   key: string;
   label: string;
-  icon: JSX.Element;
+  icon: ReactElement;
   onClear?: () => void;
 };
 
@@ -58,6 +60,7 @@ export function FilterSearchInput() {
   const setSize = useFilterStore((state) => state.setSize);
   const exts = useFilterStore((state) => state.exts);
   const setExts = useFilterStore((state) => state.setExts);
+  const clearFilters = useFilterStore((state) => state.clearFilters);
 
   const currentFolderPath = useImageStore((state) => state.currentFolderPath);
   const currentFolder =
@@ -161,41 +164,18 @@ export function FilterSearchInput() {
     setIsFocused(true);
   };
 
+  const visibleChips = chips.slice(0, 2);
+  const hiddenChipCount = Math.max(0, chips.length - visibleChips.length);
+
   return (
-    <Input
-      className="flex-1 px-4"
-      classNames={{
-        inputWrapper:
-          "items-center border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-2xl drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
-        innerWrapper: "items-center gap-2",
-      }}
-      endContent={
-        showClear ? (
-          <Button
-            isIconOnly
-            className="hover:bg-transparent"
-            size="sm"
-            variant="light"
-            onMouseDown={(event) => event.preventDefault()}
-            onPress={() => {
-              setSearch("");
-              setRating(null);
-              setFlags([]);
-              setSize(null);
-              setExts([]);
-              setEdited(null);
-            }}
-          >
-            <XCircleIcon size={16} weight="duotone" />
-          </Button>
-        ) : null
-      }
-      id="file-search"
-      placeholder={currentFolder ? `Search ${currentFolder}` : "Search"}
-      startContent={
-        chips.length ? (
-          <div className="flex flex-row items-center gap-1 min-h-[28px]">
-            {chips.map((chip) => (
+    <InputGroup
+      className="editor-control-surface h-10 min-h-10 min-w-0 flex-1 rounded-2xl px-3"
+      variant="secondary"
+    >
+      <InputGroup.Prefix className="min-w-0 gap-2 border-0 p-0">
+        {chips.length ? (
+          <div className="flex max-w-[58%] shrink-0 items-center gap-1 overflow-hidden">
+            {visibleChips.map((chip) => (
               <FilterChip
                 key={chip.key}
                 icon={chip.icon}
@@ -203,14 +183,52 @@ export function FilterSearchInput() {
                 onClear={chip.onClear}
               />
             ))}
+            {hiddenChipCount > 0 ? (
+              <span
+                aria-label={`${hiddenChipCount} more active filters`}
+                className="shrink-0 text-[11px] font-medium text-zinc-400"
+              >
+                +{hiddenChipCount}
+              </span>
+            ) : null}
           </div>
-        ) : null
-      }
-      value={search}
-      variant="faded"
-      onBlur={handleBlur}
-      onChange={(event) => setSearch(event.target.value)}
-      onFocus={handleFocus}
-    />
+        ) : (
+          <MagnifyingGlassIcon
+            aria-hidden="true"
+            className="shrink-0 text-zinc-500"
+            size={16}
+          />
+        )}
+      </InputGroup.Prefix>
+
+      <InputGroup.Input
+        aria-label="Search photos"
+        className="min-w-[72px] px-2 text-xs text-zinc-100 placeholder:text-zinc-500"
+        id="file-search"
+        placeholder={
+          currentFolder ? `Search ${currentFolder}` : "Search photos"
+        }
+        value={search}
+        onBlur={handleBlur}
+        onChange={(event) => setSearch(event.target.value)}
+        onFocus={handleFocus}
+      />
+
+      {showClear ? (
+        <InputGroup.Suffix className="border-0 p-0">
+          <Button
+            isIconOnly
+            aria-label="Clear search and filters"
+            className="editor-focus-ring h-7 w-7 min-w-7 rounded-xl bg-transparent text-zinc-500 hover:bg-white/[0.055] hover:text-zinc-200"
+            size="sm"
+            variant="ghost"
+            onMouseDown={(event) => event.preventDefault()}
+            onPress={clearFilters}
+          >
+            <XCircleIcon size={16} weight="duotone" />
+          </Button>
+        </InputGroup.Suffix>
+      ) : null}
+    </InputGroup>
   );
 }

@@ -1,6 +1,10 @@
 import { CheckMenuItem, MenuItem, Submenu } from "@tauri-apps/api/menu";
 
-import { createSeparator, setExclusiveChecked } from "./standard";
+import {
+  createSeparator,
+  hasEditableMenuFocus,
+  setExclusiveChecked,
+} from "./standard";
 
 import { useLayoutStore, type LayoutId } from "@/store/layout-store";
 import { useGalleryPreferencesStore } from "@/features/gallery/stores/gallery-preferences-store";
@@ -32,6 +36,7 @@ export async function createViewSubmenu() {
   const fileBrowser = await CheckMenuItem.new({
     id: "view.fileBrowser",
     text: "Toggle File Browser",
+    checked: useLayoutStore.getState().panels.sidebar,
     accelerator: "P",
     action: () => {
       const { panels, togglePanel } = useLayoutStore.getState();
@@ -47,6 +52,11 @@ export async function createViewSubmenu() {
   const presets = await CheckMenuItem.new({
     id: "view.presets",
     text: "Presets",
+    checked:
+      useLayoutStore.getState().panels.editPanel &&
+      !useLayoutStore.getState().panels.infoPanel &&
+      useLayoutStore.getState().activeEditTab === "presets",
+    enabled: false,
     accelerator: "Shift+P",
     action: (id) => {
       const {
@@ -55,31 +65,26 @@ export async function createViewSubmenu() {
         panels,
         setActiveLayout,
         setActiveEditTab,
-        togglePanel,
+        setPanelVisible,
       } = useLayoutStore.getState();
       const isEditableView =
         activeLayout === "detail" || activeLayout === "compare";
+      const isEditPanelVisible = panels.editPanel && !panels.infoPanel;
 
       if (!isEditableView) {
         setActiveLayout("detail");
         setExclusiveChecked(viewModeGroup, "view.detail");
       }
 
-      if (isEditableView && panels.editPanel && activeEditTab === "presets") {
-        togglePanel("editPanel");
+      if (isEditableView && isEditPanelVisible && activeEditTab === "presets") {
+        setPanelVisible("editPanel", false);
         setExclusiveChecked(panelGroup, null);
 
         return;
       }
 
-      if (panels.infoPanel) {
-        togglePanel("infoPanel");
-      }
-
       setActiveEditTab("presets");
-      if (!panels.editPanel) {
-        togglePanel("editPanel");
-      }
+      setPanelVisible("editPanel", true);
 
       setExclusiveChecked(panelGroup, id);
     },
@@ -88,32 +93,31 @@ export async function createViewSubmenu() {
   const edit = await CheckMenuItem.new({
     id: "view.edit",
     text: "Edit",
+    checked:
+      useLayoutStore.getState().panels.editPanel &&
+      !useLayoutStore.getState().panels.infoPanel &&
+      useLayoutStore.getState().activeEditTab !== "presets",
     accelerator: "E",
     action: (id) => {
-      const { activeLayout, panels, setActiveLayout, togglePanel } =
+      const { activeLayout, panels, setActiveLayout, setPanelVisible } =
         useLayoutStore.getState();
       const isEditableView =
         activeLayout === "detail" || activeLayout === "compare";
+      const isEditPanelVisible = panels.editPanel && !panels.infoPanel;
 
       if (!isEditableView) {
         setActiveLayout("detail");
         setExclusiveChecked(viewModeGroup, "view.detail");
       }
 
-      if (isEditableView && panels.editPanel) {
-        togglePanel("editPanel");
+      if (isEditableView && isEditPanelVisible) {
+        setPanelVisible("editPanel", false);
         setExclusiveChecked(panelGroup, null);
 
         return;
       }
 
-      if (panels.infoPanel) {
-        togglePanel("infoPanel");
-      }
-
-      if (!panels.editPanel) {
-        togglePanel("editPanel");
-      }
+      setPanelVisible("editPanel", true);
 
       setExclusiveChecked(panelGroup, id);
     },
@@ -122,13 +126,23 @@ export async function createViewSubmenu() {
   const info = await CheckMenuItem.new({
     id: "view.info",
     text: "Info",
+    checked: useLayoutStore.getState().panels.infoPanel,
     accelerator: "I",
     action: (id) => {
-      const { panels, togglePanel } = useLayoutStore.getState();
+      const { activeEditTab, panels, togglePanel } = useLayoutStore.getState();
       const willOpen = !panels.infoPanel;
 
       togglePanel("infoPanel");
-      setExclusiveChecked(panelGroup, willOpen ? id : null);
+      setExclusiveChecked(
+        panelGroup,
+        willOpen
+          ? id
+          : panels.editPanel
+            ? activeEditTab === "presets"
+              ? "view.presets"
+              : "view.edit"
+            : null,
+      );
     },
   });
 
@@ -467,10 +481,10 @@ export async function createViewSubmenu() {
   const gridView = await CheckMenuItem.new({
     id: "view.grid",
     text: "Grid",
-    checked: activeLayout === "thumbnails",
+    checked: activeLayout === "grid",
     accelerator: "G",
     action: (id) => {
-      useLayoutStore.getState().setActiveLayout("thumbnails");
+      useLayoutStore.getState().setActiveLayout("grid");
       setExclusiveChecked(viewModeGroup, id);
     },
   });
@@ -517,6 +531,7 @@ export async function createViewSubmenu() {
   const detailFullscreen = await CheckMenuItem.new({
     id: "view.detailFullscreen",
     text: "Detail - Full Screen",
+    enabled: false,
     accelerator: "F",
     action: (id) => setExclusiveChecked(viewModeGroup, id),
   });
@@ -532,7 +547,7 @@ export async function createViewSubmenu() {
   const setCheckedViewModeForLayout = (layout: LayoutId) => {
     const inspectorIsEnabled = useLayoutStore.getState().inspectorEnabled;
 
-    if (layout === "thumbnails") {
+    if (layout === "grid") {
       setExclusiveChecked(viewModeGroup, "view.grid");
     } else if (layout === "inspector" && inspectorIsEnabled) {
       setExclusiveChecked(viewModeGroup, "view.inspector");
@@ -649,11 +664,47 @@ export async function createViewSubmenu() {
   useLayoutStore.subscribe((state) => {
     void enableInspector.setChecked(state.inspectorEnabled);
     void inspectorView.setEnabled(state.inspectorEnabled);
+    void fileBrowser.setChecked(state.panels.sidebar);
+    void filmstrip.setChecked(state.panels.filmstrip);
+
+    if (state.panels.infoPanel) {
+      setExclusiveChecked(panelGroup, "view.info");
+    } else if (state.panels.editPanel) {
+      setExclusiveChecked(
+        panelGroup,
+        state.activeEditTab === "presets" ? "view.presets" : "view.edit",
+      );
+    } else {
+      setExclusiveChecked(panelGroup, null);
+    }
 
     if (!state.inspectorEnabled) {
       void inspectorView.setChecked(false);
     }
   });
+
+  const plainShortcutItems = [
+    fileBrowser,
+    edit,
+    info,
+    gridView,
+    detailView,
+    filmstrip,
+  ];
+  const updatePlainShortcutAvailability = () => {
+    const enabled = !hasEditableMenuFocus();
+
+    plainShortcutItems.forEach((item) => {
+      void item.setEnabled(enabled);
+    });
+  };
+  const schedulePlainShortcutUpdate = () => {
+    queueMicrotask(updatePlainShortcutAvailability);
+  };
+
+  document.addEventListener("focusin", updatePlainShortcutAvailability);
+  document.addEventListener("focusout", schedulePlainShortcutUpdate);
+  updatePlainShortcutAvailability();
 
   return Submenu.new({
     text: "View",

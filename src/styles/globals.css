@@ -1,11 +1,114 @@
 @import "tailwindcss";
-@plugin './hero.ts';
-@source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
+@import "@heroui/styles";
 @custom-variant dark (&:is(.dark *));
 
+:root {
+  color-scheme: dark;
+  font-synthesis: none;
+  --editor-canvas: #191919;
+  --editor-panel: rgba(30, 30, 30, 0.99);
+  --editor-panel-hover: rgba(45, 45, 47, 0.99);
+  --editor-surface: rgba(39, 39, 42, 0.82);
+  --editor-border: rgba(63, 63, 70, 0.5);
+  --editor-border-subtle: rgba(63, 63, 70, 0.26);
+  --editor-text: #f4f4f5;
+  --editor-text-muted: #a1a1aa;
+  --editor-text-subtle: #71717a;
+  --editor-accent: #3b82f6;
+  --focus-border: #3b82f6;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
+
 body {
+  color: var(--editor-text);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "Segoe UI",
+    sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+[data-slot="input"],
+[data-slot="input-group-input"] {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline-color: transparent !important;
+  outline-width: 0 !important;
+}
+
+[data-slot="input-group"]:focus-within {
+  border-color: var(--editor-border) !important;
+  box-shadow: none !important;
+  outline-color: transparent !important;
+  outline-width: 0 !important;
+}
+
+.slider-value-input {
+  border-color: transparent !important;
+}
+
+[data-slot="input"]:focus,
+[data-slot="input"]:focus-visible,
+[data-slot="input-group-input"]:focus,
+[data-slot="input-group-input"]:focus-visible {
+  background: transparent !important;
+  box-shadow: none !important;
+  outline-color: transparent !important;
+  outline-width: 0 !important;
+}
+
+.button:active,
+.button[data-pressed="true"] {
+  transform: none;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+code,
+pre,
+.app-selectable-text {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.35);
+  color: white;
 }
 
 body.cursor-grabbing,
@@ -13,32 +116,165 @@ body.cursor-grabbing * {
   cursor: grabbing !important;
 }
 
-html,
-body,
-.bg-background {
-  background: rgba(72, 72, 72, 0);
-  overflow: hidden;
+body.cursor-col-resize,
+body.cursor-col-resize * {
+  cursor: col-resize !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 
-.allotment-shell .sash.sash-vertical {
-  width: 6px;
+body.cursor-row-resize,
+body.cursor-row-resize * {
+  cursor: row-resize !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+.workspace-sash {
   background: transparent;
 }
 
-.allotment-shell .sash.sash-vertical::before {
+.workspace-sash::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 2px;
-  height: 100%;
+  pointer-events: none;
   border-radius: 1px;
   background: transparent;
   transition: background-color 120ms ease;
 }
 
-.allotment-shell .sash.sash-vertical.sash-hover::before,
-.allotment-shell .sash.sash-vertical.sash-active::before {
-  background-color: var(--focus-border);
+.workspace-sash-vertical {
+  width: 6px;
+}
+
+.workspace-sash-vertical::before {
+  top: 24px;
+  right: 0;
+  bottom: 24px;
+  width: 2px;
+  transform: none;
+}
+
+.workspace-sash-horizontal {
+  height: 8px;
+}
+
+.workspace-sash-horizontal::before {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  transform: translateY(-50%);
+}
+
+.workspace-sash:hover::before,
+.workspace-sash[data-active="true"]::before {
+  background-color: #007fd4;
+}
+
+html,
+body {
+  background: rgba(72, 72, 72, 0);
+  overflow: hidden;
+}
+
+.editor-panel {
+  position: relative;
+  border: 1px solid var(--editor-border);
+  border-radius: 24px;
+  background: var(--editor-panel);
+  box-shadow:
+    inset 2px 4px 16px rgba(248, 248, 248, 0.045),
+    0 0 1px rgba(0, 0, 0, 0.7);
+}
+
+.editor-surface {
+  border: 1px solid var(--editor-border-subtle);
+  border-radius: 16px;
+  background: var(--editor-surface);
+}
+
+.editor-control-surface {
+  border: 1px solid var(--editor-border);
+  background: var(--editor-panel);
+  box-shadow:
+    inset 2px 4px 16px rgba(248, 248, 248, 0.045),
+    0 0 1px rgba(0, 0, 0, 0.7);
+}
+
+.workspace-view-tabs > .tabs__list-container {
+  border-radius: 16px;
+}
+
+.workspace-view-tabs .tabs__list {
+  gap: 0;
+  padding: 0;
+}
+
+.workspace-view-tabs .tabs__tab {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #a1a1aa;
+}
+
+.workspace-view-tabs .tabs__tab[data-selected="true"] {
+  background: transparent;
+  color: #f4f4f5;
+}
+
+.workspace-view-tabs .tabs__tab[data-disabled="true"] {
+  color: #52525b;
+}
+
+.workspace-view-tabs .tabs__indicator {
+  display: none;
+}
+
+.editor-tooltip {
+  border: 1px solid rgba(63, 63, 70, 0.72);
+  background: rgba(24, 24, 27, 0.98);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+}
+
+:focus-visible {
+  outline-color: transparent !important;
+  outline-width: 0 !important;
+}
+
+* {
+  scrollbar-color: rgba(113, 113, 122, 0.52) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  min-height: 32px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(113, 113, 122, 0.52);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(161, 161, 170, 0.62);
+  background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,13 +1,14 @@
 import type { InspectionCheckpoint } from "@/types/inspection-checkpoint";
 
 import { useCallback, useRef } from "react";
-import { Button } from "@heroui/button";
+import { Button } from "@heroui/react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 import {
   checkpointArtifacts,
   selectedCheckpointArtifact,
 } from "./checkpoint-artifacts";
+
 import { useInspectionWorkspaceStore } from "@/features/inspector/store/inspection-workspace-store";
 import { cn } from "@/lib/cn";
 import { formatDimensions } from "@/lib/formatters";
@@ -220,7 +221,6 @@ export function CheckpointReviewViewport({
         onPointerDown={(event) => event.stopPropagation()}
       >
         <Button
-          disableRipple
           className="h-7 min-w-0 rounded-[16px] border border-zinc-700/50 bg-[rgba(30,30,30,0.99)] px-2 text-[11px] text-zinc-300 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)] hover:bg-[rgba(50,50,50,0.99)] hover:text-white"
           size="sm"
           onPress={resetTransform}
@@ -243,7 +243,6 @@ export function CheckpointReviewViewport({
           {artifacts.map((artifact) => (
             <Button
               key={artifact.id}
-              disableRipple
               isIconOnly
               className={cn(
                 "relative h-16 w-16 min-w-16 shrink-0 overflow-hidden rounded-[16px] p-1 outline-none hover:bg-[rgba(50,50,50,0.99)]",

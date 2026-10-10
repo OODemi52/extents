@@ -1,8 +1,9 @@
-import { useEffect } from "react";
-import { motion } from "framer-motion";
-import { Allotment } from "allotment";
+import { memo, useEffect } from "react";
 
+import { AnimatedFilmstripPanel } from "@/components/ui/animated-filmstrip-panel";
+import { AnimatedSidePanel } from "@/components/ui/animated-side-panel";
 import { Filmstrip } from "@/features/gallery/filmstrip/filmstrip";
+import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
 import { CheckpointReviewViewport } from "@/features/inspector/components/checkpoints/checkpoint-review-viewport";
 import { InspectorPanel } from "@/features/inspector/components/inspector-panel";
 import { useInspectionWorkspaceStore } from "@/features/inspector/store/inspection-workspace-store";
@@ -18,10 +19,12 @@ import {
 import { useImageStore } from "@/store/image-store";
 
 type InspectorLayoutProps = {
+  onPickFolder?: () => void;
   rendererActive?: boolean;
 };
 
-export function InspectorLayout({
+export const InspectorLayout = memo(function InspectorLayout({
+  onPickFolder,
   rendererActive = true,
 }: InspectorLayoutProps) {
   const selectedCheckpoint = useInspectionWorkspaceStore(
@@ -30,76 +33,70 @@ export function InspectorLayout({
   const clearCheckpoint = useInspectionWorkspaceStore(
     (state) => state.clearCheckpoint,
   );
-  const { panels, filmstripHeight, setFilmstripHeight } = useLayoutStore();
-  const files = useImageStore((state) => state.files);
-  const selectedIndex = useImageStore((state) => state.selectedIndex);
-  const selectedPath =
-    selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
+  const selectedPath = useImageStore((state) =>
+    rendererActive && state.selectedIndex !== null
+      ? (state.files[state.selectedIndex]?.path ?? null)
+      : null,
+  );
+  const filmstripVisible = useLayoutStore((state) => state.panels.filmstrip);
+  const sidePanelsHidden = useLayoutStore((state) => state.sidePanelsHidden);
+  const filmstripHeight = useLayoutStore((state) => state.filmstripHeight);
+  const setFilmstripHeight = useLayoutStore(
+    (state) => state.setFilmstripHeight,
+  );
+  const filteredFiles = useFilteredImages(rendererActive);
+  const isFilmstripVisible = filmstripVisible && filteredFiles.length > 0;
+  const isFilmstripOpen = rendererActive && isFilmstripVisible;
+  const isInspectorPanelOpen = rendererActive && !sidePanelsHidden;
 
   useEffect(() => {
+    if (!rendererActive) return;
+
     clearCheckpoint();
-  }, [clearCheckpoint, selectedPath]);
+  }, [clearCheckpoint, rendererActive, selectedPath]);
 
   return (
-    <div className="h-full">
-      <Allotment
-        className="h-full allotment-shell"
-        proportionalLayout={false}
-        separator={false}
-        vertical={false}
+    <div className="flex h-full overflow-hidden">
+      <div
+        className="h-full min-w-0 flex-1 overflow-hidden"
+        style={{ minWidth: MAIN_MIN_WIDTH }}
       >
-        <Allotment.Pane minSize={MAIN_MIN_WIDTH}>
-          <div className="h-full">
-            <Allotment
-              vertical
-              proportionalLayout={false}
-              separator={false}
-              onDragEnd={(sizes) => {
-                if (sizes[1] !== undefined) {
-                  setFilmstripHeight(sizes[1]);
-                }
-              }}
-            >
-              <Allotment.Pane minSize={240}>
-                <div className="relative h-full">
-                  <InteractionViewport
-                    rendererActive={rendererActive && !selectedCheckpoint}
-                  />
-                  {selectedCheckpoint ? (
-                    <CheckpointReviewViewport checkpoint={selectedCheckpoint} />
-                  ) : null}
-                </div>
-              </Allotment.Pane>
-              <Allotment.Pane
-                maxSize={FILMSTRIP_MAX_HEIGHT}
-                minSize={FILMSTRIP_MIN_HEIGHT}
-                preferredSize={filmstripHeight || FILMSTRIP_DEFAULT_HEIGHT}
-              >
-                <motion.div
-                  animate={{
-                    y: panels.filmstrip ? 0 : 12,
-                    opacity: panels.filmstrip ? 1 : 0,
-                  }}
-                  className={
-                    panels.filmstrip ? "h-full" : "h-full pointer-events-none"
-                  }
-                  initial={false}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                >
-                  <Filmstrip />
-                </motion.div>
-              </Allotment.Pane>
-            </Allotment>
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="relative min-h-[240px] flex-1 overflow-hidden">
+            <div className="relative h-full">
+              <InteractionViewport
+                rendererActive={rendererActive && !selectedCheckpoint}
+                onPickFolder={onPickFolder}
+              />
+              {selectedCheckpoint ? (
+                <CheckpointReviewViewport checkpoint={selectedCheckpoint} />
+              ) : null}
+            </div>
           </div>
-        </Allotment.Pane>
-        <Allotment.Pane
-          maxSize={EDIT_PANEL_DEFAULT_WIDTH}
-          minSize={EDIT_PANEL_DEFAULT_WIDTH}
-          preferredSize={EDIT_PANEL_DEFAULT_WIDTH}
-        >
-          <InspectorPanel />
-        </Allotment.Pane>
-      </Allotment>
+          <AnimatedFilmstripPanel
+            height={filmstripHeight || FILMSTRIP_DEFAULT_HEIGHT}
+            maxHeight={FILMSTRIP_MAX_HEIGHT}
+            minHeight={FILMSTRIP_MIN_HEIGHT}
+            motionEnabled={rendererActive}
+            open={isFilmstripOpen}
+            onHeightCommit={setFilmstripHeight}
+          >
+            {(height) =>
+              rendererActive && filteredFiles.length > 0 ? (
+                <Filmstrip height={height} />
+              ) : null
+            }
+          </AnimatedFilmstripPanel>
+        </div>
+      </div>
+      <AnimatedSidePanel
+        motionEnabled={rendererActive}
+        open={isInspectorPanelOpen}
+        side="right"
+        width={EDIT_PANEL_DEFAULT_WIDTH}
+      >
+        <InspectorPanel active={isInspectorPanelOpen} />
+      </AnimatedSidePanel>
     </div>
   );
-}
+});

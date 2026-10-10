@@ -3,7 +3,6 @@ import { useRef, useCallback, useEffect } from "react";
 import { useImageStore } from "@/store/image-store";
 
 export function useScrubbing(settleDelay: number = 250) {
-  const isScrubbing = useImageStore((state) => state.isScrubbing);
   const setIsScrubbing = useImageStore((state) => state.setIsScrubbing);
   const scrubTimeout = useRef<number | null>(null);
 
@@ -19,7 +18,7 @@ export function useScrubbing(settleDelay: number = 250) {
   }, [clearScrubTimeout]);
 
   const startScrubbing = useCallback(() => {
-    if (!isScrubbing) {
+    if (!useImageStore.getState().isScrubbing) {
       setIsScrubbing(true);
     }
 
@@ -29,7 +28,7 @@ export function useScrubbing(settleDelay: number = 250) {
       scrubTimeout.current = null;
       setIsScrubbing(false);
     }, settleDelay);
-  }, [isScrubbing, setIsScrubbing, clearScrubTimeout]);
+  }, [setIsScrubbing, clearScrubTimeout, settleDelay]);
 
   return { startScrubbing };
 }

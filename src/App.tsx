@@ -1,56 +1,38 @@
-import "allotment/dist/style.css";
-import { Allotment } from "allotment";
-import { motion } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 
-import { ThumbnailGridLayout } from "./layouts/thumbnai-grid-layout";
+import { GridLayout } from "./layouts/grid-layout";
 import { DetailLayout } from "./layouts/detail-layout";
 import { InspectorLayout } from "./layouts/inspector-layout";
-import { Sidebar } from "./components/sidebar";
 import { BottomToolbar } from "./components/bottom-toolbar";
-import {
-  MAIN_MIN_WIDTH,
-  SIDEBAR_MAX_WIDTH,
-  SIDEBAR_MIN_WIDTH,
-  SIDEBAR_DEFAULT_WIDTH,
-  useLayoutStore,
-} from "./store/layout-store";
+import { MAIN_MIN_WIDTH, useLayoutStore } from "./store/layout-store";
 import { TitleBar } from "./components/title-bar";
 import { useFolderScanner } from "./hooks/use-folder-scanner";
-import { useAnnotations } from "./hooks/use-annotations";
-import { useExifMetadata } from "./hooks/use-exif-metadata";
 import { SettingsModal } from "./features/settings/components/settings-modal";
-import { useCacheSize } from "./features/settings/system/hooks/use-cache-size";
-import { useActiveSidecar } from "./features/sidecar/hooks/use-active-sidecar";
 import { useInspectionWorkspaceStore } from "./features/inspector/store/inspection-workspace-store";
+import { api } from "./services/api";
+import { ApplicationEffects } from "./components/application-effects";
+import { SidebarRail } from "./components/sidebar-rail";
 
 function App() {
-  useAnnotations();
-  useExifMetadata();
-  useCacheSize();
-  useActiveSidecar();
-
-  const {
-    activeLayout,
-    panels,
-    sidebarWidth,
-    inspectorEnabled,
-    setSidebarWidth,
-    setSidebarResizing,
-    setActiveLayout,
-  } = useLayoutStore();
+  const activeLayout = useLayoutStore((state) => state.activeLayout);
+  const inspectorEnabled = useLayoutStore((state) => state.inspectorEnabled);
+  const setActiveLayout = useLayoutStore((state) => state.setActiveLayout);
   const selectedCheckpoint = useInspectionWorkspaceStore(
     (state) => state.selectedCheckpoint,
   );
   const { openFolder } = useFolderScanner();
-  const lastSidebarWidthRef = useRef(sidebarWidth);
-  const isSidebarOpen = panels.sidebar;
-  const sidebarPreferredSize =
-    lastSidebarWidthRef.current || SIDEBAR_DEFAULT_WIDTH;
-  const sidebarMinSize = SIDEBAR_MIN_WIDTH;
+  const handlePickFolder = useCallback(() => {
+    void openFolder(null, "picker");
+  }, [openFolder]);
+  const isGridLayoutActive = activeLayout === "grid";
+  const isDetailLayoutActive = activeLayout === "detail";
+  const isInspectorLayoutActive =
+    activeLayout === "inspector" && inspectorEnabled;
   const useOpaqueAppBackground =
-    activeLayout === "thumbnails" ||
+    isGridLayoutActive ||
     (activeLayout === "inspector" && Boolean(selectedCheckpoint));
+  const shouldSuspendRenderer =
+    !isDetailLayoutActive && !(isInspectorLayoutActive && !selectedCheckpoint);
 
   useEffect(() => {
     if (!inspectorEnabled && activeLayout === "inspector") {
@@ -58,99 +40,77 @@ function App() {
     }
   }, [activeLayout, inspectorEnabled, setActiveLayout]);
 
+  useEffect(() => {
+    if (!shouldSuspendRenderer) return;
+
+    void api.renderer.suspendPresentation().catch((error) => {
+      console.error("Failed to suspend renderer presentation:", error);
+    });
+  }, [shouldSuspendRenderer]);
+
   return (
     <div
       className={`flex h-screen flex-col shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] ${useOpaqueAppBackground ? "bg-[#191919]" : ""}`}
     >
       <div className="pointer-events-none w-10/12 mx-auto absolute inset-x-0 top-0 z-20 h-px bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.1),rgba(255,255,255,0))]" />
-      <TitleBar onPickFolder={() => openFolder(null, "picker")} />
+      <ApplicationEffects />
+      <TitleBar onPickFolder={handlePickFolder} />
       <div className="flex-1 overflow-hidden">
         <div className="flex h-full flex-col">
           <div className="flex flex-1 overflow-hidden py-2">
-            <Allotment
-              className="h-full allotment-shell"
-              proportionalLayout={false}
-              separator={false}
-              vertical={false}
-              onChange={(sizes) => {
-                if (
-                  panels.sidebar &&
-                  typeof sizes[0] === "number" &&
-                  sizes[0] > 0
-                ) {
-                  lastSidebarWidthRef.current = sizes[0];
-                }
-              }}
-              onDragEnd={(sizes) => {
-                if (
-                  panels.sidebar &&
-                  typeof sizes[0] === "number" &&
-                  sizes[0] > 0
-                ) {
-                  lastSidebarWidthRef.current = sizes[0];
-                  setSidebarWidth(sizes[0]);
-                }
-                setSidebarResizing(false);
-              }}
-              onDragStart={() => setSidebarResizing(true)}
-            >
-              <Allotment.Pane
-                snap
-                maxSize={SIDEBAR_MAX_WIDTH}
-                minSize={sidebarMinSize}
-                preferredSize={sidebarPreferredSize}
-                visible={isSidebarOpen}
-              >
-                <motion.div
-                  key="sidebar-panel-motion"
-                  animate={{
-                    x: isSidebarOpen ? 0 : -20,
-                    opacity: isSidebarOpen ? 1 : 0,
-                  }}
-                  className={`h-full pl-2 ${isSidebarOpen ? "pointer-events-auto" : "pointer-events-none"}`}
-                  initial={false}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                >
-                  <Sidebar />
-                </motion.div>
-              </Allotment.Pane>
+            <div className="flex h-full w-full overflow-hidden">
+              <SidebarRail />
 
-              <Allotment.Pane minSize={MAIN_MIN_WIDTH}>
-                <div className="relative h-full">
-                  <div
-                    className={`absolute inset-0 ${
-                      activeLayout === "thumbnails"
-                        ? "opacity-100 pointer-events-auto"
-                        : "opacity-0 pointer-events-none"
-                    }`}
-                  >
-                    <ThumbnailGridLayout />
-                  </div>
-                  <div
-                    className={`absolute inset-0 ${
-                      activeLayout === "detail"
-                        ? "opacity-100 pointer-events-auto"
-                        : "opacity-0 pointer-events-none"
-                    }`}
-                  >
-                    <DetailLayout rendererActive={activeLayout === "detail"} />
-                  </div>
-                  <div
-                    className={`absolute inset-0 ${
-                      activeLayout === "inspector"
-                        ? "opacity-100 pointer-events-auto"
-                        : "opacity-0 pointer-events-none"
-                    }`}
-                  >
-                    {inspectorEnabled ? (
-                      <InspectorLayout
-                        rendererActive={activeLayout === "inspector"}
-                      />
-                    ) : null}
-                  </div>
+              <div
+                className="relative h-full min-w-0 flex-1"
+                style={{ minWidth: MAIN_MIN_WIDTH }}
+              >
+                <div
+                  aria-hidden={!isGridLayoutActive}
+                  className={`absolute inset-0 ${
+                    isGridLayoutActive
+                      ? "opacity-100 pointer-events-auto"
+                      : "opacity-0 pointer-events-none"
+                  }`}
+                  inert={!isGridLayoutActive || undefined}
+                >
+                  <GridLayout
+                    layoutActive={isGridLayoutActive}
+                    onPickFolder={handlePickFolder}
+                  />
                 </div>
-              </Allotment.Pane>
-            </Allotment>
+                <div
+                  aria-hidden={!isDetailLayoutActive}
+                  className={`absolute inset-0 ${
+                    isDetailLayoutActive
+                      ? "opacity-100 pointer-events-auto"
+                      : "opacity-0 pointer-events-none"
+                  }`}
+                  inert={!isDetailLayoutActive || undefined}
+                >
+                  <DetailLayout
+                    rendererActive={isDetailLayoutActive}
+                    onPickFolder={handlePickFolder}
+                  />
+                </div>
+                <div
+                  aria-hidden={!isInspectorLayoutActive}
+                  className={`absolute inset-0 ${
+                    isInspectorLayoutActive
+                      ? "opacity-100 pointer-events-auto"
+                      : "opacity-0 pointer-events-none"
+                  }`}
+                  inert={!isInspectorLayoutActive || undefined}
+                >
+                  {inspectorEnabled ? (
+                    <InspectorLayout
+                      rendererActive={isInspectorLayoutActive}
+                      onPickFolder={handlePickFolder}
+                    />
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </div>
           <BottomToolbar />
         </div>

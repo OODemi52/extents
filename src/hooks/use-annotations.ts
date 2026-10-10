@@ -5,9 +5,13 @@ import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-st
 import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
 import { useImageStore } from "@/store/image-store";
 
+const EMPTY_FILES: ReturnType<typeof useImageStore.getState>["files"] = [];
+
 export function useAnnotations() {
-  const files = useImageStore((selected) => selected.files);
-  const isLoading = useImageStore((selected) => selected.isLoading);
+  const files = useImageStore((state) =>
+    state.isLoading ? EMPTY_FILES : state.files,
+  );
+  const isLoading = useImageStore((state) => state.isLoading);
   const paths = useMemo(() => files.map((file) => file.path), [files]);
   const dependencyKey = useMemo(() => paths.join("|"), [paths]);
 

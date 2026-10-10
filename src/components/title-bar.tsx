@@ -1,13 +1,9 @@
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  FolderOpenIcon,
-  FunnelIcon,
-} from "@phosphor-icons/react/dist/ssr";
-import { Button, ButtonGroup } from "@heroui/button";
-import { Spinner, Tooltip } from "@heroui/react";
+import { memo } from "react";
+import { Button, Spinner } from "@heroui/react";
+import { FolderOpenIcon, FunnelIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { ToolbarIconButton } from "./ui/buttons/toolbar-icon-button";
+import { EditorTooltip } from "./ui/editor-tooltip";
 
 import { FilterSearchInput } from "@/features/filter/components/title-bar/search-input";
 import { SortSelect } from "@/features/filter/components/title-bar/sort-select";
@@ -19,68 +15,67 @@ interface TitleBarProps {
   onPickFolder: () => void;
 }
 
-export function TitleBar({ onPickFolder }: TitleBarProps) {
+export const TitleBar = memo(function TitleBar({
+  onPickFolder,
+}: TitleBarProps) {
   const isFilterOpen = useFilterStore((state) => state.isOpen);
   const toggleFilter = useFilterStore((state) => state.toggleOpen);
-  const { currentFolderPath, files, isLoading } = useImageStore();
+  const currentFolderPath = useImageStore((state) => state.currentFolderPath);
+  const photoCount = useImageStore((state) => state.files.length);
+  const isLoading = useImageStore((state) => state.isLoading);
 
   const folderName = currentFolderPath
     ? (currentFolderPath.split(/[/\\]/).filter(Boolean).pop() ??
       "Unnamed Folder")
     : "Select Folder";
-  const photoCount = files.length;
   const photoCountLabel = currentFolderPath
     ? `${photoCount} photo${photoCount === 1 ? "" : "s"}`
-    : "No photos";
+    : null;
   const isMac =
     typeof navigator !== "undefined" && /Mac/i.test(navigator.userAgent);
-  const trafficLightsClass = isMac ? "w-[72px]" : "w-2";
   const isFullscreen = useWindowFullscreen();
 
   return (
-    <div
+    <header
       data-tauri-drag-region
-      className="w-full flex items-center justify-between py-1 px-2"
+      className="grid h-14 w-full grid-cols-[minmax(210px,1fr)_minmax(280px,520px)_minmax(210px,1fr)] items-center gap-3 px-2 py-1"
     >
-      <div className="flex items-center gap-2 min-w-0">
-        {isMac && !isFullscreen && (
-          <div className={`${trafficLightsClass} shrink-0`} />
-        )}
-        <Tooltip
-          className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
-          closeDelay={0}
-          content={"Open Folder"}
-          delay={750}
-          offset={0}
-          radius="sm"
-          size="sm"
-        >
+      <div data-tauri-drag-region className="flex min-w-0 items-center gap-2">
+        {isMac && !isFullscreen ? (
+          <div data-tauri-drag-region className="w-[72px] shrink-0" />
+        ) : null}
+        <EditorTooltip content="Choose photo folder" delay={650} offset={6}>
           <Button
-            disableRipple
-            className="h-auto min-h-0 py-2 pr-8 text-left border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] hover:bg-[rgba(50,50,50,0.99)] rounded-[17px] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
-            radius="sm"
+            aria-busy={isLoading}
+            aria-label={
+              currentFolderPath
+                ? `Choose a different folder. Current folder: ${folderName}`
+                : "Choose a photo folder"
+            }
+            className="editor-control-surface editor-focus-ring min-h-10 w-auto min-w-0 max-w-[190px] flex-none justify-start rounded-[17px] px-2.5 py-1.5 text-left data-[hover=true]:bg-white/[0.055]"
             size="sm"
+            variant="ghost"
             onPress={onPickFolder}
           >
-            <div className="flex items-start gap-2">
+            <div className="flex p-2 min-w-0 items-center gap-2">
               <FolderOpenIcon
-                className="text-zinc-400 shrink-0"
-                size={24}
+                className="shrink-0 text-zinc-400"
+                size={20}
                 weight="fill"
               />
-              <span className="flex flex-col leading-tight text-left">
-                <span className="max-w-[160px] truncate text-xs font-semibold text-zinc-100 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
+              <span className="app-selectable-text flex min-w-0 flex-col text-left leading-tight">
+                <span className="truncate text-xs font-semibold text-zinc-100">
                   {folderName}
                 </span>
-                <span className="flex h-[18px] items-center">
+                <span className="flex h-4 items-center">
                   {isLoading ? (
                     <Spinner
-                      className="origin-left scale-[0.7]"
-                      color="default"
-                      variant="dots"
+                      aria-label="Scanning folder"
+                      className="origin-left scale-[0.1]"
+                      color="current"
                     />
                   ) : (
-                    <span className="text-[10px] leading-none text-zinc-400 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
+                    <span className="truncate text-[11px] leading-none text-zinc-400">
                       {photoCountLabel}
                     </span>
                   )}
@@ -88,32 +83,19 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
               </span>
             </div>
           </Button>
-        </Tooltip>
+        </EditorTooltip>
       </div>
 
-      <div className="flex items-center space-x-2 max-w-3xl flex-1">
-        <ButtonGroup className="border h-10 border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-[17px] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]">
-          <ToolbarIconButton
-            isDisabled
-            icon={<ArrowLeftIcon size={20} />}
-            isActive={false}
-            tooltip="Back"
-            onPress={() => console.log("back")}
-          />
-          <hr className="border w-px border-zinc-400/10 h-1/2" />
-          <ToolbarIconButton
-            isDisabled
-            icon={<ArrowRightIcon size={20} />}
-            isActive={false}
-            tooltip="Forward"
-            onPress={() => console.log("forward")}
-          />
-        </ButtonGroup>
-
+      <div data-tauri-drag-region className="flex min-w-0">
         <FilterSearchInput />
+      </div>
 
+      <div
+        data-tauri-drag-region
+        className="flex min-w-0 items-center justify-start gap-2"
+      >
         <ToolbarIconButton
-          className="border h-10 w-10 border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] hover:bg-[rgba(50,50,50,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
+          className="editor-control-surface h-10 w-10 min-w-10 rounded-full"
           icon={<FunnelIcon size={20} weight="duotone" />}
           isActive={isFilterOpen}
           tooltip={isFilterOpen ? "Hide filters" : "Show filters"}
@@ -122,9 +104,6 @@ export function TitleBar({ onPickFolder }: TitleBarProps) {
 
         <SortSelect />
       </div>
-
-      {/* Load bearing div, used as a spacer/padding */}
-      <div className="w-1" />
-    </div>
+    </header>
   );
-}
+});

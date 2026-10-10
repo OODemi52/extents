@@ -1,12 +1,15 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef, useEffect, useMemo, useState, useCallback } from "react";
+import { memo, useRef, useEffect, useMemo, useCallback } from "react";
 
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
 import { useScrubbing } from "../hooks/use-scrubbing";
 
 import { FilmstripItem } from "./filmstrip-item";
 
-import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
+import {
+  getFilteredImagePaths,
+  useFilteredImages,
+} from "@/features/filter/hooks/use-filtered-files";
 import { useImageLoader } from "@/hooks/use-image-loader";
 import {
   FILMSTRIP_GAP as GAP,
@@ -26,25 +29,37 @@ function densityForSize(size: number): Density {
   return "full";
 }
 
-export function Filmstrip() {
+type FilmstripProps = {
+  height: number;
+};
+
+export const Filmstrip = memo(function Filmstrip({ height }: FilmstripProps) {
   const filmstripRef = useRef<HTMLDivElement>(null);
-  const [itemSize, setItemSize] = useState(72);
-  const lastSizeRef = useRef(itemSize);
-  const { files, selectedIndex, currentFolderPath } = useImageStore();
+  const currentFolderPath = useImageStore((state) => state.currentFolderPath);
+  const selectedPath = useImageStore((state) =>
+    state.selectedIndex !== null
+      ? (state.files[state.selectedIndex]?.path ?? null)
+      : null,
+  );
   const selectedPaths = useImageStore((state) => state.selectedPaths);
+  const deselectAll = useImageStore((state) => state.deselectAll);
   const filteredFiles = useFilteredImages();
   const { handleSelectImageByPath } = useImageLoader();
   const prefetchThumbnails = usePrefetchThumbnails();
   const { startScrubbing } = useScrubbing();
 
-  const selectedPath =
-    selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
+  const activeFilteredIndex = selectedPath
+    ? filteredFiles.findIndex((file) => file.path === selectedPath)
+    : -1;
+  const itemSize = Math.round(
+    Math.max(
+      FILMSTRIP_MIN_ITEM_SIZE,
+      Math.min(FILMSTRIP_MAX_ITEM_SIZE, height - GAP * 2),
+    ),
+  );
   const density = useMemo(() => densityForSize(itemSize), [itemSize]);
 
-  const filteredPaths = useMemo(
-    () => filteredFiles.map((file) => file.path),
-    [filteredFiles],
-  );
+  const filteredPaths = getFilteredImagePaths(filteredFiles);
 
   const virtualizer = useVirtualizer({
     horizontal: true,
@@ -60,12 +75,7 @@ export function Filmstrip() {
         return;
       }
 
-      const currentPath =
-        selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
-
-      const currentIndex = currentPath
-        ? filteredPaths.indexOf(currentPath)
-        : -1;
+      const currentPath = selectedPath;
 
       const selectByIndex = (index: number) => {
         const path = filteredPaths[index];
@@ -78,97 +88,28 @@ export function Filmstrip() {
         handleSelectImageByPath(path);
       };
 
-      const selectRelative = (delta: number) => {
-        if (delta === 0 || filteredPaths.length === 0) {
-          return;
-        }
-
-        const baseIndex =
-          currentIndex !== -1
-            ? currentIndex
-            : delta > 0
-              ? -1
-              : filteredPaths.length;
-        const nextIndex = Math.min(
-          Math.max(baseIndex + delta, 0),
-          filteredPaths.length - 1,
-        );
-
-        if (nextIndex === baseIndex) {
-          return;
-        }
-
-        selectByIndex(nextIndex);
-      };
-
-      if (event.key === "ArrowLeft") {
+      if (event.key === "Home") {
         event.preventDefault();
-        if (event.metaKey || event.ctrlKey) {
-          selectByIndex(0);
-        } else {
-          selectRelative(-1);
-        }
-      } else if (event.key === "ArrowRight") {
+        selectByIndex(0);
+      } else if (event.key === "End") {
         event.preventDefault();
-        if (event.metaKey || event.ctrlKey) {
-          selectByIndex(filteredPaths.length - 1);
-        } else {
-          selectRelative(1);
-        }
+        selectByIndex(filteredPaths.length - 1);
+      } else if (event.key === " " && currentPath) {
+        event.preventDefault();
+        handleSelectImageByPath(currentPath, "multi");
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        deselectAll();
       }
     },
     [
       filteredPaths,
       handleSelectImageByPath,
-      selectedIndex,
-      files,
+      selectedPath,
       startScrubbing,
+      deselectAll,
     ],
   );
-
-  useEffect(() => {
-    const filmstrip = filmstripRef.current;
-
-    if (!filmstrip) return;
-
-    let frame = 0;
-    let pendingHeight = 0;
-
-    const updateSize = (height: number) => {
-      const nextSize = Math.max(
-        FILMSTRIP_MIN_ITEM_SIZE,
-        Math.min(FILMSTRIP_MAX_ITEM_SIZE, height - GAP * 2),
-      );
-
-      if (Math.abs(nextSize - lastSizeRef.current) < 1) return;
-
-      lastSizeRef.current = nextSize;
-      setItemSize(nextSize);
-    };
-
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-
-      if (!entry) return;
-
-      pendingHeight = entry.contentRect.height;
-      if (frame) return;
-
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        updateSize(pendingHeight);
-      });
-    });
-
-    observer.observe(filmstrip);
-
-    return () => {
-      observer.disconnect();
-      if (frame) {
-        cancelAnimationFrame(frame);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (filteredFiles.length > 0) {
@@ -221,7 +162,6 @@ export function Filmstrip() {
 
     if (index >= 0) {
       virtualizer.scrollToIndex(index, { align: "center" });
-      filmstripRef.current?.focus({ preventScroll: true });
     }
   }, [selectedPath, filteredFiles, virtualizer]);
 
@@ -237,7 +177,15 @@ export function Filmstrip() {
   return (
     <div
       ref={filmstripRef}
+      aria-activedescendant={
+        activeFilteredIndex >= 0
+          ? `filmstrip-option-${activeFilteredIndex}`
+          : undefined
+      }
+      aria-label="Filmstrip"
+      aria-multiselectable="true"
       className="h-full overflow-x-auto overflow-y-hidden px-2 pb-2"
+      data-photo-navigation="true"
       role="listbox"
       style={{ contain: "strict" }}
       tabIndex={filteredFiles.length > 0 ? 0 : -1}
@@ -269,11 +217,13 @@ export function Filmstrip() {
                 density={density}
                 file={file}
                 index={virtualItem.index}
+                isActive={file.path === selectedPath}
                 isSelected={selectedPaths.has(file.path)}
                 size={itemSize}
-                onSelect={(selectionMode) =>
-                  handleSelectImageByPath(file.path, selectionMode)
-                }
+                onSelect={(selectionMode) => {
+                  handleSelectImageByPath(file.path, selectionMode);
+                  filmstripRef.current?.focus({ preventScroll: true });
+                }}
               />
             </div>
           );
@@ -281,4 +231,4 @@ export function Filmstrip() {
       </div>
     </div>
   );
-}
+});

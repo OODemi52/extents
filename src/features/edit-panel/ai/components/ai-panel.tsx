@@ -1,22 +1,20 @@
-import { Accordion, AccordionItem } from "@heroui/accordion";
+import { Accordion } from "@heroui/react";
 import { RocketLaunchIcon } from "@phosphor-icons/react";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { EditPanelSection } from "@/features/edit-panel/components/edit-panel-section";
 import { EDIT_PANEL_ACCORDION_PROPS } from "@/features/edit-panel/utils/accordion";
 
 export const AiPanel = () => {
   return (
     <Accordion {...EDIT_PANEL_ACCORDION_PROPS} defaultExpandedKeys={["ai"]}>
-      <AccordionItem
-        key="ai"
-        aria-label="AI"
-        className="w-full rounded-xl bg-zinc-800"
-        startContent={<RocketLaunchIcon />}
+      <EditPanelSection
+        icon={<RocketLaunchIcon />}
+        id="ai"
         title="AI Enhancements"
       >
-        <div className="p-4 text-center text-sm text-zinc-500">
-          AI enhancements coming soon...
-        </div>
-      </AccordionItem>
+        <EmptyState compact title="AI enhancements unavailable" />
+      </EditPanelSection>
     </Accordion>
   );
 };

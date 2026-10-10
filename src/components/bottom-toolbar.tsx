@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   SidebarSimpleIcon,
   InfoIcon,
@@ -9,43 +10,44 @@ import {
   SparkleIcon,
   ImageSquareIcon,
   SquaresFourIcon,
-  ColumnsIcon,
   MagnifyingGlassIcon,
   ImagesIcon,
   ListMagnifyingGlassIcon,
+  XIcon,
 } from "@phosphor-icons/react/dist/ssr";
-import { Tab, Tabs } from "@heroui/tabs";
-import { Tooltip } from "@heroui/tooltip";
+import { Tabs } from "@heroui/react";
 
+import { EditorTooltip } from "./ui/editor-tooltip";
 import { ToolbarIconButton } from "./ui/buttons/toolbar-icon-button";
 
-import {
-  EDIT_PANEL_DEFAULT_WIDTH,
-  SIDEBAR_DEFAULT_WIDTH,
-  useLayoutStore,
-} from "@/store/layout-store";
+import { useLayoutStore } from "@/store/layout-store";
 import { useImageStore } from "@/store/image-store";
 import { useInspectionWorkspaceStore } from "@/features/inspector/store/inspection-workspace-store";
 
-export function BottomToolbar() {
-  const {
-    panels,
-    activeLayout,
-    activeEditTab,
-    inspectorEnabled,
-    togglePanel,
-    setActiveLayout,
-    setActiveEditTab,
-  } = useLayoutStore();
+export const BottomToolbar = memo(function BottomToolbar() {
+  const panels = useLayoutStore((state) => state.panels);
+  const sidePanelsHidden = useLayoutStore((state) => state.sidePanelsHidden);
+  const activeLayout = useLayoutStore((state) => state.activeLayout);
+  const activeEditTab = useLayoutStore((state) => state.activeEditTab);
+  const inspectorEnabled = useLayoutStore((state) => state.inspectorEnabled);
+  const togglePanel = useLayoutStore((state) => state.togglePanel);
+  const setPanelVisible = useLayoutStore((state) => state.setPanelVisible);
+  const setActiveLayout = useLayoutStore((state) => state.setActiveLayout);
+  const setActiveEditTab = useLayoutStore((state) => state.setActiveEditTab);
   const inspectorPanelMode = useInspectionWorkspaceStore(
     (state) => state.inspectorPanelMode,
   );
   const setInspectorPanelMode = useInspectionWorkspaceStore(
     (state) => state.setInspectorPanelMode,
   );
-  const { files, selectedIndex, selectedPaths, deselectAll } = useImageStore();
-
-  const selectedFile = selectedIndex !== null ? files[selectedIndex] : null;
+  const hasFiles = useImageStore((state) => state.files.length > 0);
+  const selectedFileName = useImageStore((state) =>
+    state.selectedIndex !== null
+      ? (state.files[state.selectedIndex]?.fileName ?? null)
+      : null,
+  );
+  const selectedPaths = useImageStore((state) => state.selectedPaths);
+  const deselectAll = useImageStore((state) => state.deselectAll);
   const selectionCount = selectedPaths.size;
   const fallbackSelectedName =
     selectionCount === 1
@@ -54,32 +56,28 @@ export function BottomToolbar() {
   const selectionLabel =
     selectionCount > 1
       ? `${selectionCount} files selected`
-      : (selectedFile?.fileName ?? fallbackSelectedName ?? "");
+      : (selectedFileName ?? fallbackSelectedName ?? "");
   const deselectLabel = `Deselect ${selectionCount} file${selectionCount === 1 ? "" : "s"}`;
   const isDetailLayout = activeLayout === "detail";
   const isInspectorLayout = activeLayout === "inspector";
-
-  const sidebarColumnWidth = `${SIDEBAR_DEFAULT_WIDTH}px`;
-  const editColumnWidth = `${EDIT_PANEL_DEFAULT_WIDTH}px`;
+  const isEditPanelVisible =
+    panels.editPanel && !panels.infoPanel && !sidePanelsHidden;
 
   const toggleToTab = (tab: typeof activeEditTab) => {
-    if (activeEditTab === tab && panels.editPanel) {
-      togglePanel("editPanel");
-    } else {
-      setActiveEditTab(tab);
-      if (!panels.editPanel) {
-        togglePanel("editPanel");
-      }
-      if (panels.infoPanel) {
-        togglePanel("infoPanel");
-      }
+    if (activeEditTab === tab && isEditPanelVisible) {
+      setPanelVisible("editPanel", false);
+
+      return;
     }
+
+    setActiveEditTab(tab);
+    setPanelVisible("editPanel", true);
   };
 
   const handleLayoutChange = (key: string | number) => {
     if (
       key === "detail" ||
-      key === "thumbnails" ||
+      key === "grid" ||
       (key === "inspector" && inspectorEnabled)
     ) {
       setActiveLayout(key);
@@ -87,177 +85,141 @@ export function BottomToolbar() {
   };
 
   return (
-    <footer
-      className="
-        relative
-        h-8 px-2 mb-2
-        text-[11px] text-zinc-400
-        select-none
-        rounded-xl
-      "
-    >
-      <div
-        className="grid h-full items-center"
-        style={{
-          gridTemplateColumns: `${sidebarColumnWidth} 1fr ${editColumnWidth}`,
-        }}
-      >
-        <div className="flex items-center gap-2 pr-2">
+    <footer className="mb-2 h-8 select-none px-2 text-[11px] text-zinc-400">
+      <div className="grid h-full grid-cols-[minmax(0,1fr)_minmax(0,240px)_minmax(0,1fr)] items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <ToolbarIconButton
-            className="mr-1 border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
+            className="editor-control-surface rounded-full"
             icon={<SidebarSimpleIcon size={16} />}
-            isActive={panels.sidebar}
+            isActive={panels.sidebar && !sidePanelsHidden}
             tooltip="File Browser"
             onPress={() => togglePanel("sidebar")}
           />
-          {(isDetailLayout || isInspectorLayout) && selectionCount > 0 ? (
+          <Tabs
+            aria-label="View selector"
+            className="workspace-view-tabs"
+            selectedKey={activeLayout}
+            variant="secondary"
+            onSelectionChange={handleLayoutChange}
+          >
+            <Tabs.ListContainer className="editor-control-surface rounded-[16px] p-0.5">
+              <Tabs.List className="gap-0 bg-transparent p-0">
+                <Tabs.Tab
+                  aria-label="Grid view"
+                  className="workspace-view-tab"
+                  id="grid"
+                >
+                  <EditorTooltip content="Grid" delay={500} offset={8}>
+                    <span className="flex items-center justify-center">
+                      <SquaresFourIcon size={14} />
+                    </span>
+                  </EditorTooltip>
+                </Tabs.Tab>
+                <Tabs.Tab
+                  aria-label="Detail view"
+                  className="workspace-view-tab"
+                  id="detail"
+                >
+                  <EditorTooltip content="Detail" delay={500} offset={8}>
+                    <span className="flex items-center justify-center">
+                      <ImageSquareIcon size={14} />
+                    </span>
+                  </EditorTooltip>
+                </Tabs.Tab>
+                {inspectorEnabled ? (
+                  <Tabs.Tab
+                    aria-label="Inspector view"
+                    className="workspace-view-tab"
+                    id="inspector"
+                  >
+                    <EditorTooltip content="Inspector" delay={500} offset={8}>
+                      <span className="flex items-center justify-center">
+                        <MagnifyingGlassIcon size={14} />
+                      </span>
+                    </EditorTooltip>
+                  </Tabs.Tab>
+                ) : null}
+              </Tabs.List>
+            </Tabs.ListContainer>
+          </Tabs>
+          {(isDetailLayout || isInspectorLayout) && hasFiles ? (
             <ToolbarIconButton
-              className="mr-1 border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
+              className="editor-control-surface rounded-full"
               icon={<FilmStripIcon size={16} />}
               isActive={panels.filmstrip}
               tooltip="Filmstrip"
               onPress={() => togglePanel("filmstrip")}
             />
           ) : null}
-          <Tabs
-            aria-label="View selector"
-            classNames={{
-              tabList:
-                "border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-xl drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
-              tab: "h-6 w-6 p-0 text-zinc-300 data-[disabled=true]:text-zinc-500",
-              cursor: "rounded-sm bg-blue-500/20",
-              tabContent: "group-data-[selected=true]:text-blue-500",
-            }}
-            selectedKey={activeLayout}
-            size="sm"
-            variant="solid"
-            onSelectionChange={handleLayoutChange}
-          >
-            <Tab
-              key="thumbnails"
-              aria-label="Grid view"
-              title={
-                <Tooltip
-                  className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
-                  closeDelay={0}
-                  content="Grid"
-                  delay={500}
-                  offset={8}
-                  radius="sm"
-                  size="sm"
-                >
-                  <div className="flex items-center justify-center">
-                    <SquaresFourIcon size={16} />
-                  </div>
-                </Tooltip>
-              }
-            />
-            <Tab
-              key="detail"
-              aria-label="Detail view"
-              title={
-                <Tooltip
-                  className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
-                  closeDelay={0}
-                  content="Detail"
-                  delay={500}
-                  offset={8}
-                  radius="sm"
-                  size="sm"
-                >
-                  <div className="flex items-center justify-center">
-                    <ImageSquareIcon size={16} />
-                  </div>
-                </Tooltip>
-              }
-            />
-            <Tab
-              key="compare"
-              isDisabled
-              aria-label="Compare view"
-              title={
-                <Tooltip
-                  className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
-                  closeDelay={0}
-                  content="Compare"
-                  delay={500}
-                  offset={8}
-                  radius="sm"
-                  size="sm"
-                >
-                  <div className="flex items-center justify-center [transform:scaleX(1.2)]">
-                    <ColumnsIcon size={16} />
-                  </div>
-                </Tooltip>
-              }
-            />
-            {inspectorEnabled ? (
-              <Tab
-                key="inspector"
-                aria-label="Inspector view"
-                title={
-                  <Tooltip
-                    className="border border-zinc-700 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
-                    closeDelay={0}
-                    content="Inspector"
-                    delay={500}
-                    offset={8}
-                    radius="sm"
-                    size="sm"
-                  >
-                    <div className="flex items-center justify-center">
-                      <MagnifyingGlassIcon size={16} />
-                    </div>
-                  </Tooltip>
-                }
-              />
-            ) : null}
-          </Tabs>
         </div>
-        <div />
+
+        <div className="flex min-w-0 items-center justify-center">
+          {hasFiles && selectionCount > 0 ? (
+            <div className="editor-control-surface flex h-7 min-w-0 max-w-full items-center gap-1 rounded-[16px] pl-2">
+              <span
+                className="min-w-0 truncate text-zinc-300"
+                title={selectionLabel}
+              >
+                {selectionLabel}
+              </span>
+              <ToolbarIconButton
+                className="h-6 w-6 min-w-6"
+                icon={<XIcon size={12} />}
+                tooltip={deselectLabel}
+                onPress={deselectAll}
+              />
+            </div>
+          ) : null}
+        </div>
 
         <div className="flex items-center justify-end">
           {isDetailLayout ? (
-            <div className="flex items-center border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-xl drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]">
+            <div className="editor-control-surface flex items-center rounded-[16px] p-0.5">
               <ToolbarIconButton
+                isDisabled
+                className="h-6 w-6 min-w-6"
                 icon={<SparkleIcon size={16} />}
-                isActive={activeEditTab === "ai" && panels.editPanel}
-                tooltip="AI"
+                tooltip="AI tools unavailable"
                 onPress={() => toggleToTab("ai")}
               />
 
               <ToolbarIconButton
+                isDisabled
+                className="h-6 w-6 min-w-6"
                 icon={<SwatchesIcon size={16} />}
-                isActive={activeEditTab === "presets" && panels.editPanel}
-                tooltip="Presets"
+                tooltip="Presets unavailable"
                 onPress={() => toggleToTab("presets")}
               />
 
               <ToolbarIconButton
+                className="h-6 w-6 min-w-6"
                 icon={<SlidersIcon className="rotate-90" size={16} />}
-                isActive={activeEditTab === "basic" && panels.editPanel}
+                isActive={activeEditTab === "basic" && isEditPanelVisible}
                 tooltip="Basic Adjustments"
                 onPress={() => toggleToTab("basic")}
               />
 
               <ToolbarIconButton
+                isDisabled
+                className="h-6 w-6 min-w-6"
                 icon={<CropIcon size={16} />}
-                isActive={activeEditTab === "crop" && panels.editPanel}
-                tooltip="Crop"
+                tooltip="Crop tools unavailable"
                 onPress={() => toggleToTab("crop")}
               />
 
               <ToolbarIconButton
+                isDisabled
+                className="h-6 w-6 min-w-6"
                 icon={<EraserIcon size={16} />}
-                isActive={activeEditTab === "detail" && panels.editPanel}
-                tooltip="Detail / Retouch"
+                tooltip="Detail and retouch tools unavailable"
                 onPress={() => toggleToTab("detail")}
               />
             </div>
           ) : null}
           {isInspectorLayout ? (
-            <div className="flex items-center border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-xl drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]">
+            <div className="editor-control-surface flex items-center rounded-[16px] p-0.5">
               <ToolbarIconButton
+                className="h-6 w-6 min-w-6"
                 icon={<ListMagnifyingGlassIcon size={16} />}
                 isActive={inspectorPanelMode === "inspect"}
                 tooltip="Inspect"
@@ -265,6 +227,7 @@ export function BottomToolbar() {
               />
 
               <ToolbarIconButton
+                className="h-6 w-6 min-w-6"
                 icon={<ImagesIcon size={16} />}
                 isActive={inspectorPanelMode === "checkpoints"}
                 tooltip="Checkpoints"
@@ -274,31 +237,15 @@ export function BottomToolbar() {
           ) : null}
           {activeLayout !== "inspector" ? (
             <ToolbarIconButton
-              className="ml-1 border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-full drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]"
+              className="editor-control-surface ml-1 rounded-full"
               icon={<InfoIcon size={16} />}
-              isActive={panels.infoPanel}
+              isActive={panels.infoPanel && !sidePanelsHidden}
               tooltip="Info Panel"
               onPress={() => togglePanel("infoPanel")}
             />
           ) : null}
         </div>
       </div>
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500 tracking-tight">
-        {files.length > 0 && selectionCount > 0 ? (
-          <button
-            className="group pointer-events-auto relative inline-flex items-center justify-center whitespace-nowrap"
-            type="button"
-            onClick={() => deselectAll()}
-          >
-            <span className="text-white/75 transition-none group-hover:opacity-0 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
-              {selectionLabel}
-            </span>
-            <span className="absolute inset-0 flex items-center justify-center whitespace-nowrap text-red-400 opacity-0 transition-none group-hover:opacity-100 [text-shadow:0.5px_0_0_rgba(0,0,0,0.6),-0.5px_0_0_rgba(0,0,0,0.6),0_0.5px_0_rgba(0,0,0,0.6),0_-0.5px_0_rgba(0,0,0,0.6)]">
-              {deselectLabel}
-            </span>
-          </button>
-        ) : null}
-      </div>
     </footer>
   );
-}
+});

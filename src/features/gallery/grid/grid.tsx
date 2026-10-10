@@ -1,44 +1,77 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { memo, useCallback, useEffect, useRef } from "react";
+import { Skeleton } from "@heroui/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { FolderOpenIcon, WarningCircleIcon } from "@phosphor-icons/react";
 
 import { usePrefetchThumbnails } from "../hooks/use-thumbnails";
 import { useScrubbing } from "../hooks/use-scrubbing";
 
-import { GridItem } from "./grid-item";
+import { VirtualGrid, type VirtualGridHandle } from "./virtual-grid";
 
+import { EmptyState, PhotoWorkflowGraphic } from "@/components/ui/empty-state";
 import { useImageLoader } from "@/hooks/use-image-loader";
 import { useImageStore } from "@/store/image-store";
-import { useFilteredImages } from "@/features/filter/hooks/use-filtered-files";
+import {
+  getFilteredImagePaths,
+  useFilteredImages,
+} from "@/features/filter/hooks/use-filtered-files";
 import { FilterMenuBar } from "@/features/filter/components/menu-bar/menu-bar";
 import { useFilterStore } from "@/features/filter/stores/filter-store";
-import { useLayoutStore } from "@/store/layout-store";
 import { useGalleryPreferencesStore } from "@/features/gallery/stores/gallery-preferences-store";
+import { useLayoutStore } from "@/store/layout-store";
+import { imagePreviewQueryOptions } from "@/features/interaction-viewport/hooks/use-image-preview";
 
-const THUMBNAIL_SIZE = 140;
-const GAP = 8;
-const PREFETCH_ROW_BUFFER = 6;
+type GridProps = {
+  active?: boolean;
+  onPickFolder?: () => void;
+};
 
-export function ThumbnailGrid() {
+const EMPTY_SELECTED_PATHS = new Set<string>();
+
+export const Grid = memo(function Grid({
+  active = true,
+  onPickFolder,
+}: GridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-  const lastWidthRef = useRef(0);
-  const isSidebarResizing = useLayoutStore((state) => state.isSidebarResizing);
-  const isSidebarResizingRef = useRef(isSidebarResizing);
+  const virtualGridRef = useRef<VirtualGridHandle>(null);
 
-  const { files, selectedIndex } = useImageStore();
-  const selectedPaths = useImageStore((state) => state.selectedPaths);
-  const filteredFiles = useFilteredImages();
+  const currentFolderPath = useImageStore((state) =>
+    active ? state.currentFolderPath : null,
+  );
+  const fileCount = useImageStore((state) => (active ? state.files.length : 0));
+  const folderScanError = useImageStore((state) =>
+    active ? state.folderScanError : null,
+  );
+  const isLoading = useImageStore((state) =>
+    active ? state.isLoading : false,
+  );
+  const selectedPath = useImageStore((state) =>
+    active && state.selectedIndex !== null
+      ? (state.files[state.selectedIndex]?.path ?? null)
+      : null,
+  );
+  const selectedPaths = useImageStore((state) =>
+    active ? state.selectedPaths : EMPTY_SELECTED_PATHS,
+  );
+  const deselectAll = useImageStore((state) => state.deselectAll);
+  const filteredFiles = useFilteredImages(active);
+  const queryClient = useQueryClient();
   const { handleSelectImageByPath } = useImageLoader();
   const { startScrubbing } = useScrubbing();
 
   const handleSelect = useCallback(
-    (path: string, selectionMode?: "single" | "multi") =>
-      handleSelectImageByPath(path, selectionMode),
+    (path: string, selectionMode?: "single" | "multi") => {
+      handleSelectImageByPath(path, selectionMode);
+      containerRef.current?.focus({ preventScroll: true });
+    },
     [handleSelectImageByPath],
   );
-  const prefetchThumbnails = usePrefetchThumbnails();
-  const hasBaseImages = files.length > 0;
-  const isFilterOpen = useFilterStore((state) => state.isOpen);
+  const prefetchThumbnails = usePrefetchThumbnails(active);
+  const isFilterOpen = useFilterStore((state) =>
+    active ? state.isOpen : false,
+  );
+  const clearFilters = useFilterStore((state) => state.clearFilters);
+  const setActiveLayout = useLayoutStore((state) => state.setActiveLayout);
   const showFileNameInGrid = useGalleryPreferencesStore(
     (state) => state.showFileNameInGrid,
   );
@@ -46,86 +79,7 @@ export function ThumbnailGrid() {
     (state) => state.showFileExtensionInGrid,
   );
 
-  const filteredPaths = useMemo(
-    () => filteredFiles.map((file) => file.path),
-    [filteredFiles],
-  );
-
-  const updateWidth = useCallback((width: number) => {
-    const resizeStep = isSidebarResizingRef.current ? 1 : 1;
-
-    const nextWidth =
-      resizeStep > 1
-        ? Math.round(width / resizeStep) * resizeStep
-        : Math.round(width);
-
-    if (Math.abs(nextWidth - lastWidthRef.current) < 1) return;
-
-    lastWidthRef.current = nextWidth;
-
-    setContainerWidth(nextWidth);
-  }, []);
-
-  useEffect(() => {
-    isSidebarResizingRef.current = isSidebarResizing;
-
-    if (!isSidebarResizing && containerRef.current) {
-      updateWidth(containerRef.current.getBoundingClientRect().width);
-    }
-  }, [isSidebarResizing, updateWidth]);
-
-  useEffect(() => {
-    const element = containerRef.current;
-
-    if (!element) return;
-
-    let frame = 0;
-    let pendingWidth = 0;
-
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-
-      if (!entry) return;
-
-      pendingWidth = entry.contentRect.width;
-      if (frame) return;
-
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        updateWidth(pendingWidth);
-      });
-    });
-
-    observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-      if (frame) {
-        cancelAnimationFrame(frame);
-      }
-    };
-  }, [updateWidth]);
-
-  const availableWidth = containerWidth > 0 ? containerWidth : THUMBNAIL_SIZE;
-
-  const columns = Math.max(
-    1,
-    Math.floor((availableWidth + GAP) / (THUMBNAIL_SIZE + GAP)),
-  );
-
-  const cellSize = Math.max(
-    THUMBNAIL_SIZE,
-    (availableWidth - GAP * (columns - 1)) / columns,
-  );
-
-  const rowCount = Math.ceil(filteredFiles.length / columns);
-
-  const virtualizer = useVirtualizer({
-    count: rowCount || 0,
-    getScrollElement: () => containerRef.current,
-    estimateSize: () => cellSize + GAP,
-    overscan: 4,
-  });
+  const filteredPaths = getFilteredImagePaths(filteredFiles);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -133,12 +87,12 @@ export function ThumbnailGrid() {
         return;
       }
 
-      const currentPath =
-        selectedIndex !== null ? (files[selectedIndex]?.path ?? null) : null;
+      const currentPath = selectedPath;
 
       const currentIndex = currentPath
         ? filteredPaths.indexOf(currentPath)
         : -1;
+      const columns = virtualGridRef.current?.getColumns() ?? 1;
 
       const selectByIndex = (index: number) => {
         const path = filteredPaths[index];
@@ -153,10 +107,10 @@ export function ThumbnailGrid() {
 
       let delta = 0;
 
-      if (event.key === "ArrowLeft") {
-        delta = -1;
-      } else if (event.key === "ArrowRight") {
-        delta = 1;
+      if (event.key === "ArrowUp") {
+        delta = -columns;
+      } else if (event.key === "ArrowDown") {
+        delta = columns;
       }
 
       if (delta !== 0) {
@@ -186,178 +140,190 @@ export function ThumbnailGrid() {
       } else if (event.key === "End") {
         event.preventDefault();
         selectByIndex(filteredPaths.length - 1);
+      } else if (event.key === "Enter" && currentIndex >= 0) {
+        event.preventDefault();
+        setActiveLayout("detail");
+        window.requestAnimationFrame(() => {
+          document
+            .querySelector<HTMLElement>('[data-detail-navigation="true"]')
+            ?.focus({ preventScroll: true });
+        });
+      } else if (event.key === " " && currentPath) {
+        event.preventDefault();
+        handleSelectImageByPath(currentPath, "multi");
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        deselectAll();
       }
     },
     [
       filteredPaths,
       handleSelectImageByPath,
-      selectedIndex,
-      files,
+      selectedPath,
       startScrubbing,
+      setActiveLayout,
+      deselectAll,
     ],
   );
 
-  useEffect(() => {
-    virtualizer.measure();
-  }, [columns, cellSize, filteredFiles.length, virtualizer]);
+  const activeFilteredIndex = selectedPath
+    ? filteredPaths.indexOf(selectedPath)
+    : -1;
 
   useEffect(() => {
-    if (!filteredFiles.length) return;
+    if (!active || !selectedPath) return;
 
-    const visibleRows = virtualizer.getVirtualItems().map((item) => item.index);
-
-    if (!visibleRows.length) return;
-
-    const minRow = Math.min(...visibleRows);
-    const maxRow = Math.max(...visibleRows);
-    const startRow = Math.max(0, minRow - PREFETCH_ROW_BUFFER);
-    const endRow = Math.min(rowCount - 1, maxRow + PREFETCH_ROW_BUFFER);
-
-    const visibleIndices = new Set<number>();
-
-    visibleRows.forEach((rowIndex) => {
-      const start = rowIndex * columns;
-
-      for (let i = 0; i < columns; i += 1) {
-        const index = start + i;
-
-        if (index < filteredFiles.length) {
-          visibleIndices.add(index);
-        }
-      }
-    });
-
-    const offScreenPaths: string[] = [];
-
-    for (let rowIndex = startRow; rowIndex <= endRow; rowIndex += 1) {
-      const start = rowIndex * columns;
-
-      for (let colIndex = 0; colIndex < columns; colIndex += 1) {
-        const index = start + colIndex;
-
-        if (index >= filteredFiles.length) {
-          break;
-        }
-
-        if (visibleIndices.has(index)) {
-          continue;
-        }
-
-        offScreenPaths.push(filteredFiles[index].path);
-      }
-    }
-
-    if (!offScreenPaths.length) return;
-
-    const timer = setTimeout(() => {
-      prefetchThumbnails(offScreenPaths);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [filteredFiles, virtualizer, columns, rowCount, prefetchThumbnails]);
-
-  const selectedPath =
-    selectedIndex !== null ? files[selectedIndex]?.path : null;
+    void queryClient.prefetchQuery(imagePreviewQueryOptions(selectedPath));
+  }, [active, queryClient, selectedPath]);
 
   useEffect(() => {
-    if (!selectedPath || filteredFiles.length === 0) return;
+    if (!active || !selectedPath || filteredFiles.length === 0) return;
     const index = filteredFiles.findIndex((file) => file.path === selectedPath);
 
     if (index >= 0) {
-      virtualizer.scrollToIndex(Math.floor(index / columns), {
-        align: "auto",
-      });
-      containerRef.current?.focus({ preventScroll: true });
+      virtualGridRef.current?.scrollToIndex(index, "auto");
     }
-  }, [selectedPath, filteredFiles, virtualizer, columns]);
+  }, [active, selectedPath, filteredFiles]);
 
-  const showEmptyState = filteredFiles.length === 0;
+  const hasOpenFolder = Boolean(currentFolderPath);
+  const showNoFolder =
+    active && !isLoading && !hasOpenFolder && fileCount === 0;
+  const showEmptyFolder =
+    active &&
+    !isLoading &&
+    hasOpenFolder &&
+    fileCount === 0 &&
+    !folderScanError;
+  const showFilteredEmpty =
+    active && !isLoading && fileCount > 0 && filteredFiles.length === 0;
+  const folderName =
+    currentFolderPath?.split(/[/\\]/).filter(Boolean).pop() ?? "This folder";
 
   return (
-    <div className="h-full w-full">
+    <div className="flex h-full w-full flex-col">
       <div
-        className={`w-full overflow-hidden transition-[max-height,opacity,transform] duration-200 ${
+        aria-hidden={!isFilterOpen}
+        className={`w-full shrink-0 overflow-hidden transition-[max-height,opacity,transform] duration-200 ${
           isFilterOpen
-            ? "max-h-24 opacity-100 translate-y-0 pointer-events-auto"
+            ? "max-h-12 opacity-100 translate-y-0 pointer-events-auto"
             : "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
         }`}
         data-filter-ui="true"
+        inert={!isFilterOpen || undefined}
       >
-        <FilterMenuBar />
+        {active ? <FilterMenuBar /> : null}
       </div>
       <div
         ref={containerRef}
-        className="h-full overflow-y-auto px-4 pb-6"
-        role="listbox"
+        aria-activedescendant={
+          activeFilteredIndex >= 0
+            ? `photo-grid-option-${activeFilteredIndex}`
+            : undefined
+        }
+        aria-busy={isLoading}
+        aria-label="Photos"
+        aria-multiselectable={filteredFiles.length > 0 ? true : undefined}
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-1 pb-6"
+        data-photo-navigation="true"
+        role={filteredFiles.length > 0 ? "listbox" : "region"}
         style={{ contain: "strict" }}
         tabIndex={filteredFiles.length > 0 ? 0 : -1}
         onKeyDown={handleKeyDown}
       >
-        {showEmptyState ? (
-          <div className="flex h-full items-center justify-center text-sm text-gray-500">
-            {hasBaseImages
-              ? "No images match the current filters."
-              : "No folder selected. Open a folder to start browsing thumbnails."}
-          </div>
-        ) : (
+        {active && isLoading && fileCount === 0 ? (
           <div
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
+            aria-label="Scanning folder"
+            className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2 pt-2"
+            role="status"
           >
-            {virtualizer.getVirtualItems().map((virtualRow) => {
-              const startIndex = virtualRow.index * columns;
-              const rowItems = filteredFiles.slice(
-                startIndex,
-                startIndex + columns,
-              );
-
-              return (
-                <div
-                  key={virtualRow.key}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualRow.start}px)`,
-                    height: `${cellSize + GAP}px`,
-                    paddingBottom: `${GAP}px`,
-                  }}
-                >
-                  <div
-                    className="grid"
-                    style={{
-                      gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                      gridAutoRows: `${cellSize}px`,
-                      gap: `${GAP}px`,
-                    }}
-                  >
-                    {rowItems.map((file, columnIndex) => {
-                      const isSelected = selectedPaths.has(file.path);
-                      const index = startIndex + columnIndex;
-
-                      return (
-                        <GridItem
-                          key={file.path}
-                          file={file}
-                          index={index}
-                          isSelected={isSelected}
-                          showFileExtensionInGrid={showFileExtensionInGrid}
-                          showFileNameInGrid={showFileNameInGrid}
-                          onSelect={(mode) => handleSelect(file.path, mode)}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+            {Array.from({ length: 12 }, (_, index) => (
+              <Skeleton
+                key={index}
+                className="aspect-square rounded-[16px] bg-zinc-800/70"
+              />
+            ))}
           </div>
+        ) : folderScanError ? (
+          <EmptyState
+            action={
+              onPickFolder
+                ? {
+                    label: "Choose Another Folder",
+                    icon: <FolderOpenIcon size={15} weight="duotone" />,
+                    onPress: onPickFolder,
+                  }
+                : undefined
+            }
+            announcement="alert"
+            className="h-full"
+            description="Extents could not read this folder. Check its permissions or choose another folder."
+            graphic={
+              <WarningCircleIcon
+                className="text-red-300/80"
+                size={28}
+                weight="duotone"
+              />
+            }
+            title="Folder unavailable"
+          />
+        ) : showNoFolder ? (
+          <EmptyState
+            action={
+              onPickFolder
+                ? {
+                    label: "Open Folder",
+                    icon: <FolderOpenIcon size={15} weight="duotone" />,
+                    onPress: onPickFolder,
+                  }
+                : undefined
+            }
+            className="h-full"
+            graphic={<PhotoWorkflowGraphic />}
+            title="Choose a folder to begin"
+          />
+        ) : showEmptyFolder ? (
+          <EmptyState
+            action={
+              onPickFolder
+                ? {
+                    label: "Choose Another Folder",
+                    icon: <FolderOpenIcon size={15} weight="duotone" />,
+                    onPress: onPickFolder,
+                  }
+                : undefined
+            }
+            className="h-full"
+            description={`${folderName} does not contain a supported RAW or raster photo.`}
+            graphic={
+              <FolderOpenIcon
+                className="text-zinc-500"
+                size={28}
+                weight="duotone"
+              />
+            }
+            title="No supported photos found"
+          />
+        ) : showFilteredEmpty ? (
+          <EmptyState
+            action={{ label: "Clear Filters", onPress: clearFilters }}
+            className="h-full"
+            title="No photos match these filters"
+          />
+        ) : (
+          <VirtualGrid
+            ref={virtualGridRef}
+            active={active}
+            files={filteredFiles}
+            prefetchThumbnails={prefetchThumbnails}
+            scrollElementRef={containerRef}
+            selectedPath={selectedPath ?? null}
+            selectedPaths={selectedPaths}
+            showFileExtensionInGrid={showFileExtensionInGrid}
+            showFileNameInGrid={showFileNameInGrid}
+            onSelect={handleSelect}
+          />
         )}
       </div>
     </div>
   );
-}
+});

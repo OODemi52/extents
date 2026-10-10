@@ -23,10 +23,10 @@ pub fn resize_surface(width: u32, height: u32, state: State<AppState>) {
 pub fn load_image(
     path: String,
     preview_path: Option<String>,
-    viewport_x: u32,
-    viewport_y: u32,
-    viewport_width: u32,
-    viewport_height: u32,
+    viewport_x: f32,
+    viewport_y: f32,
+    viewport_width: f32,
+    viewport_height: f32,
     defer_full_image_load: Option<bool>,
     state: State<AppState>,
 ) -> Result<u64, String> {

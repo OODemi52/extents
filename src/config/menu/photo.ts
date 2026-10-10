@@ -1,6 +1,10 @@
 import { CheckMenuItem, MenuItem, Submenu } from "@tauri-apps/api/menu";
 
-import { createSeparator, setExclusiveChecked } from "./standard";
+import {
+  createSeparator,
+  hasEditableMenuFocus,
+  setExclusiveChecked,
+} from "./standard";
 
 import { useFlagStore } from "@/features/annotate/flagging/store/use-flagging-store";
 import { useRatingStore } from "@/features/annotate/rating/store/use-rating-store";
@@ -137,7 +141,7 @@ export async function createPhotoSubmenu() {
 
   const updateRatingMenuState = () => {
     const { selectedPaths } = useImageStore.getState();
-    const hasSelection = selectedPaths.size > 0;
+    const hasSelection = selectedPaths.size > 0 && !hasEditableMenuFocus();
 
     ratingGroup.forEach((item) => {
       void item.setEnabled(hasSelection);
@@ -268,7 +272,7 @@ export async function createPhotoSubmenu() {
 
   const updateFlagMenuState = () => {
     const { selectedPaths } = useImageStore.getState();
-    const hasSelection = selectedPaths.size > 0;
+    const hasSelection = selectedPaths.size > 0 && !hasEditableMenuFocus();
 
     flagGroup.forEach((item) => {
       void item.setEnabled(hasSelection);
@@ -308,6 +312,17 @@ export async function createPhotoSubmenu() {
   updateFlagMenuState();
   useImageStore.subscribe(updateFlagMenuState);
   useFlagStore.subscribe(updateFlagMenuState);
+
+  const updatePlainShortcutAvailability = () => {
+    updateRatingMenuState();
+    updateFlagMenuState();
+  };
+  const schedulePlainShortcutUpdate = () => {
+    queueMicrotask(updatePlainShortcutAvailability);
+  };
+
+  document.addEventListener("focusin", updatePlainShortcutAvailability);
+  document.addEventListener("focusout", schedulePlainShortcutUpdate);
 
   const autoAdvance = await CheckMenuItem.new({
     id: "photo.autoAdvance",

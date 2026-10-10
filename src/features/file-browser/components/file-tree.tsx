@@ -1,5 +1,7 @@
-import { useCallback } from "react";
-import { Accordion, AccordionItem } from "@heroui/accordion";
+import type { FlatNode } from "@/features/file-browser/utils/tree";
+
+import { memo, useRef, type KeyboardEvent } from "react";
+import { Button } from "@heroui/react";
 import {
   FolderSimpleIcon,
   FolderOpenIcon,
@@ -11,105 +13,197 @@ import { useVisibleNodes } from "../hooks/use-visible-nodes";
 import { cn } from "@/lib/cn";
 import { useFileSystemStore } from "@/features/file-browser/store/file-system-store";
 
-export const FileTree = () => {
+const INDENT_SIZE = 18;
+const GUIDE_OFFSET = 12;
+
+export const FileTree = memo(function FileTree() {
   const visibleNodes = useVisibleNodes();
-  const { expandedKeys, setExpandedKeys, selectItem, selectedId } =
-    useFileSystemStore();
+  const expandedKeys = useFileSystemStore((state) => state.expandedKeys);
+  const setExpandedKeys = useFileSystemStore((state) => state.setExpandedKeys);
+  const selectItem = useFileSystemStore((state) => state.selectItem);
+  const selectedId = useFileSystemStore((state) => state.selectedId);
+  const itemRefs = useRef(new Map<string, HTMLButtonElement>());
 
-  const toggleExpandedKey = useCallback(
-    (key: string) => {
-      const currentKeys =
-        expandedKeys instanceof Set ? new Set(expandedKeys) : new Set<string>();
+  const setFolderExpanded = (nodeId: string, expanded: boolean) => {
+    const currentKeys = useFileSystemStore.getState().expandedKeys;
+    const nextKeys =
+      currentKeys instanceof Set ? new Set(currentKeys) : new Set<string>();
 
-      if (currentKeys.has(key)) {
-        currentKeys.delete(key);
-      } else {
-        currentKeys.add(key);
-      }
+    if (expanded) {
+      nextKeys.add(nodeId);
+    } else {
+      nextKeys.delete(nodeId);
+    }
 
-      setExpandedKeys(currentKeys);
-    },
-    [expandedKeys, setExpandedKeys],
-  );
+    setExpandedKeys(nextKeys);
+  };
+
+  const openFolder = (node: FlatNode, isOpen: boolean) => {
+    if (useFileSystemStore.getState().selectedId !== node.id) {
+      selectItem(node.id);
+    }
+
+    if (!isOpen) {
+      setFolderExpanded(node.id, true);
+    }
+  };
+
+  const focusItem = (index: number) => {
+    const node = visibleNodes[index];
+
+    if (node) {
+      itemRefs.current.get(node.id)?.focus();
+    }
+  };
+
+  const handleItemKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        focusItem(Math.min(index + 1, visibleNodes.length - 1));
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        focusItem(Math.max(index - 1, 0));
+        break;
+      case "Home":
+        event.preventDefault();
+        focusItem(0);
+        break;
+      case "End":
+        event.preventDefault();
+        focusItem(visibleNodes.length - 1);
+        break;
+    }
+  };
 
   return (
-    <div className="h-full w-full">
-      <Accordion
-        fullWidth
-        isCompact
-        className="truncate"
-        selectedKeys={expandedKeys}
-        selectionMode="multiple"
-        variant="splitted"
-        onSelectionChange={setExpandedKeys}
-      >
-        {visibleNodes.map((node) => {
+    <nav
+      aria-label="Folders"
+      className="h-full w-full py-1"
+      style={{
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
+      }}
+    >
+      <ul>
+        {visibleNodes.map((node, index) => {
           const isSelected = selectedId === node.id;
           const isOpen =
             expandedKeys instanceof Set && expandedKeys.has(node.id);
 
           return (
-            <AccordionItem
+            <li
               key={node.id}
-              isCompact
-              aria-label={`Folder: ${node.name}`}
-              className="font-medium"
-              classNames={{
-                base: "shadow-none bg-transparent",
-                title: "text-xs truncate",
-                titleWrapper: "truncate",
-                heading: cn("rounded-lg truncate mr-[-1rem]", {
-                  "bg-zinc-800/75": isSelected,
-                }),
-                content: "hidden",
-                indicator: "flex justify-end",
-              }}
-              indicator={
+              className="relative isolate flex min-h-10 items-center rounded-xl px-1"
+            >
+              {node.level > 0 ? (
                 <span
-                  aria-label={isOpen ? "Collapse folder" : "Expand folder"}
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded hover:bg-zinc-700  transition-transform",
-                    {
-                      "-rotate-90": !isOpen,
-                    },
-                  )}
-                  role="button"
-                  tabIndex={0}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    toggleExpandedKey(node.id);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter" && event.key !== " ") return;
-                    event.preventDefault();
-                    event.stopPropagation();
-                    toggleExpandedKey(node.id);
-                  }}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 z-0"
                 >
-                  <CaretLeftIcon
-                    className={cn("transition-transform", {
-                      "rotate-90": !isOpen,
-                    })}
-                    size={14}
-                    weight="bold"
+                  {node.ancestorGuideContinuations.map(
+                    (shouldContinue, level) =>
+                      shouldContinue ? (
+                        <span
+                          key={level}
+                          className="absolute inset-y-0 w-px bg-white/[0.085]"
+                          style={{ left: GUIDE_OFFSET + level * INDENT_SIZE }}
+                        />
+                      ) : null,
+                  )}
+                  <span
+                    className="absolute top-0 h-1/2 w-3 rounded-bl-md border-b border-l border-white/[0.085]"
+                    style={{
+                      left: GUIDE_OFFSET + (node.level - 1) * INDENT_SIZE,
+                    }}
                   />
+                  {node.hasNextSibling ? (
+                    <span
+                      className="absolute bottom-0 h-1/2 w-px bg-white/[0.085]"
+                      style={{
+                        left: GUIDE_OFFSET + (node.level - 1) * INDENT_SIZE,
+                      }}
+                    />
+                  ) : null}
                 </span>
-              }
-              startContent={
-                isOpen ? (
-                  <FolderOpenIcon size={16} weight="fill" />
+              ) : null}
+
+              {isOpen && node.children.length > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-0 z-0 h-1/2 w-px bg-white/[0.085]"
+                  style={{
+                    left: GUIDE_OFFSET + node.level * INDENT_SIZE,
+                  }}
+                />
+              ) : null}
+
+              {isSelected ? (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 z-[1] rounded-xl bg-zinc-800"
+                />
+              ) : null}
+
+              <Button
+                ref={(element) => {
+                  if (element) {
+                    itemRefs.current.set(node.id, element);
+                  } else {
+                    itemRefs.current.delete(node.id);
+                  }
+                }}
+                aria-current={isSelected ? "page" : undefined}
+                aria-expanded={isOpen}
+                className="editor-focus-ring relative z-[2] h-9 min-w-0 flex-1 justify-start gap-2 rounded-lg bg-transparent pr-2 text-[13px] font-normal leading-5 text-zinc-300 data-[hover=true]:!bg-transparent"
+                size="sm"
+                style={{ paddingLeft: 8 + node.level * INDENT_SIZE }}
+                variant="ghost"
+                onKeyDown={(event) => handleItemKeyDown(event, index)}
+                onPress={() => openFolder(node, isOpen)}
+              >
+                {isOpen ? (
+                  <FolderOpenIcon
+                    className="shrink-0 text-zinc-300"
+                    size={16}
+                    weight="fill"
+                  />
                 ) : (
-                  <FolderSimpleIcon size={16} />
-                )
-              }
-              style={{ paddingLeft: `${node.level * 18}px` }}
-              title={node.name}
-              onPress={() => selectItem(node.id)}
-            />
+                  <FolderSimpleIcon
+                    className="shrink-0 text-zinc-500"
+                    size={16}
+                  />
+                )}
+                <span className="min-w-0 truncate" title={node.name}>
+                  {node.name}
+                </span>
+              </Button>
+
+              <Button
+                isIconOnly
+                aria-label={`${isOpen ? "Collapse" : "Expand"} ${node.name}`}
+                className="editor-focus-ring relative z-[2] ml-2 mr-1 h-7 w-7 min-w-7 shrink-0 rounded-lg text-zinc-500 hover:bg-white/[0.07] hover:text-zinc-200"
+                size="sm"
+                variant="ghost"
+                onPress={() => setFolderExpanded(node.id, !isOpen)}
+              >
+                <CaretLeftIcon
+                  aria-hidden="true"
+                  className={cn("transition-transform", {
+                    "-rotate-90": isOpen,
+                  })}
+                  size={14}
+                  weight="bold"
+                />
+              </Button>
+            </li>
           );
         })}
-      </Accordion>
-    </div>
+      </ul>
+    </nav>
   );
-};
+});

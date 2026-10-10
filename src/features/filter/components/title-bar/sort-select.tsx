@@ -1,11 +1,12 @@
-import { Button } from "@heroui/button";
-import { Select, SelectItem, SelectSection } from "@heroui/select";
+import { Button, ListBox, Select } from "@heroui/react";
 import {
   SortAscendingIcon,
   SortDescendingIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { useFilterStore, type SortField } from "../../stores/filter-store";
+
+import { EditorTooltip } from "@/components/ui/editor-tooltip";
 
 const SORT_OPTIONS: { key: SortField; label: string }[] = [
   { key: "name", label: "Name" },
@@ -18,71 +19,60 @@ export function SortSelect() {
   const sort = useFilterStore((state) => state.sort);
   const setSort = useFilterStore((state) => state.setSort);
 
-  const selectedKeys = new Set([sort.field]);
-  const isAsc = sort.direction === "asc";
-
-  const handleToggleDirection = () => {
-    setSort({ direction: isAsc ? "desc" : "asc" });
-  };
+  const isAscending = sort.direction === "asc";
+  const directionLabel = isAscending
+    ? "Sort ascending. Change to descending"
+    : "Sort descending. Change to ascending";
 
   return (
-    <Select
-      disallowEmptySelection
-      aria-label="Sort by"
-      className="max-w-40 shadow-2xl"
-      classNames={{
-        trigger:
-          "border border-zinc-700/50 shadow-[2px_4px_16px_0px_rgba(248,248,248,0.06)_inset] bg-[rgba(30,30,30,0.99)] rounded-2xl drop-shadow-[0_0_1px_rgba(0,0,0,0.6)]",
-      }}
-      selectedKeys={selectedKeys}
-      startContent={
-        isAsc ? (
-          <SortAscendingIcon size={16} weight="duotone" />
-        ) : (
-          <SortDescendingIcon size={16} weight="duotone" />
-        )
-      }
-      onSelectionChange={(keys) => {
-        const next = Array.from(keys).at(0) as SortField | undefined;
+    <div className="editor-control-surface flex h-10 w-[150px] shrink-0 items-center rounded-2xl p-0.5">
+      <Select
+        aria-label="Sort photos by"
+        className="min-w-0 flex-1"
+        value={sort.field}
+        variant="secondary"
+        onChange={(key) => {
+          if (key) setSort({ field: key as SortField });
+        }}
+      >
+        <Select.Trigger className="h-9 min-h-9 rounded-xl border-0 bg-transparent px-2 text-xs shadow-none data-[focus-visible=true]:bg-white/[0.055]">
+          <Select.Value className="text-xs text-zinc-200" />
+          <Select.Indicator className="text-zinc-500" />
+        </Select.Trigger>
+        <Select.Popover className="editor-tooltip min-w-32 rounded-xl p-1">
+          <ListBox>
+            {SORT_OPTIONS.map((option) => (
+              <ListBox.Item
+                key={option.key}
+                className="rounded-lg px-2 py-1.5 text-xs text-zinc-300 data-[focused=true]:bg-white/[0.07] data-[selected=true]:text-zinc-100"
+                id={option.key}
+                textValue={option.label}
+              >
+                {option.label}
+              </ListBox.Item>
+            ))}
+          </ListBox>
+        </Select.Popover>
+      </Select>
 
-        if (!next) return;
+      <div aria-hidden="true" className="h-5 w-px shrink-0 bg-white/[0.07]" />
 
-        setSort({ field: next });
-      }}
-    >
-      <SelectSection showDivider title="Sort by">
-        {SORT_OPTIONS.map((option) => (
-          <SelectItem key={option.key}>{option.label}</SelectItem>
-        ))}
-      </SelectSection>
-      <SelectSection>
-        <SelectItem
-          key="order"
-          hideSelectedIcon
-          isReadOnly
-          className="flex justify-between h-9 p-0 rounded-xl"
-          classNames={{ base: "cursor-default" }}
+      <EditorTooltip content={directionLabel}>
+        <Button
+          isIconOnly
+          aria-label={directionLabel}
+          className="editor-focus-ring h-8 w-8 min-w-8 rounded-xl bg-transparent text-zinc-400 hover:bg-white/[0.055] hover:text-zinc-100"
+          size="sm"
+          variant="ghost"
+          onPress={() => setSort({ direction: isAscending ? "desc" : "asc" })}
         >
-          <Button
-            disableRipple
-            aria-label="Toggle sort order"
-            className="w-full justify-between gap-2 p-2"
-            size="sm"
-            title="Toggle sort order"
-            variant="light"
-            onPress={handleToggleDirection}
-          >
-            {isAsc ? "Ascending" : "Descending"}
-            <>
-              {isAsc ? (
-                <SortAscendingIcon size={14} weight="duotone" />
-              ) : (
-                <SortDescendingIcon size={14} weight="duotone" />
-              )}
-            </>
-          </Button>
-        </SelectItem>
-      </SelectSection>
-    </Select>
+          {isAscending ? (
+            <SortAscendingIcon size={16} weight="duotone" />
+          ) : (
+            <SortDescendingIcon size={16} weight="duotone" />
+          )}
+        </Button>
+      </EditorTooltip>
+    </div>
   );
 }
