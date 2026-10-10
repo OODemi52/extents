@@ -33,3 +33,6 @@ target
 src-tauri/mac-assets/generated
 
 TODO.md
+
+# Local frontend exploration worktrees
+.worktrees/

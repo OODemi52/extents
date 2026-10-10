@@ -1,0 +1,31 @@
+.next-app[data-shell="unified"] {
+  --next-chrome: rgba(15, 15, 16, 0.94);
+  --next-surface: #202122;
+}
+.next-app[data-shell="unified"] .next-shell-body {
+  padding: 0 10px 0 0;
+}
+.next-app[data-shell="unified"] .next-main {
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 12px;
+}
+.next-app[data-shell="unified"] .next-workspace-header {
+  background: rgba(27, 28, 29, 0.96);
+}
+.next-app[data-shell="unified"] .next-context-panel {
+  border-radius: 0;
+}
+.next-app[data-shell="unified"] .next-context-rail {
+  margin-left: 8px;
+}
+.next-app[data-shell="unified"] .next-library {
+  padding-top: 3px;
+}
+.next-app[data-shell="unified"] .next-statusbar {
+  height: 44px;
+  min-height: 44px;
+}
+.next-app[data-shell="unified"] .next-titlebar {
+  height: 54px;
+  min-height: 54px;
+}

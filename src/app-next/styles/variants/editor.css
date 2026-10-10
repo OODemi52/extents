@@ -1,0 +1,64 @@
+.next-app[data-shell="editor"] {
+  --next-chrome: rgba(28, 29, 31, 0.9);
+  --next-surface: #252628;
+}
+.next-app[data-shell="editor"] .next-titlebar {
+  height: 48px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--next-line);
+}
+.next-app[data-shell="editor"] .next-shell-body {
+  padding: 10px 8px 4px;
+  gap: 8px;
+}
+.next-app[data-shell="editor"] .next-library {
+  border: 1px solid var(--next-line);
+  border-radius: 12px;
+}
+.next-app[data-shell="editor"] .next-context-panel {
+  border: 1px solid var(--next-line);
+  border-radius: 12px;
+}
+.next-app[data-shell="editor"] .next-main {
+  border-radius: 10px;
+}
+.next-app[data-shell="editor"] .next-workspace-header {
+  flex-basis: 44px;
+  padding: 0 10px;
+  border-bottom: 0;
+  background: rgba(28, 29, 31, 0.9);
+}
+.next-app[data-shell="editor"]
+  .next-workspace-header-trailing
+  > .next-folder-context {
+  max-width: 160px;
+}
+.next-app[data-shell="editor"] .next-photo-surface {
+  margin: 0;
+}
+.next-app[data-shell="editor"] .next-filmstrip {
+  border: 1px solid var(--next-line);
+  border-radius: 10px;
+}
+.next-app[data-shell="editor"] .next-statusbar {
+  height: 38px;
+  min-height: 38px;
+  background: var(--next-chrome);
+}
+.next-app[data-shell="editor"][data-view="detail"] .next-main {
+  overflow: visible;
+}
+.next-app[data-shell="editor"][data-view="detail"] .next-photo-surface {
+  overflow: visible;
+}
+.next-app[data-shell="editor"] .next-grid-layer {
+  border-radius: 10px;
+  overflow: hidden;
+}
+@media (max-width: 1100px) {
+  .next-app[data-shell="editor"]
+    .next-workspace-header-trailing
+    > .next-folder-context {
+    display: none;
+  }
+}

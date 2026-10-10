@@ -1,0 +1,43 @@
+.next-app[data-shell="modular"] {
+  --next-chrome: rgba(23, 24, 25, 0.94);
+  --next-surface: #202224;
+}
+.next-app[data-shell="modular"] .next-titlebar {
+  height: 50px;
+  min-height: 50px;
+}
+.next-app[data-shell="modular"] .next-shell-body {
+  padding-right: 8px;
+}
+.next-app[data-shell="modular"] .next-library {
+  background: rgba(32, 33, 35, 0.96);
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+  border-right: 1px solid var(--next-line);
+}
+.next-app[data-shell="modular"] .next-main {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+.next-app[data-shell="modular"] .next-context-rail {
+  margin-left: 8px;
+}
+.next-app[data-shell="modular"] .next-context-panel {
+  background: rgba(32, 33, 35, 0.96);
+  border-radius: 12px;
+}
+.next-app[data-shell="modular"] .next-workspace-header {
+  flex-basis: 46px;
+}
+.next-app[data-shell="modular"] .next-panel-heading {
+  min-height: 46px;
+}
+.next-app[data-shell="modular"] .next-statusbar {
+  padding-left: 65px;
+  height: 34px;
+  min-height: 34px;
+}
+.next-app[data-shell="modular"] .next-view-controls {
+  border: 0;
+  background: transparent;
+}

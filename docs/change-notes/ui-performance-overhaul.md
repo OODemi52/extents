@@ -255,3 +255,7 @@ Keep the Rust backend unchanged during the experiments. Record any frontend
 performance changes. Agent features and real document-tab semantics are
 deferred. macOS is the primary test target; this does not prescribe an Apple
 visual style or new platform-specific integrations.
+
+The interactive prototype structure, branches, running instructions, and
+validation results are recorded in [Frontend Shell Exploration](ui-shell-exploration.md).
+The pre-experiment checkpoint remains `f66c45e`.
