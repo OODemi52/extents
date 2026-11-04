@@ -24,6 +24,7 @@ import { imagePreviewQueryOptions } from "@/features/interaction-viewport/hooks/
 type GridProps = {
   active?: boolean;
   onPickFolder?: () => void;
+  showFilters?: boolean;
 };
 
 const EMPTY_SELECTED_PATHS = new Set<string>();
@@ -31,6 +32,7 @@ const EMPTY_SELECTED_PATHS = new Set<string>();
 export const Grid = memo(function Grid({
   active = true,
   onPickFolder,
+  showFilters = true,
 }: GridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const virtualGridRef = useRef<VirtualGridHandle>(null);
@@ -68,7 +70,7 @@ export const Grid = memo(function Grid({
   );
   const prefetchThumbnails = usePrefetchThumbnails(active);
   const isFilterOpen = useFilterStore((state) =>
-    active ? state.isOpen : false,
+    active && showFilters ? state.isOpen : false,
   );
   const clearFilters = useFilterStore((state) => state.clearFilters);
   const setActiveLayout = useLayoutStore((state) => state.setActiveLayout);
@@ -201,18 +203,20 @@ export const Grid = memo(function Grid({
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div
-        aria-hidden={!isFilterOpen}
-        className={`w-full shrink-0 overflow-hidden transition-[max-height,opacity,transform] duration-200 ${
-          isFilterOpen
-            ? "max-h-12 opacity-100 translate-y-0 pointer-events-auto"
-            : "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
-        }`}
-        data-filter-ui="true"
-        inert={!isFilterOpen || undefined}
-      >
-        {active ? <FilterMenuBar /> : null}
-      </div>
+      {showFilters ? (
+        <div
+          aria-hidden={!isFilterOpen}
+          className={`w-full shrink-0 overflow-hidden transition-[max-height,opacity,transform] duration-200 ${
+            isFilterOpen
+              ? "max-h-12 opacity-100 translate-y-0 pointer-events-auto"
+              : "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
+          }`}
+          data-filter-ui="true"
+          inert={!isFilterOpen || undefined}
+        >
+          {active ? <FilterMenuBar /> : null}
+        </div>
+      ) : null}
       <div
         ref={containerRef}
         aria-activedescendant={

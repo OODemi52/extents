@@ -2,10 +2,9 @@ import { lazy, Suspense, useCallback, useEffect } from "react";
 import { MotionConfig } from "framer-motion";
 
 import { SHELL_VARIANT } from "./experiment";
-import { ActivityRail } from "./shell/activity-rail";
 import { ShellTitleBar } from "./shell/title-bar";
 import { StatusBar } from "./shell/status-bar";
-import { WorkspaceHeader } from "./shell/workspace-header";
+import { ToolRail } from "./shell/tool-rail";
 import { LibraryPanel } from "./panels/library-panel";
 import { ContextPanel } from "./panels/context-panel";
 import { PhotoWorkspace } from "./workspace/workspace";
@@ -57,17 +56,22 @@ export default function NextApp() {
     <MotionConfig reducedMotion="user">
       <div className="next-app" data-shell={SHELL_VARIANT} data-view={layout}>
         <ApplicationEffects />
-        <ShellTitleBar variant={SHELL_VARIANT} onPickFolder={pickFolder} />
+        <ShellTitleBar onPickFolder={pickFolder} />
         <div className="next-shell-body">
-          {SHELL_VARIANT === "modular" ? <ActivityRail /> : null}
           <LibraryPanel onPickFolder={pickFolder} />
           <main aria-label="Photographic workspace" className="next-main">
-            <WorkspaceHeader variant={SHELL_VARIANT} />
             <PhotoWorkspace onPickFolder={pickFolder} />
+            <div aria-hidden="true" className="next-viewport-corners">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
           </main>
           <ContextPanel />
+          <ToolRail />
         </div>
-        <StatusBar variant={SHELL_VARIANT} />
+        <StatusBar />
         {settingsOpen ? (
           <Suspense fallback={null}>
             <SettingsModal />

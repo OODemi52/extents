@@ -1,5 +1,7 @@
 import { lazy, memo, Suspense, useRef } from "react";
 
+import { useViewSwitchMotion } from "../hooks/use-view-switch-motion";
+
 import { AnimatedFilmstripPanel } from "@/components/ui/animated-filmstrip-panel";
 import { Filmstrip } from "@/features/gallery/filmstrip/filmstrip";
 import { Grid } from "@/features/gallery/grid/grid";
@@ -24,6 +26,7 @@ export const PhotoWorkspace = memo(function PhotoWorkspace({
   onPickFolder: () => void;
 }) {
   const layout = useLayoutStore((state) => state.activeLayout);
+  const motionEnabled = useViewSwitchMotion();
   const filmstripVisible = useLayoutStore((state) => state.panels.filmstrip);
   const filmstripHeight = useLayoutStore((state) => state.filmstripHeight);
   const setFilmstripHeight = useLayoutStore(
@@ -32,7 +35,7 @@ export const PhotoWorkspace = memo(function PhotoWorkspace({
   const hasItems = useFilteredImages().length > 0;
   const inspector = layout === "inspector";
   const grid = layout === "grid";
-  const open = filmstripVisible && hasItems && !inspector;
+  const open = filmstripVisible && hasItems && layout === "detail";
   const retainedOpenRef = useRef(false);
 
   if (open) retainedOpenRef.current = true;
@@ -46,7 +49,7 @@ export const PhotoWorkspace = memo(function PhotoWorkspace({
           data-visible={grid || undefined}
           inert={!grid || undefined}
         >
-          <Grid active={grid} onPickFolder={onPickFolder} />
+          <Grid active={grid} showFilters={false} onPickFolder={onPickFolder} />
         </div>
         <div
           aria-hidden={grid || inspector}
@@ -56,6 +59,7 @@ export const PhotoWorkspace = memo(function PhotoWorkspace({
         >
           <InteractionViewport
             rendererActive={!grid && !inspector}
+            showFilters={false}
             onPickFolder={onPickFolder}
           />
         </div>
@@ -72,6 +76,7 @@ export const PhotoWorkspace = memo(function PhotoWorkspace({
         height={filmstripHeight || FILMSTRIP_DEFAULT_HEIGHT}
         maxHeight={FILMSTRIP_MAX_HEIGHT}
         minHeight={FILMSTRIP_MIN_HEIGHT}
+        motionEnabled={motionEnabled}
         open={open}
         onHeightCommit={setFilmstripHeight}
       >

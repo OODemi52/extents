@@ -1,14 +1,9 @@
 import { memo, useRef } from "react";
-import {
-  ImageSquareIcon,
-  InfoIcon,
-  SlidersHorizontalIcon,
-  XIcon,
-} from "@phosphor-icons/react";
+import { ImageSquareIcon, XIcon } from "@phosphor-icons/react";
 
 import { ActionButton } from "../components/action-button";
-import { usePanelResize } from "../hooks/use-panel-resize";
-import { useShellStore } from "../store/shell-store";
+import { usePanelWidthLimit } from "../hooks/use-panel-width-limit";
+import { useViewSwitchMotion } from "../hooks/use-view-switch-motion";
 
 import { AnimatedSidePanel } from "@/components/ui/animated-side-panel";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -17,7 +12,7 @@ import { EditPanel } from "@/features/edit-panel/components/edit-panel";
 import { Histogram } from "@/features/histogram/components/histogram";
 import { InfoPanel } from "@/features/info-panel/components/info-panel";
 import { useImageStore } from "@/store/image-store";
-import { useLayoutStore } from "@/store/layout-store";
+import { EDIT_PANEL_DEFAULT_WIDTH, useLayoutStore } from "@/store/layout-store";
 
 const Adjustments = memo(function Adjustments({ active }: { active: boolean }) {
   const hasSelection = useImageStore((state) => state.selectedIndex !== null);
@@ -52,30 +47,22 @@ export const ContextPanel = memo(function ContextPanel() {
   const edit = useLayoutStore((state) => state.panels.editPanel);
   const hidden = useLayoutStore((state) => state.sidePanelsHidden);
   const togglePanel = useLayoutStore((state) => state.togglePanel);
-  const setPanelVisible = useLayoutStore((state) => state.setPanelVisible);
-  const width = useShellStore((state) => state.rightPanelWidth);
-  const setWidth = useShellStore((state) => state.setRightPanelWidth);
+  const width = usePanelWidthLimit(EDIT_PANEL_DEFAULT_WIDTH, 260);
+  const motionEnabled = useViewSwitchMotion();
   const current = info ? "info" : layout === "detail" && edit ? "edit" : null;
   const last = useRef<"info" | "edit">("edit");
 
   if (current) last.current = current;
 
   const open = current !== null && !hidden && layout !== "inspector";
-  const { liveWidth, resizing, separatorProps } = usePanelResize({
-    width,
-    min: 260,
-    max: 420,
-    side: "right",
-    onCommit: setWidth,
-  });
 
   return (
     <AnimatedSidePanel
       className="next-context-rail"
-      motionEnabled={!resizing}
+      motionEnabled={motionEnabled}
       open={open}
       side="right"
-      width={liveWidth}
+      width={width}
     >
       <aside
         aria-label={
@@ -86,22 +73,6 @@ export const ContextPanel = memo(function ContextPanel() {
         <div className="next-panel-heading">
           <span>{last.current === "info" ? "Information" : "Adjustments"}</span>
           <div className="next-context-actions">
-            {layout === "detail" ? (
-              <ActionButton
-                active={current === "edit"}
-                label="Adjustments"
-                onPress={() => setPanelVisible("editPanel", true)}
-              >
-                <SlidersHorizontalIcon size={16} />
-              </ActionButton>
-            ) : null}
-            <ActionButton
-              active={current === "info"}
-              label="Information"
-              onPress={() => setPanelVisible("infoPanel", true)}
-            >
-              <InfoIcon size={16} />
-            </ActionButton>
             <ActionButton
               label="Close panel"
               onPress={() =>
@@ -119,12 +90,6 @@ export const ContextPanel = memo(function ContextPanel() {
             <Adjustments active={open && current === "edit"} />
           )}
         </div>
-        <div
-          {...separatorProps}
-          aria-label="Resize contextual panel"
-          className="next-resize-sash next-resize-right"
-          data-active={resizing || undefined}
-        />
       </aside>
     </AnimatedSidePanel>
   );

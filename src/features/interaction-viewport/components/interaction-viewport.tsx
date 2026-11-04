@@ -33,11 +33,13 @@ import { useScrubbing } from "@/features/gallery/hooks/use-scrubbing";
 type InteractionViewportProps = {
   onPickFolder?: () => void;
   rendererActive?: boolean;
+  showFilters?: boolean;
 };
 
 export const InteractionViewport = memo(function InteractionViewport({
   onPickFolder,
   rendererActive = true,
+  showFilters = true,
 }: InteractionViewportProps) {
   const currentFolderPath = useImageStore((state) =>
     rendererActive ? state.currentFolderPath : null,
@@ -57,7 +59,7 @@ export const InteractionViewport = memo(function InteractionViewport({
     rendererActive ? state.isLoading : false,
   );
   const isFilterOpen = useFilterStore((state) =>
-    rendererActive ? state.isOpen : false,
+    rendererActive && showFilters ? state.isOpen : false,
   );
   const clearFilters = useFilterStore((state) => state.clearFilters);
   const filteredFiles = useFilteredImages(rendererActive);
@@ -244,18 +246,20 @@ export const InteractionViewport = memo(function InteractionViewport({
       role="region"
       tabIndex={rendererActive && filteredFiles.length > 0 ? 0 : -1}
     >
-      <div
-        aria-hidden={!isFilterOpen}
-        className={`absolute left-0 top-0 z-20 w-full transition-all duration-200 ${
-          isFilterOpen
-            ? "opacity-100 translate-y-0 pointer-events-auto"
-            : "opacity-0 -translate-y-2 pointer-events-none"
-        }`}
-        data-filter-ui="true"
-        inert={!isFilterOpen || undefined}
-      >
-        {rendererActive ? <FilterMenuBar /> : null}
-      </div>
+      {showFilters ? (
+        <div
+          aria-hidden={!isFilterOpen}
+          className={`absolute left-0 top-0 z-20 w-full transition-all duration-200 ${
+            isFilterOpen
+              ? "opacity-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 -translate-y-2 pointer-events-none"
+          }`}
+          data-filter-ui="true"
+          inert={!isFilterOpen || undefined}
+        >
+          {rendererActive ? <FilterMenuBar /> : null}
+        </div>
+      ) : null}
 
       {rendererActive &&
       previewError &&

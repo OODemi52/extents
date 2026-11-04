@@ -16,13 +16,19 @@ export const SelectionStatus = memo(function SelectionStatus() {
   );
   const deselectAll = useImageStore((state) => state.deselectAll);
   const visibleCount = useFilteredImages().length;
+  const countLabel =
+    visibleCount === total
+      ? `${total} photos`
+      : `${visibleCount} of ${total} photos`;
+  const isMac = /Mac/i.test(navigator.userAgent);
 
   return (
-    <div className="next-selection-status">
-      <span className="next-photo-count">
-        {visibleCount === total
-          ? `${total} photos`
-          : `${visibleCount} of ${total} photos`}
+    <div
+      className="next-selection-status"
+      data-has-selection={selectedCount > 0 || undefined}
+    >
+      <span className="next-photo-count" title={countLabel}>
+        {countLabel}
       </span>
       {selectedCount ? <span className="next-status-divider" /> : null}
       {selectedCount ? (
@@ -33,8 +39,8 @@ export const SelectionStatus = memo(function SelectionStatus() {
       {selectedCount ? (
         <ActionButton
           className="next-clear-selection"
-          label="Clear selection"
-          shortcut="Esc"
+          label="Deselect all"
+          shortcut={isMac ? "Cmd D" : "Ctrl D"}
           onPress={deselectAll}
         >
           <XIcon size={12} />

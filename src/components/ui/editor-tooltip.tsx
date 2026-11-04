@@ -17,7 +17,9 @@ export function EditorTooltip({
 }: EditorTooltipProps) {
   return (
     <Tooltip closeDelay={0} delay={delay}>
-      <Tooltip.Trigger className="contents">{children}</Tooltip.Trigger>
+      <Tooltip.Trigger className="inline-flex min-w-0">
+        {children}
+      </Tooltip.Trigger>
       <Tooltip.Content
         className="editor-tooltip rounded-lg px-2 py-1 text-xs text-zinc-100"
         offset={offset}
