@@ -765,6 +765,12 @@ The checkpoint keeps Unified on `design/ui-unified-shell` and the comparison
 launcher/shared notes on `design/ui-next-foundation`. Promoting the selected
 shell and discussing component cleanup/design tokens remain subsequent work.
 
+Follow-up visual adjustment: shorten the Library resize highlight by another
+8 px at each end and extend its fade to 32 px for a softer approach to the
+rounded boundaries. Filmstrip is restored to its pre-acceptance styling: a solid
+2 px line, inset 12 px at each side and centered in its drag target, with no
+fade. Full drag target areas are preserved.
+
 ## Validation and Limits
 
 Validated on October 9, 2026:

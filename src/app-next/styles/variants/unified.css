@@ -206,14 +206,16 @@
 }
 
 .next-app[data-shell="unified"] .next-resize-left::after {
+  top: 8px;
+  bottom: 8px;
   left: auto;
   right: 0;
   margin: 0;
   mask-image: linear-gradient(
     to bottom,
     transparent,
-    #000 16px,
-    #000 calc(100% - 16px),
+    #000 32px,
+    #000 calc(100% - 32px),
     transparent
   );
 }
@@ -460,22 +462,6 @@
 
 .next-app[data-shell="unified"] .next-filmstrip img {
   border-radius: 6px;
-}
-
-.next-app[data-shell="unified"]
-  .next-filmstrip
-  .workspace-sash-horizontal::before {
-  top: 0;
-  left: 1px;
-  right: 1px;
-  transform: none;
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    #000 16px,
-    #000 calc(100% - 16px),
-    transparent
-  );
 }
 
 .next-app[data-shell="unified"] .next-filmstrip [data-filmstrip-caption] {
