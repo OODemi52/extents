@@ -146,21 +146,10 @@ export function AnimatedFilmstripPanel({
         }
       }}
     >
-      <motion.div
-        animate={{
-          opacity: open ? 1 : 0,
-          y: open ? 0 : 12,
-        }}
+      <div
         className="absolute inset-x-0 bottom-0"
         inert={!open || undefined}
-        initial={false}
-        style={{
-          backfaceVisibility: "hidden",
-          height: liveHeight,
-          WebkitBackfaceVisibility: "hidden",
-          willChange: "transform, opacity",
-        }}
-        transition={transition}
+        style={{ height: liveHeight }}
       >
         <div
           aria-label="Resize filmstrip"
@@ -177,7 +166,7 @@ export function AnimatedFilmstripPanel({
           onPointerUp={handleResizeEnd}
         />
         {open || contentMounted ? children(liveHeight) : null}
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

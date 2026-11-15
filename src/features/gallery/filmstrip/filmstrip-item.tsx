@@ -68,7 +68,10 @@ export const FilmstripItem = forwardRef<HTMLDivElement, FilmstripItemProps>(
         </CardContent>
 
         {showMeta && (
-          <div className="pointer-events-none absolute left-1 right-1 top-1 z-10 rounded-lg bg-black/40 px-1.5 py-0.5 text-[11px] font-medium text-white/90 backdrop-blur-sm">
+          <div
+            className="pointer-events-none absolute left-1 right-1 top-1 z-10 rounded-lg bg-black/40 px-1.5 py-0.5 text-[11px] font-medium text-white/90 backdrop-blur-sm"
+            data-filmstrip-caption="true"
+          >
             <div className="flex items-center gap-1">
               <span className="truncate">{baseName}</span>
               {extension ? (

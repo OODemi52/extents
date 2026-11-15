@@ -8,6 +8,8 @@ import { cn } from "@/lib/cn";
 
 type ActionButtonProps = {
   active?: boolean;
+  "aria-controls"?: string;
+  "aria-expanded"?: boolean;
   children: ReactNode;
   className?: string;
   disabled?: boolean;
@@ -18,6 +20,8 @@ type ActionButtonProps = {
 
 export function ActionButton({
   active,
+  "aria-controls": ariaControls,
+  "aria-expanded": ariaExpanded,
   children,
   className,
   disabled,
@@ -29,6 +33,8 @@ export function ActionButton({
     <ControlTooltip disabled={disabled} label={label} shortcut={shortcut}>
       <Button
         isIconOnly
+        aria-controls={ariaControls}
+        aria-expanded={ariaExpanded}
         aria-label={label}
         aria-pressed={active}
         className={cn("next-action", className)}

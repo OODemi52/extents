@@ -1,31 +1,700 @@
+@font-face {
+  font-family: "Inter UI";
+  src: url("../../assets/fonts/InterVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 .next-app[data-shell="unified"] {
-  --next-chrome: rgba(15, 15, 16, 0.94);
-  --next-surface: #202122;
+  --next-chrome: #2b2b2b;
+  --next-surface: #191919;
+  --next-text: #eeeef0;
+  --next-muted: #989ba0;
+  --next-window-radius: 16px;
+  --next-footer-height: 44px;
+  --next-inset-line: #111111;
+  --next-bevel-highlight: rgba(255, 255, 255, 0.045);
+  --next-bevel-shadow: rgba(0, 0, 0, 0.18);
+  --next-search-width: min(380px, max(180px, calc(100vw - 440px)));
+  --font-sans: "Inter UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Footer status follows the workspace; global search stays fixed in the shell. */
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(24px, max-content) minmax(0, 1fr) minmax(
+      56px,
+      max-content
+    );
+  grid-template-rows: auto minmax(0, 1fr) var(--next-footer-height);
+  height: 100%;
+  font-family:
+    "Inter UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-optical-sizing: auto;
+  font-synthesis: none;
+  font-feature-settings: "calt" 1;
+  letter-spacing: 0;
 }
-.next-app[data-shell="unified"] .next-shell-body {
-  padding: 0 10px 0 0;
+
+.next-app[data-shell="unified"][data-view="grid"] {
+  background: var(--next-surface);
 }
-.next-app[data-shell="unified"] .next-main {
-  border: 1px solid rgba(255, 255, 255, 0.055);
-  border-radius: 12px;
+
+.next-app[data-shell="unified"] .next-top-shell {
+  position: relative;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  grid-template-columns: subgrid;
+  min-width: 0;
+  z-index: 40;
 }
-.next-app[data-shell="unified"] .next-workspace-header {
-  background: rgba(27, 28, 29, 0.96);
-}
-.next-app[data-shell="unified"] .next-context-panel {
-  border-radius: 0;
-}
-.next-app[data-shell="unified"] .next-context-rail {
-  margin-left: 8px;
-}
-.next-app[data-shell="unified"] .next-library {
-  padding-top: 3px;
-}
-.next-app[data-shell="unified"] .next-statusbar {
-  height: 44px;
-  min-height: 44px;
-}
+
 .next-app[data-shell="unified"] .next-titlebar {
-  height: 54px;
-  min-height: 54px;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  gap: 0;
+  min-width: 0;
+  height: 56px;
+  min-height: 56px;
+  padding: 0;
+}
+
+.next-app[data-shell="unified"] .next-titlebar-leading {
+  position: absolute;
+  grid-column: 1 / -1;
+  grid-row: 1 / 2;
+  top: 0;
+  bottom: 0;
+  left: 12px;
+  width: min(280px, calc(50% - var(--next-search-width) / 2 - 24px));
+  gap: 10px;
+  overflow: hidden;
+}
+
+.next-app[data-shell="unified"] .next-titlebar-leading .next-folder-context {
+  flex: 1;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.next-app[data-shell="unified"] .next-library-toggle {
+  flex: 0 0 34px;
+  height: 34px;
+}
+
+.next-app[data-shell="unified"]
+  .next-top-shell:not([data-library-open])
+  .next-folder-parent,
+.next-app[data-shell="unified"]
+  .next-top-shell:not([data-library-open])
+  .next-folder-parent
+  + svg {
+  display: none;
+}
+
+.next-app[data-shell="unified"] .next-folder-picker {
+  display: flex;
+  flex: 1;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.next-app[data-shell="unified"] .next-titlebar .next-action {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  flex-basis: 34px;
+}
+
+.next-app[data-shell="unified"] .next-command-field [data-slot="input-group"] {
+  height: 34px;
+  min-height: 34px;
+  border-radius: 8px;
+}
+
+.next-app[data-shell="unified"] .next-command-field {
+  position: absolute;
+  grid-column: 1 / -1;
+  top: 11px;
+  left: 50%;
+  width: var(--next-search-width);
+  transform: translateX(-50%);
+}
+
+.next-app[data-shell="unified"] .next-search-filter {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 6px);
+}
+
+.next-app[data-shell="unified"] .next-command-field input {
+  font-size: 13px;
+}
+
+.next-app[data-shell="unified"] .next-folder-parent {
+  color: var(--next-muted);
+}
+
+.next-app[data-shell="unified"] .next-command-field input::placeholder {
+  color: #a1a4a9;
+  opacity: 1;
+}
+
+.next-app[data-shell="unified"] .next-shell-filters {
+  position: absolute;
+  grid-column: 1 / -1;
+  grid-row: 1 / 2;
+  top: 100%;
+  justify-self: center;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.next-app[data-shell="unified"] .next-filter-controls {
+  position: relative;
+  height: 50px;
+  padding: 6px 32px;
+}
+
+.next-app[data-shell="unified"] .next-filter-contour {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 50px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.next-app[data-shell="unified"] .next-shell-filters[data-open] {
+  pointer-events: auto;
+}
+
+.next-app[data-shell="unified"] .next-shell-filters [role="toolbar"] {
+  height: 36px;
+  justify-content: center;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.next-app[data-shell="unified"] .next-shell-body {
+  display: contents;
+}
+
+.next-app[data-shell="unified"] .next-library-rail {
+  grid-column: 1;
+  grid-row: 2 / -1;
+}
+
+.next-app[data-shell="unified"] .next-resize-left {
+  top: var(--next-window-radius);
+  bottom: calc(var(--next-footer-height) + var(--next-window-radius));
+}
+
+.next-app[data-shell="unified"] .next-resize-left::after {
+  top: 8px;
+  bottom: 8px;
+  left: auto;
+  right: 0;
+  margin: 0;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 32px,
+    #000 calc(100% - 32px),
+    transparent
+  );
+}
+
+.next-app[data-shell="unified"] .next-context-rail {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+}
+
+/* Closed gutters and dock backgrounds do not move with their panel contents. */
+.next-app[data-shell="unified"]::before,
+.next-app[data-shell="unified"]::after {
+  content: "";
+  grid-row: 2;
+  z-index: 0;
+  background: var(--next-chrome);
+  pointer-events: none;
+}
+
+.next-app[data-shell="unified"]::before {
+  grid-column: 1;
+  grid-row: 2 / -1;
+}
+
+.next-app[data-shell="unified"]::after {
+  grid-column: 3;
+}
+
+.next-app[data-shell="unified"] .next-main {
+  grid-column: 2;
+  grid-row: 2;
+  border: 0;
+  border-radius: var(--next-window-radius);
+  overflow: visible;
+  background: transparent;
+}
+
+/* Only mask the corners: the native image is not clipped by DOM border radii. */
+.next-app[data-shell="unified"] .next-viewport-corners {
+  position: absolute;
+  z-index: 25;
+  inset: 0;
+  pointer-events: none;
+}
+
+.next-app[data-shell="unified"] .next-viewport-corners::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--next-inset-line);
+  border-radius: var(--next-window-radius);
+  box-shadow:
+    inset 1px 1px 0 var(--next-bevel-highlight),
+    inset -1px -1px 0 var(--next-bevel-shadow);
+}
+
+.next-app[data-shell="unified"] .next-viewport-corners > span {
+  position: absolute;
+  width: var(--next-window-radius);
+  height: var(--next-window-radius);
+  overflow: hidden;
+}
+
+.next-app[data-shell="unified"] .next-viewport-corners > span::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--next-window-radius) * 2);
+  height: calc(var(--next-window-radius) * 2);
+  border-radius: 50%;
+  box-shadow: 0 0 0 var(--next-window-radius) var(--next-chrome);
+}
+
+.next-app[data-shell="unified"] .next-viewport-corners > span:nth-child(1) {
+  top: 0;
+  left: 0;
+}
+
+.next-app[data-shell="unified"] .next-viewport-corners > span:nth-child(2) {
+  top: 0;
+  right: 0;
+  transform: rotate(90deg);
+}
+
+.next-app[data-shell="unified"] .next-viewport-corners > span:nth-child(3) {
+  bottom: 0;
+  right: 0;
+  transform: rotate(180deg);
+}
+
+.next-app[data-shell="unified"] .next-viewport-corners > span:nth-child(4) {
+  bottom: 0;
+  left: 0;
+  transform: rotate(270deg);
+}
+
+.next-app[data-shell="unified"] .next-grid-layer {
+  overflow: hidden;
+  border-radius: var(--next-window-radius);
+  background: transparent;
+}
+
+.next-app[data-shell="unified"] .next-library,
+.next-app[data-shell="unified"] .next-context-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.next-app[data-shell="unified"] .next-context-rail {
+  margin-left: 0;
+}
+
+.next-app[data-shell="unified"] .next-panel-heading {
+  min-height: 46px;
+  padding: 8px 16px;
+  border: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.next-app[data-shell="unified"] .next-open-folder {
+  height: 36px;
+  min-height: 36px;
+  font-size: 12px;
+  font-weight: 600;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.next-app[data-shell="unified"] .next-library-tree li {
+  min-height: 30px;
+}
+
+.next-app[data-shell="unified"] .next-library-tree li > button {
+  height: 28px;
+  min-height: 28px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.next-app[data-shell="unified"] .next-library-tree li > button > svg {
+  color: var(--next-muted);
+}
+
+.next-app[data-shell="unified"]
+  .next-library-tree
+  li
+  > button[aria-expanded="true"]
+  > svg {
+  color: #d8d9dc;
+}
+
+.next-app[data-shell="unified"] .next-library-tree li > span.rounded-xl {
+  background: #353535;
+}
+
+.next-app[data-shell="unified"] .next-tool-rail {
+  position: absolute;
+  grid-column: 3 / 4;
+  grid-row: 1 / -1;
+  inset: 0;
+  z-index: 50;
+  background: transparent;
+  pointer-events: none;
+}
+
+.next-app[data-shell="unified"] .next-tool-target {
+  position: absolute;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  pointer-events: auto;
+}
+
+/* Closed tools sit inside the aperture's 56 px header and 44 px footer. */
+.next-app[data-shell="unified"] .next-tool-target-edit {
+  top: 64px;
+}
+
+.next-app[data-shell="unified"] .next-tool-target-info {
+  bottom: 52px;
+}
+
+.next-app[data-shell="unified"]
+  .next-tool-rail[data-panel-open]
+  .next-tool-target {
+  right: 12px;
+}
+
+.next-app[data-shell="unified"]
+  .next-tool-rail[data-panel-open]
+  .next-tool-target-edit {
+  top: 8px;
+}
+
+.next-app[data-shell="unified"]
+  .next-tool-rail[data-panel-open]
+  .next-tool-target-info {
+  bottom: 2px;
+}
+
+.next-app[data-shell="unified"] .next-tool-rail .next-action {
+  position: relative;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  flex-basis: 40px;
+  border-radius: 8px;
+}
+
+.next-app[data-shell="unified"] .next-activity-rail .next-action[data-active],
+.next-app[data-shell="unified"] .next-tool-rail .next-action[data-active] {
+  background: rgba(255, 255, 255, 0.075);
+  color: #fff;
+}
+
+.next-app[data-shell="unified"]
+  .next-tool-rail
+  .next-action[data-active]::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 13px;
+  width: 2px;
+  height: 14px;
+  border-radius: 2px;
+  background: #fff;
+}
+
+.next-app[data-shell="unified"] .next-filmstrip {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.next-app[data-shell="unified"] .next-filmstrip [data-photo-navigation] {
+  border: 0;
+  padding-inline: 12px;
+}
+
+.next-app[data-shell="unified"] .next-filmstrip img {
+  border-radius: 6px;
+}
+
+.next-app[data-shell="unified"] .next-filmstrip [data-filmstrip-caption] {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.next-app[data-shell="unified"]
+  .next-filmstrip
+  [role="option"]:hover
+  [data-filmstrip-caption],
+.next-app[data-shell="unified"]
+  .next-filmstrip
+  [role="option"]:focus-within
+  [data-filmstrip-caption],
+.next-app[data-shell="unified"]
+  .next-filmstrip
+  [aria-selected="true"]
+  [data-filmstrip-caption] {
+  opacity: 1;
+}
+
+body:has(.next-app[data-shell="unified"]) .editor-tooltip {
+  font-family:
+    "Inter UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+
+.next-app[data-shell="unified"] .next-histogram {
+  height: 108px;
+  min-height: 108px;
+  padding: 8px 14px 10px;
+}
+
+.next-app[data-shell="unified"] .next-adjustment-content {
+  padding: 0 12px 16px;
+}
+
+.next-app[data-shell="unified"] .next-adjustment-content .accordion__trigger {
+  font-size: 12px;
+}
+
+.next-app[data-shell="unified"]
+  .next-context-content
+  .accordion__item.editor-surface {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.next-app[data-shell="unified"]
+  .next-context-content
+  .accordion__item:not(:last-child)::after {
+  display: block;
+  background: var(--next-line);
+}
+
+.next-app[data-shell="unified"] .next-statusbar {
+  position: relative;
+  display: grid;
+  grid-column: 2 / -1;
+  grid-row: 3;
+  grid-template-columns: subgrid;
+  gap: 0;
+  height: var(--next-footer-height);
+  min-height: var(--next-footer-height);
+  padding: 0;
+}
+
+.next-app[data-shell="unified"] .next-statusbar-leading {
+  gap: 8px;
+}
+
+.next-app[data-shell="unified"] .next-statusbar-workspace {
+  display: grid;
+  grid-column: 1;
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, max-content) minmax(
+      max-content,
+      1fr
+    );
+  align-items: center;
+  gap: 0;
+  height: var(--next-footer-height);
+  min-width: 0;
+  padding-inline: 6px;
+  container-type: inline-size;
+}
+
+.next-app[data-shell="unified"] .next-compact-sort-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--next-muted);
+}
+
+.next-app[data-shell="unified"] .next-compact-sort-trigger:hover {
+  background: var(--next-hover);
+  color: var(--next-text);
+}
+
+body:has(.next-app[data-shell="unified"]) .next-sort-popover {
+  font-family:
+    "Inter UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  background: #303030;
+  color: #eeeef0;
+}
+
+body:has(.next-app[data-shell="unified"]) .next-sort-popover .menu-item {
+  min-height: 30px;
+  border-radius: 6px;
+  font-size: 12px;
+  box-shadow: none;
+}
+
+body:has(.next-app[data-shell="unified"])
+  .next-sort-popover
+  .menu-item[data-focused="true"],
+body:has(.next-app[data-shell="unified"])
+  .next-sort-popover
+  .menu-item[data-focus="true"],
+body:has(.next-app[data-shell="unified"])
+  .next-sort-popover
+  .menu-item[data-hovered="true"] {
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.next-app[data-shell="unified"] .next-statusbar-center {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.next-app[data-shell="unified"] .next-statusbar-trailing {
+  gap: 4px;
+}
+
+.next-app[data-shell="unified"] .next-activity-rail {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+}
+
+.next-app[data-shell="unified"] .next-statusbar .next-action {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  flex-basis: 34px;
+}
+
+.next-app[data-shell="unified"] .next-selection-status {
+  max-width: 100%;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--next-muted);
+  overflow: hidden;
+}
+
+.next-app[data-shell="unified"] .next-selection-status > [role="presentation"] {
+  flex-shrink: 0;
+}
+
+.next-app[data-shell="unified"] .next-photo-count {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@container (max-width: 420px) {
+  .next-app[data-shell="unified"] .next-selected-name,
+  .next-app[data-shell="unified"] .next-status-divider {
+    display: none;
+  }
+}
+
+@container (max-width: 300px) {
+  .next-app[data-shell="unified"] .next-statusbar-leading {
+    gap: 4px;
+  }
+
+  .next-app[data-shell="unified"] .next-activity-rail {
+    gap: 2px;
+  }
+
+  .next-app[data-shell="unified"] .next-statusbar .next-action,
+  .next-app[data-shell="unified"] .next-compact-sort-trigger {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    flex-basis: 28px;
+  }
+
+  .next-app[data-shell="unified"] .next-selection-status {
+    gap: 6px;
+    font-size: 10px;
+  }
+
+  .next-app[data-shell="unified"] .next-photo-count {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .next-app[data-shell="unified"]
+    .next-selection-status[data-has-selection]
+    .next-photo-count {
+    display: none;
+  }
+}
+
+.next-app[data-shell="unified"] .next-statusbar .next-clear-selection {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  min-height: 20px;
+  flex-basis: 20px;
 }
