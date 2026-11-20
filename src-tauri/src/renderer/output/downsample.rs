@@ -9,7 +9,7 @@ pub(in crate::renderer) fn downsample_display_texture(
     height: u32,
 ) -> Result<wgpu::Texture> {
     let target_texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Inspection Checkpoint Downsampled Output Texture"),
+        label: Some("Image Output Downsampled Texture"),
         size: wgpu::Extent3d {
             width,
             height,
@@ -25,13 +25,13 @@ pub(in crate::renderer) fn downsample_display_texture(
     let source_view = source_texture.create_view(&wgpu::TextureViewDescriptor::default());
     let target_view = target_texture.create_view(&wgpu::TextureViewDescriptor::default());
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-        label: Some("Inspection Checkpoint Downsample Sampler"),
+        label: Some("Image Output Downsample Sampler"),
         mag_filter: wgpu::FilterMode::Linear,
         min_filter: wgpu::FilterMode::Linear,
         ..Default::default()
     });
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Inspection Checkpoint Downsample Shader"),
+        label: Some("Image Output Downsample Shader"),
         source: wgpu::ShaderSource::Wgsl(
             r#"
 @group(0) @binding(0) var source_texture: texture_2d<f32>;
@@ -57,7 +57,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         ),
     });
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("Inspection Checkpoint Downsample Bind Group Layout"),
+        label: Some("Image Output Downsample Bind Group Layout"),
         entries: &[
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
@@ -88,12 +88,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         ],
     });
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("Inspection Checkpoint Downsample Pipeline Layout"),
+        label: Some("Image Output Downsample Pipeline Layout"),
         bind_group_layouts: &[&bind_group_layout],
         push_constant_ranges: &[],
     });
     let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("Inspection Checkpoint Downsample Pipeline"),
+        label: Some("Image Output Downsample Pipeline"),
         layout: Some(&pipeline_layout),
         module: &shader,
         entry_point: Some("main"),
@@ -101,7 +101,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         cache: None,
     });
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("Inspection Checkpoint Downsample Bind Group"),
+        label: Some("Image Output Downsample Bind Group"),
         layout: &bind_group_layout,
         entries: &[
             wgpu::BindGroupEntry {
@@ -119,12 +119,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         ],
     });
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("Inspection Checkpoint Downsample Encoder"),
+        label: Some("Image Output Downsample Encoder"),
     });
 
     {
         let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-            label: Some("Inspection Checkpoint Downsample Pass"),
+            label: Some("Image Output Downsample Pass"),
             timestamp_writes: None,
         });
         pass.set_pipeline(&pipeline);

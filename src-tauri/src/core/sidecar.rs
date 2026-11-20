@@ -119,6 +119,13 @@ impl Sidecar {
         &self.recipe
     }
 
+    /// Replaces editing parameters while leaving save-managed metadata intact.
+    pub fn set_recipe(&mut self, recipe: EditRecipe) -> anyhow::Result<()> {
+        recipe.validate()?;
+        self.recipe = recipe;
+        Ok(())
+    }
+
     /// Builds a persisted sidecar wrapper from an image path and in-memory recipe.
     fn from_recipe(image_path: &str, recipe: &EditRecipe) -> Result<Self, SidecarError> {
         let updated_at = match current_timestamp() {
@@ -270,7 +277,7 @@ pub fn save_sidecar(path: &str, sidecar: &Sidecar) -> Result<(), SidecarError> {
 }
 
 /// Derives the sibling `.exts` sidecar path for an image file.
-fn sidecar_path_for_image(path: &str) -> Result<PathBuf, SidecarError> {
+pub fn sidecar_path_for_image(path: &str) -> Result<PathBuf, SidecarError> {
     if path.is_empty() {
         return Err(SidecarError::InvalidSourcePath {
             path: path.to_string(),

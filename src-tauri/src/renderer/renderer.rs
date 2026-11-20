@@ -1,13 +1,11 @@
 use super::context::{GpuContext, SurfaceContext};
 use super::display_resources::DisplayResources;
 use super::image_request::ImageRequest;
-use super::input::{
-    DevelopmentSource, DisplayIntent, Input, OutputTransformSettings, SourceMetadata,
-};
+use super::input::{DevelopmentSource, Input, OutputTransformSettings, SourceMetadata};
 use super::inspection::{
     ImageInspection, InspectionSnapshot, PipelineInspection, RawImageInspection,
 };
-use super::processing_graph::{DevelopmentParameters, ImageProcessingGraph};
+use super::processing_graph::ImageProcessingGraph;
 use super::schedule::{RenderSchedule, RenderState};
 use super::viewer::Viewer;
 use crate::core::editing::EditRecipe;
@@ -143,7 +141,6 @@ impl Renderer {
         let image = input.image();
         let dimensions = image.dimensions();
         let development_source = input.development_source();
-        let development_parameters = input.development_parameters();
         let output_transform = input.output_transform();
 
         self.display_checkboard(image.has_transparency());
@@ -156,37 +153,18 @@ impl Renderer {
             output_transform,
         );
         self.inspection.timings.input_build_ms = input_build_ms;
-        self.update_output_transform(output_transform);
-        self.upload_source_image(
-            image.texels(),
-            dimensions.width(),
-            dimensions.height(),
-            development_source,
-            development_parameters,
-        );
+        self.upload_source_image(&input);
     }
 
-    fn upload_source_image(
-        &mut self,
-        texels: &[f32],
-        width: u32,
-        height: u32,
-        development_source: DevelopmentSource,
-        development_parameters: DevelopmentParameters,
-    ) {
+    fn upload_source_image(&mut self, input: &Input) {
+        let dimensions = input.image().dimensions();
+        let (width, height) = (dimensions.width(), dimensions.height());
         info!("[Renderer] Uploading source image ({}x{})", width, height);
 
         self.has_image = true;
 
-        self.processing_graph.upload_source_image(
-            &self.gpu.device,
-            &self.gpu.queue,
-            texels,
-            width,
-            height,
-            development_source,
-            development_parameters,
-        );
+        self.processing_graph
+            .set_input(&self.gpu.device, &self.gpu.queue, input);
         self.refresh_texture_inspection();
 
         self.display_resources
@@ -203,16 +181,6 @@ impl Renderer {
             recipe.exposure_ev,
         );
         self.inspection.pipeline.user_exposure_ev = recipe.exposure_ev;
-    }
-
-    /// Updates active output transform parameters while preserving other display state.
-    fn update_output_transform(&mut self, output_transform: OutputTransformSettings) {
-        self.processing_graph.update_output_transform(
-            &self.gpu.device,
-            &self.gpu.queue,
-            graph_display_intent(output_transform.display_intent()),
-            output_transform.base_exposure_ev(),
-        );
     }
 
     pub fn clear(&mut self) {
@@ -375,7 +343,7 @@ impl Renderer {
     ) {
         self.inspection.has_image = true;
         self.inspection.image = Some(ImageInspection {
-            source_kind: source_kind_label(development_source).to_string(),
+            source_kind: development_source.source_kind().to_string(),
             width,
             height,
             has_transparency,
@@ -384,8 +352,8 @@ impl Renderer {
                 .map(RawImageInspection::from_source_metadata),
         });
         self.inspection.pipeline = PipelineInspection {
-            development_source: development_source_label(development_source).to_string(),
-            display_intent: display_intent_label(output_transform.display_intent()).to_string(),
+            development_source: development_source.label().to_string(),
+            display_intent: output_transform.display_intent().label().to_string(),
             base_exposure_ev: Some(output_transform.base_exposure_ev()),
             user_exposure_ev: self.inspection.pipeline.user_exposure_ev,
         };
@@ -397,33 +365,5 @@ impl Renderer {
             self.surface.width(),
             self.surface.height(),
         );
-    }
-}
-
-fn graph_display_intent(intent: DisplayIntent) -> u32 {
-    match intent {
-        DisplayIntent::DirectSdr => 0,
-        DisplayIntent::ToneMapToSdr => 1,
-    }
-}
-
-fn source_kind_label(source: DevelopmentSource) -> &'static str {
-    match source {
-        DevelopmentSource::RasterSrgb => "Raster",
-        DevelopmentSource::RawBayer2x2 => "RAW",
-    }
-}
-
-fn development_source_label(source: DevelopmentSource) -> &'static str {
-    match source {
-        DevelopmentSource::RasterSrgb => "Raster sRGB",
-        DevelopmentSource::RawBayer2x2 => "RAW Bayer 2x2",
-    }
-}
-
-fn display_intent_label(intent: DisplayIntent) -> &'static str {
-    match intent {
-        DisplayIntent::DirectSdr => "Direct SDR",
-        DisplayIntent::ToneMapToSdr => "Tone Map to SDR",
     }
 }

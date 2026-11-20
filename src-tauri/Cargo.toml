@@ -1,5 +1,6 @@
 [package]
 name = "Extents"
+default-run = "Extents"
 version = "0.1.0"
 description = "Extents"
 authors = ["Oluwademilade Daniel-Akanle"]

@@ -108,11 +108,43 @@ pub(in crate::renderer) enum DevelopmentSource {
     RawBayer2x2,
 }
 
+impl DevelopmentSource {
+    pub(super) fn source_kind(self) -> &'static str {
+        match self {
+            Self::RasterSrgb => "Raster",
+            Self::RawBayer2x2 => "RAW",
+        }
+    }
+
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::RasterSrgb => "Raster sRGB",
+            Self::RawBayer2x2 => "RAW Bayer 2x2",
+        }
+    }
+}
+
 /// Controls how graph output should be rendered for display.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum DisplayIntent {
     DirectSdr,
     ToneMapToSdr,
+}
+
+impl DisplayIntent {
+    pub(super) fn graph_value(self) -> u32 {
+        match self {
+            Self::DirectSdr => 0,
+            Self::ToneMapToSdr => 1,
+        }
+    }
+
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::DirectSdr => "Direct SDR",
+            Self::ToneMapToSdr => "Tone Map to SDR",
+        }
+    }
 }
 
 /// Output-transform settings selected for renderer input display.

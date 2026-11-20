@@ -5,6 +5,8 @@ mod image_request;
 mod input;
 mod inspection;
 mod manager;
+pub mod offscreen;
+pub mod output;
 mod pipeline;
 mod processing_graph;
 mod renderer;

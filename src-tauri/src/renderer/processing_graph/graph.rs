@@ -1,12 +1,14 @@
 use super::super::inspection::{capture_output_png, TextureInspection, TextureResourceInspection};
+use super::super::output::{read_output_image, RenderSettings};
 use super::super::texture::ImageTexture;
 use super::parameters::{
     AdjustmentParameters, AdjustmentParametersBuffer, DevelopmentParameters,
     DevelopmentParametersBuffer, OutputTransformParameters, OutputTransformParametersBuffer,
 };
 use super::stages::{AdjustmentStage, DevelopmentStage, OutputTransformStage};
-use crate::renderer::input::DevelopmentSource;
+use crate::renderer::input::{DevelopmentSource, Input};
 use anyhow::Result;
+use image::RgbaImage;
 use std::path::Path;
 
 /// GPU-side image processing graph for the active renderer image.
@@ -71,8 +73,35 @@ impl ImageProcessingGraph {
         }
     }
 
+    /// Applies the same source and output settings for desktop and offscreen use.
+    pub(in crate::renderer) fn set_input(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        input: &Input,
+    ) {
+        let output = input.output_transform();
+        self.update_output_transform(
+            device,
+            queue,
+            output.display_intent().graph_value(),
+            output.base_exposure_ev(),
+        );
+        let image = input.image();
+        let dimensions = image.dimensions();
+        self.upload_source_image(
+            device,
+            queue,
+            image.texels(),
+            dimensions.width(),
+            dimensions.height(),
+            input.development_source(),
+            input.development_parameters(),
+        );
+    }
+
     /// Uploads packed renderer texels and runs the graph's current processing stages.
-    pub(in crate::renderer) fn upload_source_image(
+    fn upload_source_image(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -153,6 +182,23 @@ impl ImageProcessingGraph {
             self.output_texture.width(),
             self.output_texture.height(),
             path,
+        )
+    }
+
+    /// Reads sRGB output at the requested size without requiring a file or surface.
+    pub(in crate::renderer) fn read_display_output(
+        &self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        settings: &RenderSettings,
+    ) -> Result<RgbaImage> {
+        read_output_image(
+            device,
+            queue,
+            self.output_texture.texture(),
+            self.output_texture.width(),
+            self.output_texture.height(),
+            settings,
         )
     }
 

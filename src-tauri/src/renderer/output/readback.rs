@@ -16,14 +16,14 @@ pub(in crate::renderer) fn read_display_texture_as_rgba8(
     let buffer_size = u64::from(padded_bytes_per_row) * u64::from(height);
 
     let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("Inspection Checkpoint Output Readback Buffer"),
+        label: Some("Image Output Readback Buffer"),
         size: buffer_size,
         usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
         mapped_at_creation: false,
     });
 
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("Inspection Checkpoint Output Readback Encoder"),
+        label: Some("Image Output Readback Encoder"),
     });
 
     encoder.copy_texture_to_buffer(

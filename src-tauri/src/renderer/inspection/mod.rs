@@ -1,8 +1,6 @@
 mod capture;
-mod downsample;
 mod image;
 mod pipeline;
-mod readback;
 mod snapshot;
 mod texture;
 mod timing;
